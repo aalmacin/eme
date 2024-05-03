@@ -1,6 +1,7 @@
 package com.raidrin.eme.audio;
 
-public enum LanguageCodes {
+public enum LanguageAudioCodes {
+    English("en-US"),
     Spanish("es-US"),
     French("fr-FR"),
     CanadianFrench("fr-CA"),
@@ -9,7 +10,7 @@ public enum LanguageCodes {
 
     private final String code;
 
-    LanguageCodes(String code) {
+    LanguageAudioCodes(String code) {
         this.code = code;
     }
 

@@ -3,13 +3,13 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>Generate Text to Audio</title>
+    <title>Eme - Language translator and audio</title>
     <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.1.3/css/bootstrap.min.css}">
 </head>
 
 <body>
 <div class="container mt-5">
-    <h1>Text to MP3</h1>
+    <h1>Eme</h1>
     <div th:if="${not #lists.isEmpty(errors)}" class="alert alert-danger">
         <h4>Error:</h4>
         <ul>
@@ -20,7 +20,8 @@
         <div class="col-md-6">
             <form th:action="@{/generate}" method="post">
                 <div class="mb-3">
-                    <label for="text" class="form-label">Enter text to generate audio:</label>
+                    <label for="text" class="form-label">Enter text for source text:</label>
+                    <p class="small">Each line is a translation entry.</p>
                     <textarea class="form-control" id="text" name="text" rows="3"></textarea>
                 </div>
                 <div class="mb-3">
@@ -31,17 +32,82 @@
                         <option value="es">Spanish</option>
                         <option value="fr">French</option>
                         <option value="cafr">Canadian French</option>
+                        <option value="en">English</option>
                     </select>
                 </div>
                 <div class="form-check">
-                    <input type="checkbox" class="form-check-input" id="multi-mp3" name="multi-mp3">
-                    <label class="form-check-label" for="multi-mp3">Generate Multiple MP3s</label>
+                    <input type="checkbox" class="form-check-input" id="source-audio" name="source-audio">
+                    <label class="form-check-label" for="source-audio">Source Audio</label>
+                </div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="target-audio" name="target-audio">
+                    <label class="form-check-label" for="target-audio">Target Audio</label>
+                </div>
+                <div class="py-3 row">
+                    <h3>Options</h3>
+                    <p>Only works for multiple mp3s</p>
+                </div>
+                <div class="py-3 row">
+                    <a class="btn btn-primary" data-bs-toggle="collapse" href="#translationCollapse" role="button">
+                        Translation Options
+                    </a>
+                </div>
+                <div class="py-3 collapse" id="translationCollapse">
+                    <div class="form-check">
+                        <input type="checkbox" class="form-check-input" id="translation" name="translation">
+                        <label class="form-check-label" for="translation">Translate</label>
+                    </div>
+                    <div class="mb-3">
+                        <label for="lang" class="form-label">Select Target Language:</label>
+                        <select class="form-select" id="target-lang" name="target-lang">
+                            <option value="en">English</option>
+                            <option value="jp">Japanese</option>
+                            <option value="kr">Korean</option>
+                            <option value="es">Spanish</option>
+                            <option value="fr">French</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="py-3 row">
+                    <a class="btn btn-primary" data-bs-toggle="collapse" href="#ankiCollapse" role="button">
+                        Anki Card Options
+                    </a>
+                </div>
+                <div class="py-3 collapse" id="ankiCollapse">
+                    <div class="py-2">
+                        <h3>Anki Cards</h3>
+                        <div class="form-check">
+                            <input type="checkbox" class="form-check-input" id="anki" name="anki">
+                            <label class="form-check-label" for="anki">Generate Anki Cards</label>
+                        </div>
+                    </div>
+                    <div class="py-2">
+                        <div>
+                            <h4>Placeholders</h4>
+                            <div>[source-text]</div>
+                            <div>[source-audio]</div>
+                            <div>[target-text]</div>
+                            <div>[target-audio]</div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="front" class="form-label">Front:</label>
+                        <textarea class="form-control" id="front" name="front" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="back" class="form-label">Back:</label>
+                        <textarea class="form-control" id="back" name="back" rows="3"></textarea>
+                    </div>
                 </div>
                 <button type="submit" class="btn btn-primary">Generate</button>
             </form>
         </div>
     </div>
 </div>
+
+<script th:src="@{/webjars/jquery/3.6.0/jquery.min.js}" type="application/javascript"></script>
+<script th:src="@{/webjars/bootstrap/5.1.3/js/bootstrap.bundle.min.js}" type="application/javascript"></script>
+
 </body>
 
 </html>
