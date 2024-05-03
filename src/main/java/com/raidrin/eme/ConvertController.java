@@ -1,13 +1,14 @@
 package com.raidrin.eme;
 
 import com.google.cloud.texttospeech.v1.SsmlVoiceGender;
+import com.raidrin.eme.anki.AnkiNoteCreatorService;
 import com.raidrin.eme.codec.Codec;
 import com.raidrin.eme.translator.LanguageTranslationCodes;
 import com.raidrin.eme.audio.LanguageAudioCodes;
 import com.raidrin.eme.audio.TextToAudioGenerator;
 import com.raidrin.eme.translator.TranslatorService;
 import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -20,12 +21,11 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 @Controller
+@RequiredArgsConstructor
 public class ConvertController {
-    @Autowired
-    TextToAudioGenerator textToAudioGenerator;
-
-    @Autowired
-    TranslatorService translatorService;
+    private final AnkiNoteCreatorService ankiNoteCreatorService;
+    private final TextToAudioGenerator textToAudioGenerator;
+    private final TranslatorService translatorService;
 
     @GetMapping("/")
     public String index() {
@@ -38,17 +38,23 @@ public class ConvertController {
             @RequestParam(required = false) String lang,
             @RequestParam(required = false) String front,
             @RequestParam(required = false) String back,
+            @RequestParam(required = false) String deck,
             @RequestParam(required = false) Boolean translation,
             @RequestParam(name = "source-audio", required = false) Boolean sourceAudio,
             @RequestParam(name = "target-audio", required = false) Boolean targetAudio,
-            @RequestParam(required = false) String targetLang,
+            @RequestParam(name = "target-lang", required = false) String targetLang,
             @RequestParam(required = false) Boolean anki,
             HttpServletResponse response
     ) throws IOException {
+        translation = translation != null && translation;
+        sourceAudio = sourceAudio != null && sourceAudio;
+        targetAudio = targetAudio != null && targetAudio;
+        anki = anki != null && anki;
+
         // Initialize the EmeData map
         String[] sourceTextList = Arrays.stream(userInput.split("\n"))
                 .map(String::trim).toArray(String[]::new);
-        Map<String, EmeData> emeDataMap = new HashMap<>();
+        List<EmeData> emeDataList = new ArrayList<>();
         for (String sourceText : sourceTextList) {
             EmeData emeData = new EmeData();
 
@@ -60,7 +66,7 @@ public class ConvertController {
             // Generate Source Audio
             if (sourceAudio) {
                 emeData.sourceAudioFileName = Codec.encode(sourceText);
-                byte[] audio = generateAudio(getLangAudioOption(targetLang), sourceText);
+                byte[] audio = generateAudio(getLangAudioOption(lang), sourceText);
                 emeData.audioByteMap.put(emeData.sourceAudioFileName, audio);
             }
 
@@ -85,34 +91,46 @@ public class ConvertController {
             if (anki) {
                 emeData.ankiFront = ankiReplace(front.trim(), emeData);
                 emeData.ankiBack = ankiReplace(back.trim(), emeData);
+                ankiNoteCreatorService.addNote(deck, emeData.ankiFront, emeData.ankiBack);
             }
 
-            emeDataMap.put(sourceText, emeData);
+            emeDataList.add(emeData);
 
-            if(sourceAudio || targetAudio) {
-                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-                ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream);
+        }
 
-                emeData.audioByteMap.forEach((audioFileName, audio) -> {
-                    try {
-                        zipOutputStream.putNextEntry(new ZipEntry(audioFileName + ".mp3"));
-                        zipOutputStream.write(audio);
-                        zipOutputStream.closeEntry();
-                    } catch (Exception e) {
-                        throw new RuntimeException("Failed to write to zip file", e);
-                    }
-                });
+        System.out.println("User input: " + userInput);
+        System.out.println("Language: " + lang);
+        System.out.println("Source audio: " + sourceAudio);
+        System.out.println("Target audio: " + targetAudio);
+        System.out.println("Translation: " + translation);
+        System.out.println("Anki: " + anki);
+        System.out.println("Front: " + front);
+        System.out.println("Back: " + back);
+        System.out.println(emeDataList);
 
-                zipOutputStream.close();
+        if (sourceAudio || targetAudio) {
+            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+            ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream);
 
-                response.setContentType("application/zip");
-                response.setHeader("Content-Disposition", "attachment; filename=\"audio.zip\"");
-                response.getOutputStream().write(byteArrayOutputStream.toByteArray());
-            } else {
-                response.setContentType("text/plain");
-                response.setStatus(HttpServletResponse.SC_OK);
-                response.getWriter().write("Success message");
-            }
+            emeDataList.forEach(emeData -> emeData.audioByteMap.forEach((audioFileName, audio) -> {
+                try {
+                    zipOutputStream.putNextEntry(new ZipEntry(audioFileName + ".mp3"));
+                    zipOutputStream.write(audio);
+                    zipOutputStream.closeEntry();
+                } catch (Exception e) {
+                    throw new RuntimeException("Failed to write to zip file", e);
+                }
+            }));
+
+            zipOutputStream.close();
+
+            response.setContentType("application/zip");
+            response.setHeader("Content-Disposition", "attachment; filename=\"audio.zip\"");
+            response.getOutputStream().write(byteArrayOutputStream.toByteArray());
+        } else {
+            response.setContentType("text/plain");
+            response.setStatus(HttpServletResponse.SC_OK);
+            response.getWriter().write("Success message");
         }
     }
 
@@ -124,7 +142,7 @@ public class ConvertController {
     private String ankiReplace(String text, EmeData emeData) {
         String updatedText = text
                 .replace("[source-text]", emeData.sourceText)
-                .replace("[source-audio]", emeData.sourceAudioFileName);
+                .replace("[source-audio]", audioAnkiGenerator(emeData.sourceAudioFileName));
 
         boolean hasTargetAudio = text.contains("[target-audio]");
         if (hasTargetAudio) {
@@ -159,27 +177,6 @@ public class ConvertController {
         );
     }
 
-//    private void generateAudio(LangAudioOption langAudioOption, List<String> texts, ZipOutputStream zipOutputStream) {
-//        if (langAudioOption == null) {
-//            throw new RuntimeException("Invalid language code");
-//        }
-//        texts.forEach(textItem -> {
-//            byte[] audio = textToAudioGenerator.generate(
-//                    textItem.trim(),
-//                    langAudioOption.languageCode,
-//                    langAudioOption.voiceGender,
-//                    langAudioOption.voiceName
-//            );
-//            try {
-//                zipOutputStream.putNextEntry(new ZipEntry(textItem.trim() + ".mp3"));
-//                zipOutputStream.write(audio);
-//                zipOutputStream.closeEntry();
-//            } catch (Exception e) {
-//                throw new RuntimeException("Failed to write to zip file", e);
-//            }
-//        });
-//    }
-
     private LanguageTranslationCodes getTranslationCode(String lang) {
         switch (lang) {
             case "en" -> {
@@ -197,9 +194,7 @@ public class ConvertController {
             case "jp" -> {
                 return LanguageTranslationCodes.Japanese;
             }
-            default -> {
-                throw new RuntimeException("Invalid language code");
-            }
+            default -> throw new RuntimeException("Invalid language code");
         }
     }
 
@@ -231,6 +226,7 @@ public class ConvertController {
                 langAudioOption.languageCode = LanguageAudioCodes.English;
                 langAudioOption.voiceGender = SsmlVoiceGender.MALE;
                 langAudioOption.voiceName = "en-US-Neural2-A";
+                return langAudioOption;
             }
             case "es" -> {
                 langAudioOption.languageCode = LanguageAudioCodes.Spanish;
@@ -262,9 +258,7 @@ public class ConvertController {
                 langAudioOption.voiceName = "ja-JP-Neural2-C";
                 return langAudioOption;
             }
-            default -> {
-                throw new RuntimeException("Invalid language code");
-            }
+            default -> throw new RuntimeException("Invalid language code");
         }
     }
 
