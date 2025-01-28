@@ -54,7 +54,7 @@ public class ConvertController {
         // Initialize the EmeData map
         String[] sourceTextList = Arrays.stream(userInput.split("\n"))
                 .map(String::trim).toArray(String[]::new);
-        List<EmeData> emeDataList = new ArrayList<>();
+        Set<EmeData> emeDataList = new HashSet<>();
         for (String sourceText : sourceTextList) {
             EmeData emeData = new EmeData();
 
@@ -211,6 +211,20 @@ public class ConvertController {
         public Map<String, byte[]> audioByteMap = new HashMap<>();
         public String ankiFront;
         public String ankiBack;
+
+        @Override
+        public int hashCode() {
+            return 1;
+        }
+
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) return true;
+            if (o == null) return false;
+            if (this.getClass() != o.getClass()) return false;
+            EmeData data = (EmeData) o;
+            return sourceText.equals(data.sourceText);
+        }
     }
 
     private static class LangAudioOption {
