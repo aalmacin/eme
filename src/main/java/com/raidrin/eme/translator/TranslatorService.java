@@ -28,6 +28,7 @@ public class TranslatorService {
                                 .addContents(text)
                                 .build();
 
+                System.out.println("Request translation to Google: " + request);
                 TranslateTextResponse response = client.translateText(request);
 
                 Set<String> translations = new HashSet<>();

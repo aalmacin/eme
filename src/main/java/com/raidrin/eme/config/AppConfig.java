@@ -1,4 +1,4 @@
-package com.raidrin.eme.configs;
+package com.raidrin.eme.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

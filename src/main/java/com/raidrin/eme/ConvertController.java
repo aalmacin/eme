@@ -56,6 +56,8 @@ public class ConvertController {
                 .map(String::trim)
                 .distinct().toArray(String[]::new);
         Set<EmeData> emeDataList = new HashSet<>();
+        Map<String, byte[]> audioFileMap = new HashMap<>();
+
         for (String sourceText : sourceTextList) {
             EmeData emeData = new EmeData();
 
@@ -67,8 +69,10 @@ public class ConvertController {
             // Generate Source Audio
             if (sourceAudio) {
                 emeData.sourceAudioFileName = Codec.encode(sourceText);
-                byte[] audio = generateAudio(getLangAudioOption(lang), sourceText);
-                emeData.audioByteMap.put(emeData.sourceAudioFileName, audio);
+                if(!audioFileMap.containsKey(emeData.sourceAudioFileName)) {
+                    byte[] audio = generateAudio(getLangAudioOption(lang), sourceText);
+                    audioFileMap.put(emeData.sourceAudioFileName, audio);
+                }
             }
 
             // Generate Translation
@@ -83,8 +87,10 @@ public class ConvertController {
                     String audioFileName = Codec.encode(translatedText);
                     emeData.translatedAudioList.add(audioFileName);
                     emeData.translatedTextAudioFileMap.put(translatedText, audioFileName);
-                    byte[] audio = generateAudio(getLangAudioOption(targetLang), translatedText);
-                    emeData.audioByteMap.put(audioFileName, audio);
+                    if(!audioFileMap.containsKey(audioFileName)) {
+                        byte[] audio = generateAudio(getLangAudioOption(targetLang), translatedText);
+                        audioFileMap.put(audioFileName, audio);
+                    }
                 }
             }
 
@@ -107,13 +113,12 @@ public class ConvertController {
         System.out.println("Anki: " + anki);
         System.out.println("Front: " + front);
         System.out.println("Back: " + back);
-        System.out.println(emeDataList);
 
         if (sourceAudio || targetAudio) {
             ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
             ZipOutputStream zipOutputStream = new ZipOutputStream(byteArrayOutputStream);
 
-            emeDataList.forEach(emeData -> emeData.audioByteMap.forEach((audioFileName, audio) -> {
+            audioFileMap.forEach((audioFileName, audio) -> {
                 try {
                     zipOutputStream.putNextEntry(new ZipEntry(audioFileName + ".mp3"));
                     zipOutputStream.write(audio);
@@ -121,7 +126,7 @@ public class ConvertController {
                 } catch (Exception e) {
                     throw new RuntimeException("Failed to write to zip file", e);
                 }
-            }));
+            });
 
             zipOutputStream.close();
 
@@ -209,7 +214,6 @@ public class ConvertController {
         public Set<String> translatedTextList = new HashSet<>();
         public Set<String> translatedAudioList = new HashSet<>();
         public Map<String, String> translatedTextAudioFileMap = new HashMap<>();
-        public Map<String, byte[]> audioByteMap = new HashMap<>();
         public String ankiFront;
         public String ankiBack;
 
