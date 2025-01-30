@@ -4,14 +4,14 @@ import com.google.cloud.translate.v3.*;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 
 @Service
 public class TranslatorService {
     public static final String PROJECT_ID = "translate-raidrin";
 
-    public List<String> translateText(String text, String lang) {
+    public Set<String> translateText(String text, String lang) {
         try {
             try (TranslationServiceClient client = TranslationServiceClient.create()) {
                 // Supported Locations: `global`, [glossary location], or [model location]
@@ -30,7 +30,7 @@ public class TranslatorService {
 
                 TranslateTextResponse response = client.translateText(request);
 
-                ArrayList<String> translations = new ArrayList<>();
+                Set<String> translations = new HashSet<>();
 
                 // Display the translation for each input text provided
                 for (Translation translation : response.getTranslationsList()) {
