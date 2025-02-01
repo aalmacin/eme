@@ -1,6 +1,8 @@
 package com.raidrin.eme.translator;
 
 import com.google.cloud.translate.v3.*;
+
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
@@ -11,7 +13,9 @@ import java.util.Set;
 public class TranslatorService {
     public static final String PROJECT_ID = "translate-raidrin";
 
+    @Cacheable(value = "translationCache", key = "#text + '_' + #lang")
     public Set<String> translateText(String text, String lang) {
+        System.out.println("Translating...");
         try {
             try (TranslationServiceClient client = TranslationServiceClient.create()) {
                 // Supported Locations: `global`, [glossary location], or [model location]
