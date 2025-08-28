@@ -200,6 +200,9 @@ public class ConvertController {
             case "jp" -> {
                 return LanguageTranslationCodes.Japanese;
             }
+            case "hi" -> {
+                return LanguageTranslationCodes.Hindi;
+            }
             default -> throw new RuntimeException("Invalid language code");
         }
     }
@@ -275,6 +278,12 @@ public class ConvertController {
                 langAudioOption.languageCode = LanguageAudioCodes.Japanese;
                 langAudioOption.voiceGender = SsmlVoiceGender.MALE;
                 langAudioOption.voiceName = "ja-JP-Neural2-C";
+                return langAudioOption;
+            }
+            case "hi" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Hindi;
+                langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
+                langAudioOption.voiceName = "hi-IN-Neural2-A";
                 return langAudioOption;
             }
             default -> throw new RuntimeException("Invalid language code");

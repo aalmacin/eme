@@ -6,7 +6,8 @@ public enum LanguageAudioCodes {
     French("fr-FR"),
     CanadianFrench("fr-CA"),
     Korean("ko-KR"),
-    Japanese("ja-JP");
+    Japanese("ja-JP"),
+    Hindi("hi-IN");
 
     private final String code;
 
