@@ -14,7 +14,7 @@ public interface TranslationRepository extends JpaRepository<TranslationEntity, 
     
     Optional<TranslationEntity> findByWordAndSourceLanguageAndTargetLanguage(String word, String sourceLanguage, String targetLanguage);
     
-    @Query("SELECT CONCAT(t.word, ' (', t.sourceLanguage, ' -> ', t.targetLanguage, ')') FROM TranslationEntity t ORDER BY t.updatedAt DESC")
+    @Query("SELECT DISTINCT t.word FROM TranslationEntity t ORDER BY t.word")
     List<String> findAllWordTranslations();
     
     @Query("SELECT COUNT(t) FROM TranslationEntity t")

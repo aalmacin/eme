@@ -48,12 +48,35 @@
             border-radius: 4px;
             margin-bottom: 1rem;
         }
+        
+        .nav-links {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        .nav-links a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #007bff;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+        .nav-links a:hover {
+            background-color: #e9ecef;
+        }
     </style>
 </head>
 
 <body>
 <div class="container mt-5" id="app">
     <h1 class="mb-4">Eme</h1>
+    
+    <div class="nav-links">
+        <a href="/translations">📚 Manage Translations</a>
+        <a href="/sentences">📝 Manage Sentences</a>
+    </div>
 
     <div th:if="${not #lists.isEmpty(errors)}" class="alert alert-danger">
         <h4>Error:</h4>

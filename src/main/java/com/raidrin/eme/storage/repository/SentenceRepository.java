@@ -14,7 +14,7 @@ public interface SentenceRepository extends JpaRepository<SentenceEntity, Long> 
     
     Optional<SentenceEntity> findByWordAndSourceLanguageAndTargetLanguage(String word, String sourceLanguage, String targetLanguage);
     
-    @Query("SELECT CONCAT(s.word, ' (', s.sourceLanguage, ' -> ', s.targetLanguage, ')') FROM SentenceEntity s ORDER BY s.updatedAt DESC")
+    @Query("SELECT DISTINCT s.word FROM SentenceEntity s ORDER BY s.word")
     List<String> findAllWordSentences();
     
     @Query("SELECT COUNT(s) FROM SentenceEntity s")
