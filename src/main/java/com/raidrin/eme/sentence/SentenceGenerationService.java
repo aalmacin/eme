@@ -37,7 +37,7 @@ public class SentenceGenerationService {
         );
         
         OpenAiRequest request = new OpenAiRequest();
-        request.setModel("gpt-3.5-turbo");
+        request.setModel("gpt-4o-mini");  // Using the latest cost-effective model
         request.setMessages(List.of(
             new OpenAiMessage("system", "You are a language learning assistant. Provide exactly 5 lines as requested, nothing more."),
             new OpenAiMessage("user", prompt)
