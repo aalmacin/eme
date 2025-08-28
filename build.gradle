@@ -21,9 +21,9 @@ repositories {
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-web'
     implementation 'org.springframework.boot:spring-boot-starter-actuator'
-    implementation 'org.springframework.boot:spring-boot-starter-cache'
-    implementation 'javax.cache:cache-api:1.1.1'
-    implementation 'org.ehcache:ehcache:3.10.8:jakarta'
+    implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
+    implementation 'org.flywaydb:flyway-core'
+    implementation 'org.postgresql:postgresql'
     compileOnly 'org.projectlombok:lombok'
 
     implementation platform('com.google.cloud:libraries-bom:24.3.0')

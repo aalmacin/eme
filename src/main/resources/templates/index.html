@@ -153,6 +153,7 @@
                             <div v-if="sentenceGeneration">[sentence-transliteration]</div>
                             <div v-if="sentenceGeneration">[sentence-source]</div>
                             <div v-if="sentenceGeneration">[sentence-structure]</div>
+                            <div v-if="sentenceGeneration">[sentence-source-audio]</div>
                         </div>
 
                         <div v-if="anki">
@@ -204,6 +205,10 @@
                                        role="button" @click.prevent="addFrontSentenceStructure">
                                         Add sentence structure
                                     </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addFrontSentenceSourceAudio"
+                                       role="button" @click.prevent="addFrontSentenceSourceAudio">
+                                        Add sentence source audio
+                                    </a>
                                 </div>
                                 <div class="mt-2" v-if="sentenceGeneration">
                                     <button type="button" class="btn btn-success btn-sm" @click="setOptimalHindiCard">
@@ -254,6 +259,10 @@
                                     <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addBackSentenceStructure"
                                        role="button" @click.prevent="addBackSentenceStructure">
                                         Add sentence structure
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addBackSentenceSourceAudio"
+                                       role="button" @click.prevent="addBackSentenceSourceAudio">
+                                        Add sentence source audio
                                     </a>
                                 </div>
                             </div>
@@ -348,12 +357,18 @@
             addBackSentenceStructure: function () {
                 this.back += "[sentence-structure]\n";
             },
+            addFrontSentenceSourceAudio: function () {
+                this.front += "[sentence-source-audio]\n";
+            },
+            addBackSentenceSourceAudio: function () {
+                this.back += "[sentence-source-audio]\n";
+            },
             setOptimalHindiCard: function () {
                 // Set optimal front template
                 this.front = "[source-text] ([sentence-latin])\n[source-audio]";
                 
                 // Set optimal back template
-                this.back = "<br>\n[target-text]\n<br>\n[sentence-source]\n<br>\n[sentence-transliteration]\n<br>\n[sentence-target]\n<br>\n[sentence-structure]";
+                this.back = "<br>\n[target-text]\n<br>\n[sentence-source]\n<br>\n[sentence-transliteration]\n<br>\n[sentence-target]\n<br>\n[sentence-structure]\n<br>\n[sentence-source-audio]";
             },
         }
     })

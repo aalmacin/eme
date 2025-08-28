@@ -1,12 +1,11 @@
 package com.raidrin.eme.sentence;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
+import com.raidrin.eme.storage.service.SentenceStorageService;
 import lombok.Data;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
-import com.raidrin.eme.cache.CacheKeyTracker;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -14,28 +13,42 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
+@RequiredArgsConstructor
 public class SentenceGenerationService {
     
     @Value("${openai.api.key}")
     private String openAiApiKey;
     
-    @Autowired
-    private CacheKeyTracker cacheKeyTracker;
-    
+    private final SentenceStorageService sentenceStorageService;
     private final RestTemplate restTemplate;
     
-    public SentenceGenerationService() {
+    public SentenceGenerationService(SentenceStorageService sentenceStorageService) {
+        this.sentenceStorageService = sentenceStorageService;
         this.restTemplate = new RestTemplate();
     }
     
-    @Cacheable(value = "sentenceCache", key = "#word + '_' + #sourceLanguage + '_' + #targetLanguage")
     public SentenceData generateSentence(String word, String sourceLanguage, String targetLanguage) {
-        String cacheKey = word + "_" + sourceLanguage + "_" + targetLanguage;
-        cacheKeyTracker.addSentenceKey(cacheKey);
-        System.out.println("Generating sentences with OpenAI for: " + word + " (" + sourceLanguage + " -> " + targetLanguage + ")");
+        // Check if sentence already exists in storage
+        Optional<SentenceData> existingSentence = sentenceStorageService.findSentence(word, sourceLanguage, targetLanguage);
+        if (existingSentence.isPresent()) {
+            System.out.println("Found existing sentence for: " + word + " (" + sourceLanguage + " -> " + targetLanguage + ")");
+            return existingSentence.get();
+        }
         
+        // Generate new sentence
+        System.out.println("Generating sentences with OpenAI for: " + word + " (" + sourceLanguage + " -> " + targetLanguage + ")");
+        SentenceData sentenceData = performSentenceGeneration(word, sourceLanguage, targetLanguage);
+        
+        // Save the sentence
+        sentenceStorageService.saveSentence(word, sourceLanguage, targetLanguage, sentenceData);
+        
+        return sentenceData;
+    }
+    
+    private SentenceData performSentenceGeneration(String word, String sourceLanguage, String targetLanguage) {
         String prompt = String.format(
             "Given the word '%s', create a simple sentence in %s using this word. Provide the following 5 elements separated by newlines:\n" +
             "1. The word in Latin characters (romanized)\n" +

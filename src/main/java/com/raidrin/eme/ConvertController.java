@@ -35,9 +35,9 @@ public class ConvertController {
         return "index";
     }
     
-    @GetMapping("/cache")
-    public String cacheViewer() {
-        return "cache-viewer";
+    @GetMapping("/storage")
+    public String storageViewer() {
+        return "storage-viewer";
     }
 
     @PostMapping("/generate")
@@ -109,6 +109,18 @@ public class ConvertController {
                 String sourceLangName = getLanguageName(lang);
                 String targetLangName = translation ? getLanguageName(targetLang) : "English";
                 emeData.sentenceData = sentenceGenerationService.generateSentence(sourceText, targetLangName, sourceLangName);
+                
+                // Generate audio for sentence target (in source language - e.g., Hindi sentence)
+                if (emeData.sentenceData != null && emeData.sentenceData.getTargetLanguageSentence() != null) {
+                    String sentenceTargetText = emeData.sentenceData.getTargetLanguageSentence();
+                    emeData.sentenceTargetAudioFileName = Codec.encode(sentenceTargetText);
+                    
+                    if (!audioFileMap.containsKey(emeData.sentenceTargetAudioFileName)) {
+                        // Generate audio in the source language (e.g., Hindi) for the sentence
+                        byte[] sentenceAudio = generateAudio(getLangAudioOption(lang), sentenceTargetText);
+                        audioFileMap.put(emeData.sentenceTargetAudioFileName, sentenceAudio);
+                    }
+                }
             }
 
             // Generate Anki Cards
@@ -174,7 +186,8 @@ public class ConvertController {
                 .replace("[sentence-target]", emeData.sentenceData.getTargetLanguageSentence())
                 .replace("[sentence-transliteration]", emeData.sentenceData.getTargetLanguageTransliteration())
                 .replace("[sentence-source]", emeData.sentenceData.getSourceLanguageSentence())
-                .replace("[sentence-structure]", emeData.sentenceData.getSourceLanguageStructure());
+                .replace("[sentence-structure]", emeData.sentenceData.getSourceLanguageStructure())
+                .replace("[sentence-source-audio]", emeData.sentenceTargetAudioFileName != null ? audioAnkiGenerator(emeData.sentenceTargetAudioFileName) : "");
         }
 
         boolean hasTargetAudio = text.contains("[target-audio]");
@@ -276,6 +289,7 @@ public class ConvertController {
         public String ankiFront;
         public String ankiBack;
         public SentenceData sentenceData;
+        public String sentenceTargetAudioFileName;
 
         @Override
         public int hashCode() {
