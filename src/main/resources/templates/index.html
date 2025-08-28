@@ -348,6 +348,13 @@
             addBackSentenceStructure: function () {
                 this.back += "[sentence-structure]\n";
             },
+            setOptimalHindiCard: function () {
+                // Set optimal front template
+                this.front = "[source-text] ([sentence-latin])\n[source-audio]";
+                
+                // Set optimal back template
+                this.back = "<br>\n[target-text]\n<br>\n[sentence-source]\n<br>\n[sentence-transliteration]\n<br>\n[sentence-target]\n<br>\n[sentence-structure]";
+            },
         }
     })
 </script>
