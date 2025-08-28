@@ -87,8 +87,9 @@ public class ConvertController {
 
             // Generate Translation
             if (translation) {
-                final LanguageTranslationCodes sourceLangCode = getTranslationCode(targetLang);
-                emeData.translatedTextList = translatorService.translateText(sourceText, sourceLangCode.getCode());
+                final LanguageTranslationCodes sourceLangCode = getTranslationCode(lang);
+                final LanguageTranslationCodes targetLangCode = getTranslationCode(targetLang);
+                emeData.translatedTextList = translatorService.translateText(sourceText, sourceLangCode.getCode(), targetLangCode.getCode());
             }
 
             // Generate Target Audio

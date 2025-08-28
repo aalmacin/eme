@@ -25,11 +25,6 @@ public class SentenceGenerationService {
     private final SentenceStorageService sentenceStorageService;
     private final RestTemplate restTemplate;
     
-    public SentenceGenerationService(SentenceStorageService sentenceStorageService) {
-        this.sentenceStorageService = sentenceStorageService;
-        this.restTemplate = new RestTemplate();
-    }
-    
     public SentenceData generateSentence(String word, String sourceLanguage, String targetLanguage) {
         // Check if sentence already exists in storage
         Optional<SentenceData> existingSentence = sentenceStorageService.findSentence(word, sourceLanguage, targetLanguage);

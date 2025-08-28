@@ -17,6 +17,7 @@ public class SentenceStorageService {
     private final SentenceRepository sentenceRepository;
     
     public Optional<SentenceData> findSentence(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
         return sentenceRepository.findByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage)
                 .map(this::entityToSentenceData);
     }
@@ -25,6 +26,10 @@ public class SentenceStorageService {
     
     @Transactional
     public void saveSentence(String word, String sourceLanguage, String targetLanguage, SentenceData sentenceData) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+        if (sentenceData == null) {
+            throw new IllegalArgumentException("Sentence data must be provided");
+        }
         Optional<SentenceEntity> existing = sentenceRepository.findByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);
         if (existing.isPresent()) {
             SentenceEntity entity = existing.get();
@@ -42,6 +47,7 @@ public class SentenceStorageService {
 
     
     public boolean hasSentence(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
         return sentenceRepository.existsByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);
     }
     
@@ -62,7 +68,8 @@ public class SentenceStorageService {
         );
         Map<String, Object> sampleEntries = new HashMap<>();
         recent.stream().limit(10).forEach(entity -> {
-            sampleEntries.put(entity.getLookupKey(), entityToSentenceData(entity));
+            String key = entity.getWord() + " (" + entity.getSourceLanguage() + " -> " + entity.getTargetLanguage() + ")";
+            sampleEntries.put(key, entityToSentenceData(entity));
         });
         info.put("recentEntries", sampleEntries);
         
@@ -71,7 +78,20 @@ public class SentenceStorageService {
     
     @Transactional
     public void deleteSentence(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
         sentenceRepository.deleteByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);
+    }
+    
+    private void validateParameters(String word, String sourceLanguage, String targetLanguage) {
+        if (word == null || word.trim().isEmpty()) {
+            throw new IllegalArgumentException("Word must be provided");
+        }
+        if (sourceLanguage == null || sourceLanguage.trim().isEmpty()) {
+            throw new IllegalArgumentException("Source language must be provided");
+        }
+        if (targetLanguage == null || targetLanguage.trim().isEmpty()) {
+            throw new IllegalArgumentException("Target language must be provided");
+        }
     }
     
 

@@ -18,10 +18,13 @@ public class TranslatorService {
     
     private final TranslationStorageService translationStorageService;
 
-    public Set<String> translateText(String text, String lang) {
-        // Determine source language (assume Hindi for now, could be improved later)
-        String sourceLanguage = "hi";
-        String targetLanguage = lang;
+    public Set<String> translateText(String text, String sourceLanguage, String targetLanguage) {
+        if (sourceLanguage == null || sourceLanguage.trim().isEmpty()) {
+            throw new IllegalArgumentException("Source language must be provided");
+        }
+        if (targetLanguage == null || targetLanguage.trim().isEmpty()) {
+            throw new IllegalArgumentException("Target language must be provided");
+        }
         
         // Check if translation already exists in storage
         Optional<Set<String>> existingTranslation = translationStorageService.findTranslations(text, sourceLanguage, targetLanguage);
@@ -32,7 +35,7 @@ public class TranslatorService {
         
         // Perform new translation
         System.out.println("Translating with Google Translate API: " + text + " (" + sourceLanguage + " -> " + targetLanguage + ")");
-        Set<String> translations = performTranslation(text, lang);
+        Set<String> translations = performTranslation(text, sourceLanguage, targetLanguage);
         
         // Save the translation
         translationStorageService.saveTranslations(text, sourceLanguage, targetLanguage, translations);
@@ -40,7 +43,7 @@ public class TranslatorService {
         return translations;
     }
     
-    private Set<String> performTranslation(String text, String lang) {
+    private Set<String> performTranslation(String text, String sourceLanguage, String targetLanguage) {
         try {
             try (TranslationServiceClient client = TranslationServiceClient.create()) {
                 // Supported Locations: `global`, [glossary location], or [model location]
@@ -53,7 +56,8 @@ public class TranslatorService {
                         TranslateTextRequest.newBuilder()
                                 .setParent(parent.toString())
                                 .setMimeType("text/plain")
-                                .setTargetLanguageCode(lang)
+                                .setSourceLanguageCode(sourceLanguage)
+                                .setTargetLanguageCode(targetLanguage)
                                 .addContents(text)
                                 .build();
 

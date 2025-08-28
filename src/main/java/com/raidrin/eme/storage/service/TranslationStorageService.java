@@ -20,6 +20,7 @@ public class TranslationStorageService {
     private final ObjectMapper objectMapper;
     
     public Optional<Set<String>> findTranslations(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
         return translationRepository.findByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage)
                 .map(this::deserializeTranslations);
     }
@@ -28,6 +29,10 @@ public class TranslationStorageService {
     
     @Transactional
     public void saveTranslations(String word, String sourceLanguage, String targetLanguage, Set<String> translations) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+        if (translations == null || translations.isEmpty()) {
+            throw new IllegalArgumentException("Translations must be provided");
+        }
         String serializedTranslations = serializeTranslations(translations);
         
         Optional<TranslationEntity> existing = translationRepository.findByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);
@@ -47,6 +52,7 @@ public class TranslationStorageService {
 
     
     public boolean hasTranslations(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
         return translationRepository.existsByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);
     }
     
@@ -67,7 +73,8 @@ public class TranslationStorageService {
         );
         Map<String, Object> sampleEntries = new HashMap<>();
         recent.stream().limit(10).forEach(entity -> {
-            sampleEntries.put(entity.getLookupKey(), deserializeTranslations(entity));
+            String key = entity.getWord() + " (" + entity.getSourceLanguage() + " -> " + entity.getTargetLanguage() + ")";
+            sampleEntries.put(key, deserializeTranslations(entity));
         });
         info.put("recentEntries", sampleEntries);
         
@@ -76,7 +83,20 @@ public class TranslationStorageService {
     
     @Transactional
     public void deleteTranslations(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
         translationRepository.deleteByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);
+    }
+    
+    private void validateParameters(String word, String sourceLanguage, String targetLanguage) {
+        if (word == null || word.trim().isEmpty()) {
+            throw new IllegalArgumentException("Word must be provided");
+        }
+        if (sourceLanguage == null || sourceLanguage.trim().isEmpty()) {
+            throw new IllegalArgumentException("Source language must be provided");
+        }
+        if (targetLanguage == null || targetLanguage.trim().isEmpty()) {
+            throw new IllegalArgumentException("Target language must be provided");
+        }
     }
     
 
