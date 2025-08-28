@@ -95,6 +95,17 @@
             padding: 40px;
             color: #6c757d;
         }
+        .translation-item {
+            margin-bottom: 5px;
+        }
+        .translation-text {
+            background: #e9ecef;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            display: inline-block;
+            margin-right: 5px;
+        }
     </style>
 </head>
 <body>
@@ -114,32 +125,40 @@
         <a href="/translations/create" class="btn btn-success">+ Create New Translation</a>
     </div>
 
-    <div th:if="${#lists.isEmpty(words)}" class="empty-state">
+    <div th:if="${#lists.isEmpty(translations)}" class="empty-state">
         <h3>No translations found</h3>
         <p>Start by creating your first translation.</p>
         <a href="/translations/create" class="btn btn-success">Create Translation</a>
     </div>
 
-    <table th:if="${!#lists.isEmpty(words)}" class="table">
+    <table th:if="${!#lists.isEmpty(translations)}" class="table">
         <thead>
             <tr>
                 <th>Word</th>
-                <th>Source Language</th>
-                <th>Target Language</th>
+                <th>Translations</th>
+                <th>Language Pair</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            <tr th:each="word : ${words}">
-                <td th:text="${word}"></td>
-                <td>Hindi (hi)</td>
-                <td>English (en)</td>
+            <tr th:each="translation : ${translations}">
                 <td>
-                    <a th:href="@{/translations/{word}/{sourceLang}/{targetLang}(word=${word}, sourceLang='hi', targetLang='en')}" 
+                    <strong th:text="${translation.word}"></strong>
+                </td>
+                <td>
+                    <div th:each="trans : ${translation.translations}" class="translation-item">
+                        <span th:text="${trans}" class="translation-text"></span>
+                    </div>
+                </td>
+                <td>
+                    <span th:text="${translation.sourceLanguage} + ' → ' + ${translation.targetLanguage}"></span>
+                </td>
+                <td>
+                    <a th:href="@{/translations/{word}/{sourceLang}/{targetLang}(word=${translation.word}, sourceLang=${translation.sourceLanguage}, targetLang=${translation.targetLanguage})}" 
                        class="btn">View</a>
-                    <a th:href="@{/translations/{word}/{sourceLang}/{targetLang}/edit(word=${word}, sourceLang='hi', targetLang='en')}" 
+                    <a th:href="@{/translations/{word}/{sourceLang}/{targetLang}/edit(word=${translation.word}, sourceLang=${translation.sourceLanguage}, targetLang=${translation.targetLanguage})}" 
                        class="btn">Edit</a>
-                    <form th:action="@{/translations/{word}/{sourceLang}/{targetLang}/delete(word=${word}, sourceLang='hi', targetLang='en')}" 
+                    <form th:action="@{/translations/{word}/{sourceLang}/{targetLang}/delete(word=${translation.word}, sourceLang=${translation.sourceLanguage}, targetLang=${translation.targetLanguage})}" 
                           method="post" style="display: inline;">
                         <button type="submit" class="btn btn-danger" 
                                 onclick="return confirm('Are you sure you want to delete this translation?')">Delete</button>

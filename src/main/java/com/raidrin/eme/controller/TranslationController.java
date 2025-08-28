@@ -2,6 +2,7 @@ package com.raidrin.eme.controller;
 
 import com.raidrin.eme.storage.entity.TranslationEntity;
 import com.raidrin.eme.storage.service.TranslationStorageService;
+import com.raidrin.eme.translator.TranslationData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -21,8 +22,8 @@ public class TranslationController {
 
     @GetMapping
     public String listTranslations(Model model) {
-        List<String> allWords = translationStorageService.getAllWordTranslations();
-        model.addAttribute("words", allWords);
+        List<TranslationData> allTranslations = translationStorageService.getAllTranslations();
+        model.addAttribute("translations", allTranslations);
         return "translations/list";
     }
 

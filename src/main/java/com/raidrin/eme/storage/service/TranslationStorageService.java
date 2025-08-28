@@ -5,12 +5,14 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.raidrin.eme.storage.entity.TranslationEntity;
 import com.raidrin.eme.storage.repository.TranslationRepository;
+import com.raidrin.eme.translator.TranslationData;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -60,6 +62,12 @@ public class TranslationStorageService {
     
     public List<String> getAllWordTranslations() {
         return translationRepository.findAllWordTranslations();
+    }
+    
+    public List<TranslationData> getAllTranslations() {
+        return translationRepository.findAll().stream()
+                .map(this::entityToTranslationData)
+                .collect(Collectors.toList());
     }
     
     public Map<String, Object> getStorageInfo() {
@@ -116,5 +124,14 @@ public class TranslationStorageService {
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to deserialize translations", e);
         }
+    }
+    
+    private TranslationData entityToTranslationData(TranslationEntity entity) {
+        TranslationData data = new TranslationData();
+        data.setWord(entity.getWord());
+        data.setSourceLanguage(entity.getSourceLanguage());
+        data.setTargetLanguage(entity.getTargetLanguage());
+        data.setTranslations(deserializeTranslations(entity));
+        return data;
     }
 }
