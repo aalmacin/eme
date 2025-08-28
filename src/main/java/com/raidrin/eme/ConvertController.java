@@ -107,9 +107,9 @@ public class ConvertController {
 
             // Generate Sentences
             if (sentenceGeneration) {
-                String sourceLangName = getLanguageName(lang);
-                String targetLangName = translation ? getLanguageName(targetLang) : "English";
-                emeData.sentenceData = sentenceGenerationService.generateSentence(sourceText, targetLangName, sourceLangName);
+                String sourceLangCode = lang;
+                String targetLangCode = translation ? targetLang : "en";
+                emeData.sentenceData = sentenceGenerationService.generateSentence(sourceText, sourceLangCode, targetLangCode);
                 
                 // Generate audio for sentence target (in source language - e.g., Hindi sentence)
                 if (emeData.sentenceData != null && emeData.sentenceData.getTargetLanguageSentence() != null) {
