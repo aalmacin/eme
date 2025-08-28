@@ -20,4 +20,18 @@
         </resources>
 
     </cache>
+
+    <cache alias="sentenceCache">
+        <key-type>java.lang.String</key-type>
+        <value-type>com.raidrin.eme.sentence.SentenceData</value-type>
+        <expiry>
+            <ttl unit="days">300</ttl>
+        </expiry>
+
+        <resources>
+            <heap unit="entries">500</heap>
+            <disk unit="MB" persistent="true">25</disk>
+        </resources>
+
+    </cache>
 </config>

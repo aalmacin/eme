@@ -3,6 +3,7 @@ package com.raidrin.eme.sentence;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
@@ -24,7 +25,10 @@ public class SentenceGenerationService {
         this.restTemplate = new RestTemplate();
     }
     
+    @Cacheable(value = "sentenceCache", key = "#word + '_' + #sourceLanguage + '_' + #targetLanguage")
     public SentenceData generateSentence(String word, String sourceLanguage, String targetLanguage) {
+        System.out.println("Generating sentences with OpenAI for: " + word + " (" + sourceLanguage + " -> " + targetLanguage + ")");
+        
         String prompt = String.format(
             "Given the word '%s', create a simple sentence in %s using this word. Provide the following 5 elements separated by newlines:\n" +
             "1. The word in Latin characters (romanized)\n" +
