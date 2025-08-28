@@ -93,6 +93,10 @@
                             <input type="checkbox" class="form-check-input" id="source-audio" name="source-audio" v-model="sourceAudio">
                             <label class="form-check-label" for="source-audio">Source Audio</label>
                         </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" class="form-check-input" id="sentence-generation" name="sentence-generation" v-model="sentenceGeneration">
+                            <label class="form-check-label" for="sentence-generation">Generate Sentences</label>
+                        </div>
                     </div>
                 </div>
 
@@ -144,6 +148,11 @@
                             <div v-if="sourceAudio">[source-audio]</div>
                             <div v-if="translation">[target-text]</div>
                             <div v-if="translation && targetAudio">[target-audio]</div>
+                            <div v-if="sentenceGeneration">[sentence-latin]</div>
+                            <div v-if="sentenceGeneration">[sentence-target]</div>
+                            <div v-if="sentenceGeneration">[sentence-transliteration]</div>
+                            <div v-if="sentenceGeneration">[sentence-source]</div>
+                            <div v-if="sentenceGeneration">[sentence-structure]</div>
                         </div>
 
                         <div v-if="anki">
@@ -175,6 +184,26 @@
                                        role="button" @click.prevent="addFrontTargetAudio">
                                         Add translated target audio
                                     </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addFrontSentenceLatin"
+                                       role="button" @click.prevent="addFrontSentenceLatin">
+                                        Add sentence latin
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addFrontSentenceTarget"
+                                       role="button" @click.prevent="addFrontSentenceTarget">
+                                        Add sentence target
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addFrontSentenceTransliteration"
+                                       role="button" @click.prevent="addFrontSentenceTransliteration">
+                                        Add sentence transliteration
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addFrontSentenceSource"
+                                       role="button" @click.prevent="addFrontSentenceSource">
+                                        Add sentence source
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addFrontSentenceStructure"
+                                       role="button" @click.prevent="addFrontSentenceStructure">
+                                        Add sentence structure
+                                    </a>
                                 </div>
                             </div>
                             <div class="mb-3">
@@ -200,6 +229,26 @@
                                     <a v-if="translation && targetAudio" class="btn btn-secondary btn-sm m-1" href="#addBackTargetAudio"
                                        role="button" @click.prevent="addBackTargetAudio">
                                         Add translated target audio
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addBackSentenceLatin"
+                                       role="button" @click.prevent="addBackSentenceLatin">
+                                        Add sentence latin
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addBackSentenceTarget"
+                                       role="button" @click.prevent="addBackSentenceTarget">
+                                        Add sentence target
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addBackSentenceTransliteration"
+                                       role="button" @click.prevent="addBackSentenceTransliteration">
+                                        Add sentence transliteration
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addBackSentenceSource"
+                                       role="button" @click.prevent="addBackSentenceSource">
+                                        Add sentence source
+                                    </a>
+                                    <a v-if="sentenceGeneration" class="btn btn-secondary btn-sm m-1" href="#addBackSentenceStructure"
+                                       role="button" @click.prevent="addBackSentenceStructure">
+                                        Add sentence structure
                                     </a>
                                 </div>
                             </div>
@@ -228,6 +277,7 @@
             sourceAudio: false,
             translation: false,
             anki: false,
+            sentenceGeneration: false,
             front: '',
             back: ''
         },
@@ -262,6 +312,36 @@
 
             addBackTargetAudio: function () {
                 this.back += "[target-audio]\n";
+            },
+            addFrontSentenceLatin: function () {
+                this.front += "[sentence-latin]\n";
+            },
+            addFrontSentenceTarget: function () {
+                this.front += "[sentence-target]\n";
+            },
+            addFrontSentenceTransliteration: function () {
+                this.front += "[sentence-transliteration]\n";
+            },
+            addFrontSentenceSource: function () {
+                this.front += "[sentence-source]\n";
+            },
+            addFrontSentenceStructure: function () {
+                this.front += "[sentence-structure]\n";
+            },
+            addBackSentenceLatin: function () {
+                this.back += "[sentence-latin]\n";
+            },
+            addBackSentenceTarget: function () {
+                this.back += "[sentence-target]\n";
+            },
+            addBackSentenceTransliteration: function () {
+                this.back += "[sentence-transliteration]\n";
+            },
+            addBackSentenceSource: function () {
+                this.back += "[sentence-source]\n";
+            },
+            addBackSentenceStructure: function () {
+                this.back += "[sentence-structure]\n";
             },
         }
     })

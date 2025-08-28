@@ -1,6 +1,6 @@
 # Eme
 
-Eme is used to generate audio files and Anki Cards which can be helpful for language learning.
+Eme is used to generate audio files, example sentences in the source language, and Anki Cards which can be helpful for language learning.
 
 ## Running the app
 
@@ -9,6 +9,11 @@ On ankiconnect config, add `http://localhost:8082` on `webCorsOriginList`.
 You can also save this on `~/.bashrc` or `~/.zshrc`. Make sure it starts with `http://` or `https://`.
 ```sh
 export ANKI_CONNECT_API_URL=[MY_CONNECT_API_URL]
+```
+
+Set the OpenAI API key for sentence generation:
+```sh
+export OPENAI_API_KEY=[YOUR_OPENAI_API_KEY]
 ```
 
 Authenticate with google console.

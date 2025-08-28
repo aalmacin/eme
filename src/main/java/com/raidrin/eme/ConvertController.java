@@ -7,6 +7,8 @@ import com.raidrin.eme.translator.LanguageTranslationCodes;
 import com.raidrin.eme.audio.LanguageAudioCodes;
 import com.raidrin.eme.audio.TextToAudioGenerator;
 import com.raidrin.eme.translator.TranslatorService;
+import com.raidrin.eme.sentence.SentenceGenerationService;
+import com.raidrin.eme.sentence.SentenceData;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -26,6 +28,7 @@ public class ConvertController {
     private final AnkiNoteCreatorService ankiNoteCreatorService;
     private final TextToAudioGenerator textToAudioGenerator;
     private final TranslatorService translatorService;
+    private final SentenceGenerationService sentenceGenerationService;
 
     @GetMapping("/")
     public String index() {
@@ -44,12 +47,14 @@ public class ConvertController {
             @RequestParam(name = "target-audio", required = false) Boolean targetAudio,
             @RequestParam(name = "target-lang", required = false) String targetLang,
             @RequestParam(required = false) Boolean anki,
+            @RequestParam(name = "sentence-generation", required = false) Boolean sentenceGeneration,
             HttpServletResponse response
     ) throws IOException {
         translation = translation != null && translation;
         sourceAudio = sourceAudio != null && sourceAudio;
         targetAudio = targetAudio != null && targetAudio;
         anki = anki != null && anki;
+        sentenceGeneration = sentenceGeneration != null && sentenceGeneration;
 
         // Initialize the EmeData map
         String[] sourceTextList = Arrays.stream(userInput.split("\n"))
@@ -92,6 +97,13 @@ public class ConvertController {
                         audioFileMap.put(audioFileName, audio);
                     }
                 }
+            }
+
+            // Generate Sentences
+            if (sentenceGeneration) {
+                String sourceLangName = getLanguageName(lang);
+                String targetLangName = translation ? getLanguageName(targetLang) : "English";
+                emeData.sentenceData = sentenceGenerationService.generateSentence(sourceText, targetLangName, sourceLangName);
             }
 
             // Generate Anki Cards
@@ -149,6 +161,16 @@ public class ConvertController {
         String updatedText = text
                 .replace("[source-text]", emeData.sourceText)
                 .replace("[source-audio]", audioAnkiGenerator(emeData.sourceAudioFileName));
+        
+        // Replace sentence generation placeholders
+        if (emeData.sentenceData != null) {
+            updatedText = updatedText
+                .replace("[sentence-latin]", emeData.sentenceData.getTargetLanguageLatinCharacters())
+                .replace("[sentence-target]", emeData.sentenceData.getTargetLanguageSentence())
+                .replace("[sentence-transliteration]", emeData.sentenceData.getTargetLanguageTransliteration())
+                .replace("[sentence-source]", emeData.sentenceData.getSourceLanguageSentence())
+                .replace("[sentence-structure]", emeData.sentenceData.getSourceLanguageStructure());
+        }
 
         boolean hasTargetAudio = text.contains("[target-audio]");
         if (hasTargetAudio) {
@@ -206,6 +228,35 @@ public class ConvertController {
             default -> throw new RuntimeException("Invalid language code");
         }
     }
+    
+    private String getLanguageName(String lang) {
+        switch (lang) {
+            case "en" -> {
+                return "English";
+            }
+            case "es" -> {
+                return "Spanish";
+            }
+            case "fr" -> {
+                return "French";
+            }
+            case "cafr" -> {
+                return "Canadian French";
+            }
+            case "kr" -> {
+                return "Korean";
+            }
+            case "jp" -> {
+                return "Japanese";
+            }
+            case "hi" -> {
+                return "Hindi";
+            }
+            default -> {
+                return "English";
+            }
+        }
+    }
 
     /**
      * A single result of a translation/ audio generation.
@@ -219,6 +270,7 @@ public class ConvertController {
         public Map<String, String> translatedTextAudioFileMap = new HashMap<>();
         public String ankiFront;
         public String ankiBack;
+        public SentenceData sentenceData;
 
         @Override
         public int hashCode() {
