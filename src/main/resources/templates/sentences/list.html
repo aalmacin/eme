@@ -67,10 +67,16 @@
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
+            vertical-align: top;
+        }
+        .table td {
+            max-width: 200px;
+            word-wrap: break-word;
         }
         .table th {
             background-color: #f8f9fa;
             font-weight: bold;
+            white-space: nowrap;
         }
         .table tr:hover {
             background-color: #f8f9fa;
@@ -114,32 +120,41 @@
         <a href="/sentences/create" class="btn btn-success">+ Create New Sentence</a>
     </div>
 
-    <div th:if="${#lists.isEmpty(words)}" class="empty-state">
+    <div th:if="${#lists.isEmpty(sentences)}" class="empty-state">
         <h3>No sentences found</h3>
         <p>Start by creating your first sentence.</p>
         <a href="/sentences/create" class="btn btn-success">Create Sentence</a>
     </div>
 
-    <table th:if="${!#lists.isEmpty(words)}" class="table">
+    <table th:if="${!#lists.isEmpty(sentences)}" class="table">
         <thead>
             <tr>
                 <th>Word</th>
-                <th>Source Language</th>
-                <th>Target Language</th>
+                <th>Romanized</th>
+                <th>Sentence (Source)</th>
+                <th>Transliteration</th>
+                <th>Translation</th>
+                <th>Structure</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            <tr th:each="word : ${words}">
-                <td th:text="${word}"></td>
-                <td>Hindi (hi)</td>
-                <td>English (en)</td>
+            <tr th:each="sentence : ${sentences}">
                 <td>
-                    <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}(word=${word}, sourceLang='hi', targetLang='en')}" 
+                    <strong th:text="${sentence.word}"></strong>
+                    <br><small th:text="${sentence.sourceLanguage} + ' → ' + ${sentence.targetLanguage}"></small>
+                </td>
+                <td th:text="${sentence.targetLanguageLatinCharacters}"></td>
+                <td th:text="${sentence.targetLanguageSentence}"></td>
+                <td th:text="${sentence.targetLanguageTransliteration}"></td>
+                <td th:text="${sentence.sourceLanguageSentence}"></td>
+                <td th:text="${sentence.sourceLanguageStructure}"></td>
+                <td>
+                    <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
                        class="btn">View</a>
-                    <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}/edit(word=${word}, sourceLang='hi', targetLang='en')}" 
+                    <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}/edit(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
                        class="btn">Edit</a>
-                    <form th:action="@{/sentences/{word}/{sourceLang}/{targetLang}/delete(word=${word}, sourceLang='hi', targetLang='en')}" 
+                    <form th:action="@{/sentences/{word}/{sourceLang}/{targetLang}/delete(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
                           method="post" style="display: inline;">
                         <button type="submit" class="btn btn-danger" 
                                 onclick="return confirm('Are you sure you want to delete this sentence?')">Delete</button>

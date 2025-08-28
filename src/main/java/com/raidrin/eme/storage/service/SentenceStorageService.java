@@ -9,6 +9,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -57,6 +58,12 @@ public class SentenceStorageService {
         return sentenceRepository.findAllWordSentences();
     }
     
+    public List<SentenceData> getAllSentences() {
+        return sentenceRepository.findAll().stream()
+                .map(this::entityToSentenceData)
+                .collect(Collectors.toList());
+    }
+    
     public Map<String, Object> getStorageInfo() {
         Map<String, Object> info = new HashMap<>();
         info.put("totalEntries", sentenceRepository.countEntries());
@@ -99,6 +106,9 @@ public class SentenceStorageService {
     // Utility Methods
     private SentenceData entityToSentenceData(SentenceEntity entity) {
         SentenceData data = new SentenceData();
+        data.setWord(entity.getWord());
+        data.setSourceLanguage(entity.getSourceLanguage());
+        data.setTargetLanguage(entity.getTargetLanguage());
         data.setTargetLanguageLatinCharacters(entity.getWordRomanized());
         data.setTargetLanguageSentence(entity.getSentenceSource());
         data.setTargetLanguageTransliteration(entity.getSentenceTransliteration());

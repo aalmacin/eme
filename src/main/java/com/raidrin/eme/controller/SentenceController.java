@@ -20,8 +20,8 @@ public class SentenceController {
 
     @GetMapping
     public String listSentences(Model model) {
-        List<String> allWords = sentenceStorageService.getAllWordSentences();
-        model.addAttribute("words", allWords);
+        List<SentenceData> allSentences = sentenceStorageService.getAllSentences();
+        model.addAttribute("sentences", allSentences);
         return "sentences/list";
     }
 
