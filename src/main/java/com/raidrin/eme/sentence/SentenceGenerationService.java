@@ -2,9 +2,11 @@ package com.raidrin.eme.sentence;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
+import com.raidrin.eme.cache.CacheKeyTracker;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -19,6 +21,9 @@ public class SentenceGenerationService {
     @Value("${openai.api.key}")
     private String openAiApiKey;
     
+    @Autowired
+    private CacheKeyTracker cacheKeyTracker;
+    
     private final RestTemplate restTemplate;
     
     public SentenceGenerationService() {
@@ -27,6 +32,8 @@ public class SentenceGenerationService {
     
     @Cacheable(value = "sentenceCache", key = "#word + '_' + #sourceLanguage + '_' + #targetLanguage")
     public SentenceData generateSentence(String word, String sourceLanguage, String targetLanguage) {
+        String cacheKey = word + "_" + sourceLanguage + "_" + targetLanguage;
+        cacheKeyTracker.addSentenceKey(cacheKey);
         System.out.println("Generating sentences with OpenAI for: " + word + " (" + sourceLanguage + " -> " + targetLanguage + ")");
         
         String prompt = String.format(
@@ -56,6 +63,7 @@ public class SentenceGenerationService {
             
             HttpEntity<OpenAiRequest> entity = new HttpEntity<>(request, headers);
             
+            System.out.println("Making OpenAI API request...");
             ResponseEntity<OpenAiResponse> response = restTemplate.exchange(
                 "https://api.openai.com/v1/chat/completions",
                 HttpMethod.POST,
@@ -63,16 +71,21 @@ public class SentenceGenerationService {
                 OpenAiResponse.class
             );
             
+            System.out.println("OpenAI API response status: " + response.getStatusCode());
+            
             if (response.getBody() != null && !response.getBody().getChoices().isEmpty()) {
                 String content = response.getBody().getChoices().get(0).getMessage().getContent();
+                System.out.println("OpenAI response content: " + content);
                 return parseSentenceResponse(content);
+            } else {
+                System.out.println("OpenAI response body is null or has no choices");
+                throw new RuntimeException("OpenAI API returned empty response");
             }
         } catch (Exception e) {
-            // Return a fallback response if OpenAI fails
-            return createFallbackResponse(word, targetLanguage);
+            System.err.println("OpenAI API error: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to generate sentence using OpenAI API: " + e.getMessage(), e);
         }
-        
-        return createFallbackResponse(word, targetLanguage);
     }
     
     private SentenceData parseSentenceResponse(String response) {
@@ -96,16 +109,6 @@ public class SentenceGenerationService {
         return line.replaceAll("^\\d+\\.\\s*", "").trim();
     }
     
-    private SentenceData createFallbackResponse(String word, String targetLanguage) {
-        SentenceData fallback = new SentenceData();
-        fallback.setTargetLanguageLatinCharacters(word);
-        fallback.setTargetLanguageSentence("Sample " + targetLanguage + " sentence with " + word);
-        fallback.setTargetLanguageTransliteration("Sample transliteration");
-        fallback.setSourceLanguageSentence("Sample English translation");
-        fallback.setSourceLanguageStructure("Sample word-by-word structure");
-        return fallback;
-    }
-    
     @Data
     private static class OpenAiRequest {
         private String model;
@@ -120,6 +123,8 @@ public class SentenceGenerationService {
         private String role;
         private String content;
         
+        public OpenAiMessage() {} // Default constructor for Jackson
+        
         public OpenAiMessage(String role, String content) {
             this.role = role;
             this.content = content;
@@ -129,10 +134,14 @@ public class SentenceGenerationService {
     @Data
     private static class OpenAiResponse {
         private List<OpenAiChoice> choices;
+        
+        public OpenAiResponse() {} // Default constructor for Jackson
     }
     
     @Data
     private static class OpenAiChoice {
         private OpenAiMessage message;
+        
+        public OpenAiChoice() {} // Default constructor for Jackson
     }
 }

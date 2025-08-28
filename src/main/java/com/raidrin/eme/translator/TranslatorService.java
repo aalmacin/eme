@@ -1,7 +1,9 @@
 package com.raidrin.eme.translator;
 
 import com.google.cloud.translate.v3.*;
+import com.raidrin.eme.cache.CacheKeyTracker;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
@@ -12,9 +14,14 @@ import java.util.Set;
 @Service
 public class TranslatorService {
     public static final String PROJECT_ID = "translate-raidrin";
+    
+    @Autowired
+    private CacheKeyTracker cacheKeyTracker;
 
     @Cacheable(value = "translationCache", key = "#text + '_' + #lang")
     public Set<String> translateText(String text, String lang) {
+        String cacheKey = text + "_" + lang;
+        cacheKeyTracker.addTranslationKey(cacheKey);
         System.out.println("Translating...");
         try {
             try (TranslationServiceClient client = TranslationServiceClient.create()) {

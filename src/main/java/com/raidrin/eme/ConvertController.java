@@ -34,6 +34,11 @@ public class ConvertController {
     public String index() {
         return "index";
     }
+    
+    @GetMapping("/cache")
+    public String cacheViewer() {
+        return "cache-viewer";
+    }
 
     @PostMapping("/generate")
     public void generate(
