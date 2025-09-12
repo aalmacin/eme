@@ -110,9 +110,9 @@ public class SentenceStorageService {
         data.setSourceLanguage(entity.getSourceLanguage());
         data.setTargetLanguage(entity.getTargetLanguage());
         data.setTargetLanguageLatinCharacters(entity.getWordRomanized());
-        data.setTargetLanguageSentence(entity.getSentenceSource());
+        data.setSourceLanguageSentence(entity.getSentenceSource());
         data.setTargetLanguageTransliteration(entity.getSentenceTransliteration());
-        data.setSourceLanguageSentence(entity.getSentenceTarget());
+        data.setTargetLanguageSentence(entity.getSentenceTarget());
         data.setSourceLanguageStructure(entity.getWordStructure());
         return data;
     }
@@ -123,18 +123,18 @@ public class SentenceStorageService {
             sourceLanguage,
             targetLanguage,
             sentenceData.getTargetLanguageLatinCharacters(),
-            sentenceData.getTargetLanguageSentence(),
-            sentenceData.getTargetLanguageTransliteration(),
             sentenceData.getSourceLanguageSentence(),
+            sentenceData.getTargetLanguageTransliteration(),
+            sentenceData.getTargetLanguageSentence(),
             sentenceData.getSourceLanguageStructure()
         );
     }
     
     private void updateSentenceEntity(SentenceEntity entity, SentenceData sentenceData) {
         entity.setWordRomanized(sentenceData.getTargetLanguageLatinCharacters());
-        entity.setSentenceSource(sentenceData.getTargetLanguageSentence());
+        entity.setSentenceSource(sentenceData.getSourceLanguageSentence());
         entity.setSentenceTransliteration(sentenceData.getTargetLanguageTransliteration());
-        entity.setSentenceTarget(sentenceData.getSourceLanguageSentence());
+        entity.setSentenceTarget(sentenceData.getTargetLanguageSentence());
         entity.setWordStructure(sentenceData.getSourceLanguageStructure());
     }
 }

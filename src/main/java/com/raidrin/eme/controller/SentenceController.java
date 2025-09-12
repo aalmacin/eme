@@ -53,9 +53,9 @@ public class SentenceController {
         try {
             SentenceData sentenceData = new SentenceData();
             sentenceData.setTargetLanguageLatinCharacters(form.getWordRomanized());
-            sentenceData.setTargetLanguageSentence(form.getSentenceSource());
+            sentenceData.setTargetLanguageSentence(form.getSentenceTarget());
             sentenceData.setTargetLanguageTransliteration(form.getSentenceTransliteration());
-            sentenceData.setSourceLanguageSentence(form.getSentenceTarget());
+            sentenceData.setSourceLanguageSentence(form.getSentenceSource());
             sentenceData.setSourceLanguageStructure(form.getWordStructure());
             
             sentenceStorageService.saveSentence(form.getWord(), form.getSourceLanguage(), 
@@ -81,7 +81,7 @@ public class SentenceController {
             form.setSourceLanguage(sourceLang);
             form.setTargetLanguage(targetLang);
             form.setWordRomanized(data.getTargetLanguageLatinCharacters());
-            form.setSentenceSource(data.getTargetLanguageSentence());
+            form.setSentenceSource(data.getSourceLanguageSentence());
             form.setSentenceTransliteration(data.getTargetLanguageTransliteration());
             form.setSentenceTarget(data.getSourceLanguageSentence());
             form.setWordStructure(data.getSourceLanguageStructure());

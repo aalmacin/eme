@@ -111,15 +111,19 @@ public class ConvertController {
                 String targetLangCode = translation ? targetLang : "en";
                 emeData.sentenceData = sentenceGenerationService.generateSentence(sourceText, sourceLangCode, targetLangCode);
                 
-                // Generate audio for sentence target (in source language - e.g., Hindi sentence)
-                if (emeData.sentenceData != null && emeData.sentenceData.getTargetLanguageSentence() != null) {
-                    String sentenceTargetText = emeData.sentenceData.getTargetLanguageSentence();
-                    emeData.sentenceTargetAudioFileName = Codec.encode(sentenceTargetText);
+                // Generate audio for sentence source (in source language - e.g., Hindi sentence)
+                if (emeData.sentenceData != null && emeData.sentenceData.getSourceLanguageSentence() != null) {
+                    String sentenceSourceText = emeData.sentenceData.getSourceLanguageSentence();
+                    emeData.sentenceSourceAudioFileName = Codec.encode(sentenceSourceText);
                     
-                    if (!audioFileMap.containsKey(emeData.sentenceTargetAudioFileName)) {
+                    if (!audioFileMap.containsKey(emeData.sentenceSourceAudioFileName)) {
                         // Generate audio in the source language (e.g., Hindi) for the sentence
-                        byte[] sentenceAudio = generateAudio(getLangAudioOption(lang), sentenceTargetText);
-                        audioFileMap.put(emeData.sentenceTargetAudioFileName, sentenceAudio);
+                        System.out.println("DEBUG: Generating audio for sentence source text: " + sentenceSourceText);
+                        System.out.println("DEBUG: Using language code: " + lang);
+                        LangAudioOption audioOption = getLangAudioOption(lang);
+                        System.out.println("DEBUG: Audio option - languageCode: " + audioOption.languageCode + ", voiceName: " + audioOption.voiceName);
+                        byte[] sentenceAudio = generateAudio(audioOption, sentenceSourceText);
+                        audioFileMap.put(emeData.sentenceSourceAudioFileName, sentenceAudio);
                     }
                 }
             }
@@ -188,7 +192,7 @@ public class ConvertController {
                 .replace("[sentence-transliteration]", emeData.sentenceData.getTargetLanguageTransliteration())
                 .replace("[sentence-source]", emeData.sentenceData.getSourceLanguageSentence())
                 .replace("[sentence-structure]", emeData.sentenceData.getSourceLanguageStructure())
-                .replace("[sentence-source-audio]", emeData.sentenceTargetAudioFileName != null ? audioAnkiGenerator(emeData.sentenceTargetAudioFileName) : "");
+                .replace("[sentence-source-audio]", emeData.sentenceSourceAudioFileName != null ? audioAnkiGenerator(emeData.sentenceSourceAudioFileName) : "");
         }
 
         boolean hasTargetAudio = text.contains("[target-audio]");
@@ -290,7 +294,7 @@ public class ConvertController {
         public String ankiFront;
         public String ankiBack;
         public SentenceData sentenceData;
-        public String sentenceTargetAudioFileName;
+        public String sentenceSourceAudioFileName;
 
         @Override
         public int hashCode() {

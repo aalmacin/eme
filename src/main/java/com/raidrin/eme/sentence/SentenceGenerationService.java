@@ -44,6 +44,9 @@ public class SentenceGenerationService {
     }
     
     private SentenceData performSentenceGeneration(String word, String sourceLanguage, String targetLanguage) {
+        String sourceLangName = getLanguageName(sourceLanguage);
+        String targetLangName = getLanguageName(targetLanguage);
+        
         String prompt = String.format(
             "Given the word '%s', create a simple sentence in %s using this word. Provide the following 5 elements separated by newlines:\n" +
             "1. The word in Latin characters (romanized)\n" +
@@ -52,7 +55,7 @@ public class SentenceGenerationService {
             "4. The sentence translated to %s\n" +
             "5. Word-by-word structure analysis of the %s sentence\n\n" +
             "Format your response exactly as 5 lines, one element per line.",
-            word, targetLanguage, targetLanguage, sourceLanguage, targetLanguage
+            word, sourceLangName, sourceLangName, targetLangName, sourceLangName
         );
         
         OpenAiRequest request = new OpenAiRequest();
@@ -103,9 +106,9 @@ public class SentenceGenerationService {
         
         if (lines.length >= 5) {
             sentenceData.setTargetLanguageLatinCharacters(cleanLine(lines[0]));
-            sentenceData.setTargetLanguageSentence(cleanLine(lines[1]));
+            sentenceData.setSourceLanguageSentence(cleanLine(lines[1]));
             sentenceData.setTargetLanguageTransliteration(cleanLine(lines[2]));
-            sentenceData.setSourceLanguageSentence(cleanLine(lines[3]));
+            sentenceData.setTargetLanguageSentence(cleanLine(lines[3]));
             sentenceData.setSourceLanguageStructure(cleanLine(lines[4]));
         }
         
@@ -115,6 +118,35 @@ public class SentenceGenerationService {
     private String cleanLine(String line) {
         // Remove any numbering or formatting from the response
         return line.replaceAll("^\\d+\\.\\s*", "").trim();
+    }
+    
+    private String getLanguageName(String lang) {
+        switch (lang) {
+            case "en" -> {
+                return "English";
+            }
+            case "es" -> {
+                return "Spanish";
+            }
+            case "fr" -> {
+                return "French";
+            }
+            case "cafr" -> {
+                return "Canadian French";
+            }
+            case "kr" -> {
+                return "Korean";
+            }
+            case "jp" -> {
+                return "Japanese";
+            }
+            case "hi" -> {
+                return "Hindi";
+            }
+            default -> {
+                return "English";
+            }
+        }
     }
     
     @Data
