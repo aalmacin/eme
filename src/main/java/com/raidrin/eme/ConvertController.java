@@ -78,7 +78,7 @@ public class ConvertController {
 
             // Generate Source Audio
             if (sourceAudio) {
-                emeData.sourceAudioFileName = Codec.encode(sourceText);
+                emeData.sourceAudioFileName = Codec.encodeForAudioFileName(sourceText);
                 if(!audioFileMap.containsKey(emeData.sourceAudioFileName)) {
                     byte[] audio = generateAudio(getLangAudioOption(lang), sourceText);
                     audioFileMap.put(emeData.sourceAudioFileName, audio);
@@ -95,7 +95,7 @@ public class ConvertController {
             // Generate Target Audio
             if (translation && targetAudio) {
                 for (String translatedText : emeData.translatedTextList) {
-                    String audioFileName = Codec.encode(translatedText);
+                    String audioFileName = Codec.encodeForAudioFileName(translatedText);
                     emeData.translatedAudioList.add(audioFileName);
                     emeData.translatedTextAudioFileMap.put(translatedText, audioFileName);
                     if(!audioFileMap.containsKey(audioFileName)) {
@@ -114,8 +114,8 @@ public class ConvertController {
                 // Generate audio for sentence source (in source language - e.g., Hindi sentence)
                 if (emeData.sentenceData != null && emeData.sentenceData.getSourceLanguageSentence() != null) {
                     String sentenceSourceText = emeData.sentenceData.getSourceLanguageSentence();
-                    emeData.sentenceSourceAudioFileName = Codec.encode(sentenceSourceText);
-                    
+                    emeData.sentenceSourceAudioFileName = Codec.encodeForAudioFileName(sentenceSourceText);
+
                     if (!audioFileMap.containsKey(emeData.sentenceSourceAudioFileName)) {
                         // Generate audio in the source language (e.g., Hindi) for the sentence
                         System.out.println("DEBUG: Generating audio for sentence source text: " + sentenceSourceText);
