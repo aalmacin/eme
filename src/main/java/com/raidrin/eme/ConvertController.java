@@ -6,7 +6,7 @@ import com.raidrin.eme.codec.Codec;
 import com.raidrin.eme.translator.LanguageTranslationCodes;
 import com.raidrin.eme.audio.LanguageAudioCodes;
 import com.raidrin.eme.audio.TextToAudioGenerator;
-import com.raidrin.eme.translator.TranslatorService;
+import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.sentence.SentenceGenerationService;
 import com.raidrin.eme.sentence.SentenceData;
 import jakarta.servlet.http.HttpServletResponse;
@@ -27,7 +27,7 @@ import java.util.zip.ZipOutputStream;
 public class ConvertController {
     private final AnkiNoteCreatorService ankiNoteCreatorService;
     private final TextToAudioGenerator textToAudioGenerator;
-    private final TranslatorService translatorService;
+    private final TranslationService translationService;
     private final SentenceGenerationService sentenceGenerationService;
 
     @GetMapping("/")
@@ -89,7 +89,7 @@ public class ConvertController {
             if (translation) {
                 final LanguageTranslationCodes sourceLangCode = getTranslationCode(lang);
                 final LanguageTranslationCodes targetLangCode = getTranslationCode(targetLang);
-                emeData.translatedTextList = translatorService.translateText(sourceText, sourceLangCode.getCode(), targetLangCode.getCode());
+                emeData.translatedTextList = translationService.translateText(sourceText, sourceLangCode.getCode(), targetLangCode.getCode());
             }
 
             // Generate Target Audio
