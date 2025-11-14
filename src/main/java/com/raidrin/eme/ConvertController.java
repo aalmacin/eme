@@ -9,6 +9,14 @@ import com.raidrin.eme.audio.TextToAudioGenerator;
 import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.sentence.SentenceGenerationService;
 import com.raidrin.eme.sentence.SentenceData;
+import com.raidrin.eme.storage.entity.TranslationSessionEntity;
+import com.raidrin.eme.storage.service.TranslationSessionService;
+import com.raidrin.eme.image.AsyncImageGenerationService;
+import com.raidrin.eme.mnemonic.MnemonicGenerationService;
+import com.raidrin.eme.mnemonic.MnemonicGenerationService.MnemonicData;
+import com.raidrin.eme.util.FileNameSanitizer;
+import com.raidrin.eme.session.SessionOrchestrationService;
+import com.raidrin.eme.audio.LanguageAudioCodes;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
@@ -29,6 +37,10 @@ public class ConvertController {
     private final TextToAudioGenerator textToAudioGenerator;
     private final TranslationService translationService;
     private final SentenceGenerationService sentenceGenerationService;
+    private final TranslationSessionService translationSessionService;
+    private final AsyncImageGenerationService asyncImageGenerationService;
+    private final MnemonicGenerationService mnemonicGenerationService;
+    private final SessionOrchestrationService sessionOrchestrationService;
 
     @GetMapping("/")
     public String index() {
@@ -41,7 +53,7 @@ public class ConvertController {
     }
 
     @PostMapping("/generate")
-    public void generate(
+    public String generate(
             @RequestParam(name = "text", required = false) String userInput,
             @RequestParam(required = false) String lang,
             @RequestParam(required = false) String front,
@@ -53,6 +65,100 @@ public class ConvertController {
             @RequestParam(name = "target-lang", required = false) String targetLang,
             @RequestParam(required = false) Boolean anki,
             @RequestParam(name = "sentence-generation", required = false) Boolean sentenceGeneration,
+            @RequestParam(name = "image-generation", required = false) Boolean imageGeneration
+    ) {
+        translation = translation != null && translation;
+        sourceAudio = sourceAudio != null && sourceAudio;
+        targetAudio = targetAudio != null && targetAudio;
+        anki = anki != null && anki;
+        sentenceGeneration = sentenceGeneration != null && sentenceGeneration;
+        imageGeneration = imageGeneration != null && imageGeneration;
+
+        // Parse source words
+        List<String> sourceWords = Arrays.stream(userInput.split("\n"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
+
+        if (sourceWords.isEmpty()) {
+            return "redirect:/?error=no-words";
+        }
+
+        // Create a single session for all words
+        String sessionWord = sourceWords.size() == 1
+                ? sourceWords.get(0)
+                : sourceWords.size() + " words";
+
+        TranslationSessionEntity session = translationSessionService.createSession(
+                sessionWord,
+                lang != null ? lang : "en",
+                targetLang != null ? targetLang : "en",
+                imageGeneration,
+                (sourceAudio || targetAudio),
+                sentenceGeneration,
+                anki,
+                deck,
+                front,
+                back
+        );
+
+        System.out.println("Created session " + session.getId() + " for " + sourceWords.size() + " words");
+
+        // Build processing request
+        SessionOrchestrationService.BatchProcessingRequest request =
+                new SessionOrchestrationService.BatchProcessingRequest();
+
+        request.setSourceWords(sourceWords);
+        request.setSourceLanguage(lang != null ? lang : "en");
+        request.setTargetLanguage(targetLang != null ? targetLang : "en");
+        request.setSourceLanguageCode(getTranslationCode(lang != null ? lang : "en").getCode());
+        request.setTargetLanguageCode(getTranslationCode(targetLang != null ? targetLang : "en").getCode());
+
+        // Audio configuration
+        request.setEnableSourceAudio(sourceAudio);
+        request.setEnableTargetAudio(targetAudio);
+
+        LangAudioOption sourceLangAudio = getLangAudioOption(lang != null ? lang : "en");
+        request.setSourceAudioLanguageCode(sourceLangAudio.languageCode);
+        request.setSourceVoiceGender(sourceLangAudio.voiceGender);
+        request.setSourceVoiceName(sourceLangAudio.voiceName);
+
+        if (translation) {
+            LangAudioOption targetLangAudio = getLangAudioOption(targetLang != null ? targetLang : "en");
+            request.setTargetAudioLanguageCode(targetLangAudio.languageCode);
+            request.setTargetVoiceGender(targetLangAudio.voiceGender);
+            request.setTargetVoiceName(targetLangAudio.voiceName);
+        }
+
+        // Feature flags
+        request.setEnableTranslation(translation);
+        request.setEnableSentenceGeneration(sentenceGeneration);
+        request.setEnableImageGeneration(imageGeneration);
+
+        // Start async processing
+        sessionOrchestrationService.processTranslationBatchAsync(session.getId(), request);
+
+        // Return immediately with redirect to session view
+        System.out.println("Started async processing for session " + session.getId());
+        return "redirect:/sessions/" + session.getId() + "?message=processing-started";
+    }
+
+    // Keep old synchronous generate method for backward compatibility (if needed)
+    @PostMapping("/generate-sync")
+    public void generateSync(
+            @RequestParam(name = "text", required = false) String userInput,
+            @RequestParam(required = false) String lang,
+            @RequestParam(required = false) String front,
+            @RequestParam(required = false) String back,
+            @RequestParam(required = false) String deck,
+            @RequestParam(required = false) Boolean translation,
+            @RequestParam(name = "source-audio", required = false) Boolean sourceAudio,
+            @RequestParam(name = "target-audio", required = false) Boolean targetAudio,
+            @RequestParam(name = "target-lang", required = false) String targetLang,
+            @RequestParam(required = false) Boolean anki,
+            @RequestParam(name = "sentence-generation", required = false) Boolean sentenceGeneration,
+            @RequestParam(name = "image-generation", required = false) Boolean imageGeneration,
             HttpServletResponse response
     ) throws IOException {
         translation = translation != null && translation;
@@ -60,6 +166,7 @@ public class ConvertController {
         targetAudio = targetAudio != null && targetAudio;
         anki = anki != null && anki;
         sentenceGeneration = sentenceGeneration != null && sentenceGeneration;
+        imageGeneration = imageGeneration != null && imageGeneration;
 
         // Initialize the EmeData map
         String[] sourceTextList = Arrays.stream(userInput.split("\n"))
@@ -110,7 +217,7 @@ public class ConvertController {
                 String sourceLangCode = lang;
                 String targetLangCode = translation ? targetLang : "en";
                 emeData.sentenceData = sentenceGenerationService.generateSentence(sourceText, sourceLangCode, targetLangCode);
-                
+
                 // Generate audio for sentence source (in source language - e.g., Hindi sentence)
                 if (emeData.sentenceData != null && emeData.sentenceData.getSourceLanguageSentence() != null) {
                     String sentenceSourceText = emeData.sentenceData.getSourceLanguageSentence();
@@ -126,6 +233,45 @@ public class ConvertController {
                         audioFileMap.put(emeData.sentenceSourceAudioFileName, sentenceAudio);
                     }
                 }
+            }
+
+            // Generate Mnemonic Images (Async)
+            if (imageGeneration && translation && !emeData.translatedTextList.isEmpty()) {
+                // Get the first translation (primary translation)
+                String primaryTranslation = emeData.translatedTextList.iterator().next();
+
+                // Generate mnemonic synchronously to get the filename
+                System.out.println("Generating mnemonic for: " + sourceText + " -> " + primaryTranslation);
+                MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
+                    sourceText, primaryTranslation, lang, targetLang
+                );
+
+                // Calculate the filename that will be used
+                String imageFileName = FileNameSanitizer.fromMnemonicSentence(
+                    mnemonicData.getMnemonicSentence(), "jpg"
+                );
+
+                // Store mnemonic data and filename in EmeData
+                emeData.mnemonicKeyword = mnemonicData.getMnemonicKeyword();
+                emeData.mnemonicSentence = mnemonicData.getMnemonicSentence();
+                emeData.imageFileName = imageFileName;
+
+                // Create a translation session for tracking
+                TranslationSessionEntity session = translationSessionService.createSession(
+                    sourceText, lang, targetLang, true, (sourceAudio || targetAudio)
+                );
+
+                // Store session ID for reference
+                emeData.imageSessionId = session.getId();
+
+                // Start async image generation with pre-generated mnemonic data and filename
+                asyncImageGenerationService.generateImagesAsync(
+                    session.getId(),
+                    mnemonicData,
+                    imageFileName
+                );
+
+                System.out.println("Started async image generation for: " + sourceText + " -> " + primaryTranslation + " (Session ID: " + session.getId() + ", Filename: " + imageFileName + ")");
             }
 
             // Generate Anki Cards
@@ -174,7 +320,6 @@ public class ConvertController {
         }
     }
 
-
     private String audioAnkiGenerator(String audioFileName) {
         return "[sound:" + audioFileName + ".mp3]";
     }
@@ -183,7 +328,7 @@ public class ConvertController {
         String updatedText = text
                 .replace("[source-text]", emeData.sourceText)
                 .replace("[source-audio]", audioAnkiGenerator(emeData.sourceAudioFileName));
-        
+
         // Replace sentence generation placeholders
         if (emeData.sentenceData != null) {
             updatedText = updatedText
@@ -193,6 +338,30 @@ public class ConvertController {
                 .replace("[sentence-source]", emeData.sentenceData.getSourceLanguageSentence())
                 .replace("[sentence-structure]", emeData.sentenceData.getSourceLanguageStructure())
                 .replace("[sentence-source-audio]", emeData.sentenceSourceAudioFileName != null ? audioAnkiGenerator(emeData.sentenceSourceAudioFileName) : "");
+        }
+
+        // Replace mnemonic image placeholders
+        // Note: Images are generated asynchronously, so these placeholders will be empty during card creation
+        // Users will need to download images from the sessions page and manually add them
+        if (emeData.imageFileName != null) {
+            updatedText = updatedText.replace("[image]", "<img src=\"" + emeData.imageFileName + "\" />");
+        } else if (emeData.imageSessionId != null) {
+            // Image generation is enabled but not yet complete - add empty img tag as placeholder
+            updatedText = updatedText.replace("[image]", "<img src=\"\" />");
+        } else {
+            updatedText = updatedText.replace("[image]", "");
+        }
+
+        if (emeData.mnemonicKeyword != null) {
+            updatedText = updatedText.replace("[mnemonic_keyword]", emeData.mnemonicKeyword);
+        } else {
+            updatedText = updatedText.replace("[mnemonic_keyword]", "");
+        }
+
+        if (emeData.mnemonicSentence != null) {
+            updatedText = updatedText.replace("[mnemonic_sentence]", emeData.mnemonicSentence);
+        } else {
+            updatedText = updatedText.replace("[mnemonic_sentence]", "");
         }
 
         boolean hasTargetAudio = text.contains("[target-audio]");
@@ -295,6 +464,12 @@ public class ConvertController {
         public String ankiBack;
         public SentenceData sentenceData;
         public String sentenceSourceAudioFileName;
+
+        // Mnemonic image generation fields
+        public Long imageSessionId;
+        public String mnemonicKeyword;
+        public String mnemonicSentence;
+        public String imageFileName;
 
         @Override
         public int hashCode() {

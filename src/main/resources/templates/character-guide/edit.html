@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Edit Character Guide - Eme</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-links a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        .form-container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="text"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        input[readonly] {
+            background-color: #e9ecef;
+            cursor: not-allowed;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-secondary {
+            background-color: #6c757d;
+        }
+        .btn-secondary:hover {
+            background-color: #5a6268;
+        }
+        .help-text {
+            font-size: 12px;
+            color: #6c757d;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Edit Character Guide</h1>
+        <div class="nav-links">
+            <a href="/character-guide">← Back to Character Guide</a>
+            <a href="/">Home</a>
+            <a href="/translations">📚 Translations</a>
+            <a href="/sentences">📝 Sentences</a>
+            <a href="/sessions">📦 Sessions</a>
+        </div>
+    </div>
+
+    <div class="form-container">
+        <form th:action="@{/character-guide/{language}/{startSound}/edit(language=${character.language}, startSound=${character.startSound})}"
+              th:object="${character}" method="post">
+
+            <div class="form-group">
+                <label for="language">Language *</label>
+                <input type="text" th:field="*{language}" id="language" readonly>
+                <div class="help-text">Language cannot be changed</div>
+            </div>
+
+            <div class="form-group">
+                <label for="startSound">Start Sound *</label>
+                <input type="text" th:field="*{startSound}" id="startSound" readonly>
+                <div class="help-text">Start sound cannot be changed</div>
+            </div>
+
+            <div class="form-group">
+                <label for="characterName">Character Name *</label>
+                <input type="text" th:field="*{characterName}" id="characterName" required>
+                <div class="help-text">The name of the character to associate with this sound</div>
+            </div>
+
+            <div class="form-group">
+                <label for="characterContext">Character Context (Show/Movie) *</label>
+                <input type="text" th:field="*{characterContext}" id="characterContext" required>
+                <div class="help-text">The show, movie, or source the character is from</div>
+            </div>
+
+            <div class="form-group">
+                <button type="submit" class="btn">Update Character Guide</button>
+                <a href="/character-guide" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</body>
+</html>

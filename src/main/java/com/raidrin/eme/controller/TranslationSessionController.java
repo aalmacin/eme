@@ -1,0 +1,476 @@
+package com.raidrin.eme.controller;
+
+import com.raidrin.eme.anki.AnkiNoteCreatorService;
+import com.raidrin.eme.session.SessionOrchestrationService;
+import com.raidrin.eme.storage.entity.TranslationSessionEntity;
+import com.raidrin.eme.storage.entity.WordEntity;
+import com.raidrin.eme.storage.service.TranslationSessionService;
+import com.raidrin.eme.storage.service.WordService;
+import com.raidrin.eme.util.ZipFileGenerator;
+import lombok.RequiredArgsConstructor;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.*;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.*;
+
+@Controller
+@RequestMapping("/sessions")
+@RequiredArgsConstructor
+public class TranslationSessionController {
+
+    private final TranslationSessionService translationSessionService;
+    private final WordService wordService;
+    private final ZipFileGenerator zipFileGenerator;
+    private final AnkiNoteCreatorService ankiNoteCreatorService;
+    private final SessionOrchestrationService sessionOrchestrationService;
+
+    @GetMapping
+    public String listSessions(Model model,
+                              @RequestParam(required = false) String status) {
+        List<TranslationSessionEntity> sessions;
+
+        if (status != null && !status.trim().isEmpty()) {
+            try {
+                TranslationSessionEntity.SessionStatus sessionStatus =
+                        TranslationSessionEntity.SessionStatus.valueOf(status.toUpperCase());
+                sessions = translationSessionService.findByStatus(sessionStatus);
+                model.addAttribute("selectedStatus", status);
+            } catch (IllegalArgumentException e) {
+                sessions = translationSessionService.findAll();
+            }
+        } else {
+            sessions = translationSessionService.findAll();
+        }
+
+        model.addAttribute("sessions", sessions);
+        return "sessions/list";
+    }
+
+    @GetMapping("/{id}")
+    public String viewSession(@PathVariable Long id, Model model) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+        if (sessionOpt.isPresent()) {
+            TranslationSessionEntity session = sessionOpt.get();
+            Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+            // Enrich word data with word IDs and latest data from WordEntity
+            if (sessionData.containsKey("words")) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+                for (Map<String, Object> wordData : words) {
+                    String sourceWord = (String) wordData.get("source_word");
+                    if (sourceWord != null) {
+                        Optional<WordEntity> wordEntity = wordService.findWord(
+                                sourceWord,
+                                session.getSourceLanguage(),
+                                session.getTargetLanguage()
+                        );
+                        if (wordEntity.isPresent()) {
+                            // Add word ID
+                            wordData.put("word_id", wordEntity.get().getId());
+
+                            // Merge with latest data to show updated images and other regenerated content
+                            Map<String, Object> mergedData = mergeWithLatestWordData(
+                                    wordData,
+                                    session.getSourceLanguage(),
+                                    session.getTargetLanguage()
+                            );
+                            wordData.putAll(mergedData);
+                        }
+                    }
+                }
+            }
+
+            model.addAttribute("translationSession", session);
+            model.addAttribute("sessionData", sessionData);
+            return "sessions/view";
+        } else {
+            return "redirect:/sessions?error=not-found";
+        }
+    }
+
+    @GetMapping("/{id}/download")
+    public ResponseEntity<Resource> downloadAssets(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+
+        // Always regenerate ZIP to include latest images and assets
+        if (session.getStatus() == TranslationSessionEntity.SessionStatus.COMPLETED) {
+            try {
+                Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+                // Merge with latest WordEntity data to include regenerated images
+                if (sessionData.containsKey("words")) {
+                    @SuppressWarnings("unchecked")
+                    List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+                    for (Map<String, Object> wordData : words) {
+                        String sourceWord = (String) wordData.get("source_word");
+                        if (sourceWord != null) {
+                            Map<String, Object> mergedData = mergeWithLatestWordData(
+                                    wordData,
+                                    session.getSourceLanguage(),
+                                    session.getTargetLanguage()
+                            );
+                            wordData.putAll(mergedData);
+
+                            // Update image_local_path if we have a new image file
+                            if (mergedData.containsKey("image_file")) {
+                                String imageFile = (String) mergedData.get("image_file");
+                                wordData.put("image_local_path", "./generated_images/" + imageFile);
+                            }
+                        }
+                    }
+                }
+
+                String zipPath = zipFileGenerator.createSessionZip(session, sessionData);
+                translationSessionService.updateZipFilePath(id, zipPath);
+                session.setZipFilePath(zipPath);
+            } catch (Exception e) {
+                System.err.println("Failed to generate ZIP: " + e.getMessage());
+                e.printStackTrace();
+                return ResponseEntity.internalServerError().build();
+            }
+        } else {
+            return ResponseEntity.badRequest().build();
+        }
+
+        // Serve the ZIP file
+        Path zipPath = Paths.get(session.getZipFilePath());
+        Resource resource = new FileSystemResource(zipPath);
+
+        if (!resource.exists()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        // Sanitize the word to ensure valid filename
+        String sanitizedWord = com.raidrin.eme.util.FileNameSanitizer.sanitize(session.getWord(), "")
+                .replaceAll("\\.$", "")
+                .replaceAll("[^a-zA-Z0-9_-]", "_");
+        String filename = "session_" + id + "_" + sanitizedWord + ".zip";
+
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_OCTET_STREAM)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
+                .body(resource);
+    }
+
+    @PostMapping("/{id}/retry-word-translation")
+    public String retryWordTranslation(@PathVariable Long id, @RequestParam int wordIndex) {
+        // TODO: Implement individual word translation retry
+        return "redirect:/sessions/" + id + "?message=word-translation-retry-not-implemented";
+    }
+
+    @PostMapping("/{id}/retry-word-sentence")
+    public String retryWordSentence(@PathVariable Long id, @RequestParam int wordIndex) {
+        // TODO: Implement individual word sentence retry
+        return "redirect:/sessions/" + id + "?message=word-sentence-retry-not-implemented";
+    }
+
+    @PostMapping("/{id}/retry-word-image")
+    public String retryWordImage(@PathVariable Long id,
+                                 @RequestParam int wordIndex,
+                                 @RequestParam(required = false) String imagePromptOverride) {
+        // TODO: Implement individual word image retry with optional prompt override
+        return "redirect:/sessions/" + id + "?message=word-image-retry-not-implemented";
+    }
+
+    @PostMapping("/{id}/retry")
+    @SuppressWarnings("unchecked")
+    public String retrySession(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        // Get session data
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+        // Check if we have the original request data
+        if (!sessionData.containsKey("original_request")) {
+            return "redirect:/sessions/" + id + "?error=cannot-retry-old-session";
+        }
+
+        try {
+            // Reconstruct the request
+            SessionOrchestrationService.BatchProcessingRequest request =
+                    sessionOrchestrationService.reconstructRequestFromSessionData(sessionData);
+
+            // Reset session status to IN_PROGRESS
+            translationSessionService.updateStatus(id, TranslationSessionEntity.SessionStatus.IN_PROGRESS);
+
+            // Clear error data from previous attempt
+            Map<String, Object> updatedSessionData = new HashMap<>(sessionData);
+            if (updatedSessionData.containsKey("process_summary")) {
+                Map<String, Object> processSummary = (Map<String, Object>) updatedSessionData.get("process_summary");
+                processSummary.put("translation_errors", new ArrayList<>());
+                processSummary.put("audio_errors", new ArrayList<>());
+                processSummary.put("image_errors", new ArrayList<>());
+                processSummary.put("sentence_errors", new ArrayList<>());
+                processSummary.put("has_errors", false);
+            }
+            translationSessionService.updateSessionData(id, updatedSessionData);
+
+            // Start async processing
+            sessionOrchestrationService.processTranslationBatchAsync(id, request);
+
+            System.out.println("Started retry processing for session " + id);
+            return "redirect:/sessions/" + id + "?message=retry-started";
+
+        } catch (Exception e) {
+            System.err.println("Failed to retry session: " + e.getMessage());
+            e.printStackTrace();
+            return "redirect:/sessions/" + id + "?error=retry-failed";
+        }
+    }
+
+    @PostMapping("/fix-stuck-sessions")
+    public String fixStuckSessions() {
+        List<TranslationSessionEntity> inProgressSessions = translationSessionService.findByStatus(
+                TranslationSessionEntity.SessionStatus.IN_PROGRESS);
+
+        int fixed = 0;
+        for (TranslationSessionEntity session : inProgressSessions) {
+            Map<String, Object> sessionData = translationSessionService.getSessionData(session.getId());
+
+            // If session has image data, it actually completed successfully
+            if (sessionData.containsKey("image_file") || sessionData.containsKey("gcs_url") || sessionData.containsKey("local_path")) {
+                translationSessionService.updateStatus(session.getId(), TranslationSessionEntity.SessionStatus.COMPLETED);
+                fixed++;
+            }
+        }
+
+        return "redirect:/sessions?message=fixed-" + fixed + "-sessions";
+    }
+
+    @PostMapping("/{id}/create-anki-cards")
+    public String createAnkiCards(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+
+        // Check if session is completed
+        if (session.getStatus() != TranslationSessionEntity.SessionStatus.COMPLETED) {
+            return "redirect:/sessions/" + id + "?error=session-not-completed";
+        }
+
+        // Check if Anki is enabled
+        if (!Boolean.TRUE.equals(session.getAnkiEnabled())) {
+            return "redirect:/sessions/" + id + "?error=anki-not-enabled";
+        }
+
+        // Get session data
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+        try {
+            int cardsCreated = 0;
+
+            // Get words from session data
+            if (sessionData.containsKey("words") && sessionData.get("words") instanceof List) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+                for (Map<String, Object> wordData : words) {
+                    // Merge with latest data from WordEntity
+                    Map<String, Object> latestWordData = mergeWithLatestWordData(
+                            wordData,
+                            session.getSourceLanguage(),
+                            session.getTargetLanguage()
+                    );
+
+                    // Build front and back content using latest data
+                    String front = buildAnkiFront(session, latestWordData);
+                    String back = buildAnkiBack(session, latestWordData);
+
+                    // Create Anki card
+                    ankiNoteCreatorService.addNote(session.getAnkiDeck(), front, back);
+                    cardsCreated++;
+                }
+            }
+
+            return "redirect:/sessions/" + id + "?message=created-" + cardsCreated + "-cards";
+
+        } catch (Exception e) {
+            System.err.println("Failed to create Anki cards: " + e.getMessage());
+            e.printStackTrace();
+            return "redirect:/sessions/" + id + "?error=anki-creation-failed";
+        }
+    }
+
+    private String buildAnkiFront(TranslationSessionEntity session, Map<?, ?> wordData) {
+        String template = session.getAnkiFrontTemplate();
+        if (template == null) {
+            template = "[source-text]";
+        }
+
+        return replaceAnkiPlaceholders(template, session, wordData);
+    }
+
+    private String buildAnkiBack(TranslationSessionEntity session, Map<?, ?> wordData) {
+        String template = session.getAnkiBackTemplate();
+        if (template == null) {
+            template = "[target-text]";
+        }
+
+        return replaceAnkiPlaceholders(template, session, wordData);
+    }
+
+    private String replaceAnkiPlaceholders(String text, TranslationSessionEntity session, Map<?, ?> wordData) {
+        String result = text;
+
+        // Replace basic placeholders
+        Object sourceWord = wordData.get("source_word");
+        result = result.replace("[source-text]", sourceWord != null ? sourceWord.toString() : "");
+
+        // Replace source transliteration
+        Object sourceTransliteration = wordData.get("source_transliteration");
+        result = result.replace("[source_transliteration]", sourceTransliteration != null ? sourceTransliteration.toString() : "");
+
+        // Replace translations
+        if (wordData.containsKey("translations")) {
+            List<?> translations = (List<?>) wordData.get("translations");
+            StringBuilder sb = new StringBuilder();
+            if (!translations.isEmpty()) {
+                for (Object trans : translations) {
+                    if (sb.length() > 0) sb.append(", ");
+                    sb.append(trans.toString());
+                }
+            }
+            result = result.replace("[target-text]", sb.toString());
+        }
+
+        // Replace audio placeholders
+        if (wordData.containsKey("source_audio_file")) {
+            String audioFile = wordData.get("source_audio_file").toString();
+            result = result.replace("[source-audio]", "[sound:" + audioFile + "]");
+        }
+
+        if (wordData.containsKey("target_audio_files") && wordData.get("target_audio_files") instanceof List) {
+            List<?> audioFiles = (List<?>) wordData.get("target_audio_files");
+            if (!audioFiles.isEmpty()) {
+                String audioFile = audioFiles.get(0).toString();
+                result = result.replace("[target-audio]", "[sound:" + audioFile + "]");
+            }
+        }
+
+        // Replace sentence placeholders
+        if (wordData.containsKey("sentence_data") && wordData.get("sentence_data") instanceof Map) {
+            Map<?, ?> sentenceData = (Map<?, ?>) wordData.get("sentence_data");
+            Object sourceSent = sentenceData.get("source_language_sentence");
+            Object targetSent = sentenceData.get("target_language_sentence");
+            Object latin = sentenceData.get("target_language_latin");
+            Object translit = sentenceData.get("target_language_transliteration");
+            Object structure = sentenceData.get("source_language_structure");
+
+            result = result.replace("[sentence-source]", sourceSent != null ? sourceSent.toString() : "");
+            result = result.replace("[sentence-target]", targetSent != null ? targetSent.toString() : "");
+            result = result.replace("[sentence-latin]", latin != null ? latin.toString() : "");
+            result = result.replace("[sentence-transliteration]", translit != null ? translit.toString() : "");
+            result = result.replace("[sentence-structure]", structure != null ? structure.toString() : "");
+        }
+
+        if (wordData.containsKey("sentence_audio_file")) {
+            String audioFile = wordData.get("sentence_audio_file").toString();
+            result = result.replace("[sentence-source-audio]", "[sound:" + audioFile + "]");
+        }
+
+        // Replace mnemonic placeholders
+        Object mnemonicKeyword = wordData.get("mnemonic_keyword");
+        Object mnemonicSentence = wordData.get("mnemonic_sentence");
+        result = result.replace("[mnemonic_keyword]", mnemonicKeyword != null ? mnemonicKeyword.toString() : "");
+        result = result.replace("[mnemonic_sentence]", mnemonicSentence != null ? mnemonicSentence.toString() : "");
+
+        if (wordData.containsKey("image_file")) {
+            String imageFile = wordData.get("image_file").toString();
+            result = result.replace("[image]", "<img src=\"" + imageFile + "\" />");
+        }
+
+        return result;
+    }
+
+    /**
+     * Merge session word data with latest data from WordEntity
+     * This ensures Anki cards use the most up-to-date information
+     */
+    private Map<String, Object> mergeWithLatestWordData(
+            Map<String, Object> sessionWordData,
+            String sourceLanguage,
+            String targetLanguage) {
+
+        String sourceWord = (String) sessionWordData.get("source_word");
+        if (sourceWord == null) {
+            return sessionWordData;
+        }
+
+        // Try to get latest data from WordEntity
+        Optional<WordEntity> wordEntityOpt = wordService.findWord(sourceWord, sourceLanguage, targetLanguage);
+
+        if (wordEntityOpt.isEmpty()) {
+            return sessionWordData; // No Word entity yet, use session data
+        }
+
+        WordEntity wordEntity = wordEntityOpt.get();
+        Map<String, Object> mergedData = new HashMap<>(sessionWordData);
+
+        // Update with latest translations if available
+        if (wordEntity.getTranslation() != null && !wordEntity.getTranslation().isEmpty()) {
+            try {
+                Set<String> translations = wordService.deserializeTranslations(wordEntity.getTranslation());
+                mergedData.put("translations", new ArrayList<>(translations));
+            } catch (Exception e) {
+                // Keep session data
+            }
+        }
+
+        // Update with latest audio files
+        if (wordEntity.getAudioSourceFile() != null) {
+            mergedData.put("source_audio_file", wordEntity.getAudioSourceFile());
+        }
+        if (wordEntity.getAudioTargetFile() != null) {
+            List<String> targetAudioFiles = new ArrayList<>();
+            targetAudioFiles.add(wordEntity.getAudioTargetFile());
+            mergedData.put("target_audio_files", targetAudioFiles);
+        }
+
+        // Update with latest mnemonic data
+        if (wordEntity.getMnemonicKeyword() != null) {
+            mergedData.put("mnemonic_keyword", wordEntity.getMnemonicKeyword());
+        }
+        if (wordEntity.getMnemonicSentence() != null) {
+            mergedData.put("mnemonic_sentence", wordEntity.getMnemonicSentence());
+        }
+        if (wordEntity.getImagePrompt() != null) {
+            mergedData.put("image_prompt", wordEntity.getImagePrompt());
+        }
+
+        // Update with latest transliteration
+        if (wordEntity.getSourceTransliteration() != null) {
+            mergedData.put("source_transliteration", wordEntity.getSourceTransliteration());
+        }
+
+        // Update with latest image file (this is the key update for regenerated images)
+        if (wordEntity.getImageFile() != null) {
+            mergedData.put("image_file", wordEntity.getImageFile());
+            mergedData.put("image_status", "success");
+        }
+
+        return mergedData;
+    }
+}

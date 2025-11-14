@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${word.word} + ' - Word Details'">Word Details</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .card {
+            margin-bottom: 20px;
+        }
+        .word-title {
+            font-size: 2.5rem;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .translation {
+            font-size: 1.5rem;
+            color: #6c757d;
+            margin-bottom: 20px;
+        }
+        .image-container {
+            text-align: center;
+            margin: 20px 0;
+        }
+        .word-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .prompt-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+            font-size: 14px;
+            white-space: pre-wrap;
+        }
+        .audio-player {
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="card">
+            <div class="card-body">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item"><a href="/">Home</a></li>
+                        <li class="breadcrumb-item"><a href="/sessions">Sessions</a></li>
+                        <li class="breadcrumb-item active" aria-current="page" th:text="${word.word}">Word</li>
+                    </ol>
+                </nav>
+            </div>
+        </div>
+
+        <!-- Word Overview -->
+        <div class="card">
+            <div class="card-body">
+                <div class="word-title" th:text="${word.word}">Word</div>
+                <div class="translation" th:if="${word.sourceTransliteration != null && !word.sourceTransliteration.isEmpty()}">
+                    <strong>Transliteration:</strong>
+                    <span th:text="${word.sourceTransliteration}"></span>
+                </div>
+                <div class="translation" th:if="${translations != null && !translations.isEmpty()}">
+                    <strong>Translations:</strong>
+                    <span th:text="${#strings.listJoin(translations, ', ')}"></span>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <p><strong>Source Language:</strong> <span th:text="${word.sourceLanguage}"></span></p>
+                    </div>
+                    <div class="col-md-6">
+                        <p><strong>Target Language:</strong> <span th:text="${word.targetLanguage}"></span></p>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="mt-3">
+                    <button type="button" class="btn btn-warning"
+                            th:data-word-id="${word.id}"
+                            th:data-source-word="${word.word}"
+                            onclick="showRegenerateModal(this.dataset.wordId, this.dataset.sourceWord)">
+                        🔄 Regenerate Image
+                    </button>
+                    <a th:if="${word.imageFile != null}"
+                       th:href="@{/api/words/{id}/download-image(id=${word.id})}"
+                       class="btn btn-success" download>
+                        ⬇️ Download Image
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Audio Section -->
+        <div class="card" th:if="${word.audioSourceFile != null || word.audioTargetFile != null}">
+            <div class="card-header">
+                <h5 class="mb-0">🔊 Audio</h5>
+            </div>
+            <div class="card-body">
+                <div th:if="${word.audioSourceFile != null}" class="audio-player">
+                    <p><strong>Source Audio:</strong></p>
+                    <audio controls>
+                        <source th:src="@{'/generated_audio/' + ${word.audioSourceFile}}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+                <div th:if="${word.audioTargetFile != null}" class="audio-player">
+                    <p><strong>Target Audio:</strong></p>
+                    <audio controls>
+                        <source th:src="@{'/generated_audio/' + ${word.audioTargetFile}}" type="audio/mpeg">
+                        Your browser does not support the audio element.
+                    </audio>
+                </div>
+            </div>
+        </div>
+
+        <!-- Image Section -->
+        <div class="card" th:if="${word.imageFile != null}">
+            <div class="card-header">
+                <h5 class="mb-0">🖼️ Mnemonic Image</h5>
+            </div>
+            <div class="card-body">
+                <div class="image-container">
+                    <img th:src="@{'/generated_images/' + ${word.imageFile}}"
+                         th:alt="${word.word}"
+                         class="word-image">
+                </div>
+
+                <div th:if="${word.mnemonicKeyword != null}" class="mt-3">
+                    <h6>Mnemonic Keyword</h6>
+                    <p th:text="${word.mnemonicKeyword}"></p>
+                </div>
+
+                <div th:if="${word.mnemonicSentence != null}" class="mt-3">
+                    <h6>Mnemonic Sentence</h6>
+                    <p th:text="${word.mnemonicSentence}"></p>
+                </div>
+
+                <div th:if="${word.imagePrompt != null}" class="mt-3">
+                    <h6>Image Prompt</h6>
+                    <div class="prompt-box" th:text="${word.imagePrompt}"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- No Image -->
+        <div class="card" th:if="${word.imageFile == null}">
+            <div class="card-body text-center">
+                <p class="text-muted">No image has been generated for this word yet.</p>
+                <button type="button" class="btn btn-primary"
+                        th:data-word-id="${word.id}"
+                        th:data-source-word="${word.word}"
+                        onclick="showRegenerateModal(this.dataset.wordId, this.dataset.sourceWord)">
+                    Generate Image
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regenerate Image Modal -->
+    <div id="regenerateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Regenerate Image for <span id="modalWordTitle"></span></h3>
+
+            <!-- Provider Selection -->
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Provider:</label>
+                <div style="display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="imageProvider" value="LEONARDO" checked style="margin-right: 6px;">
+                        Leonardo AI
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="imageProvider" value="OPENAI" style="margin-right: 6px;">
+                        OpenAI DALL-E
+                    </label>
+                </div>
+            </div>
+
+            <!-- Use Same Prompt Checkbox -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="useSamePromptCheckbox" style="margin-right: 8px;">
+                    Use same prompt (reuse existing prompt instead of generating new one)
+                </label>
+            </div>
+
+            <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">Custom prompt (optional - leave blank to auto-generate new prompt):</p>
+            <textarea id="regeneratePromptTextarea"
+                      placeholder="Enter a custom image prompt or leave blank to auto-generate..."
+                      style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;"></textarea>
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="regenerateStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeRegenerateModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="regenerateWordImage()" class="btn btn-warning" id="regenerateBtn">🔄 Regenerate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentWordId = null;
+
+        function showRegenerateModal(wordId, sourceWord) {
+            currentWordId = wordId;
+            document.getElementById('modalWordTitle').textContent = sourceWord;
+            document.getElementById('regeneratePromptTextarea').value = '';
+            document.getElementById('useSamePromptCheckbox').checked = false;
+            document.querySelector('input[name="imageProvider"][value="LEONARDO"]').checked = true;
+            document.getElementById('regenerateModal').style.display = 'flex';
+            document.getElementById('regenerateStatus').textContent = '';
+        }
+
+        function closeRegenerateModal() {
+            document.getElementById('regenerateModal').style.display = 'none';
+            currentWordId = null;
+        }
+
+        async function regenerateWordImage() {
+            if (!currentWordId) return;
+
+            const customPrompt = document.getElementById('regeneratePromptTextarea').value.trim();
+            const useSamePrompt = document.getElementById('useSamePromptCheckbox').checked;
+            const provider = document.querySelector('input[name="imageProvider"]:checked').value;
+            const statusEl = document.getElementById('regenerateStatus');
+            const btnEl = document.getElementById('regenerateBtn');
+
+            statusEl.textContent = 'Regenerating image...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const requestBody = {};
+
+                // Add custom prompt if provided
+                if (customPrompt) {
+                    requestBody.imagePrompt = customPrompt;
+                }
+
+                // Add useSamePrompt flag
+                if (useSamePrompt) {
+                    requestBody.useSamePrompt = true;
+                }
+
+                // Add provider selection
+                requestBody.provider = provider;
+
+                const response = await fetch(`/api/words/${currentWordId}/regenerate-image`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.textContent = 'Image regenerated! Reloading page...';
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        // Close modal on background click
+        document.getElementById('regenerateModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRegenerateModal();
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Session Details - Eme</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-links a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: bold;
+            width: 200px;
+            color: #495057;
+        }
+        .info-value {
+            flex: 1;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-primary {
+            background-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .status-in-progress {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+        .status-completed {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .status-failed {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .data-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .data-section pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 0;
+            user-select: none;
+        }
+        .collapsible-header:hover {
+            background: #dee2e6;
+        }
+        .collapsible-header .arrow {
+            float: right;
+            transition: transform 0.3s ease;
+        }
+        .collapsible-header:not(.collapsed) .arrow {
+            transform: rotate(180deg);
+        }
+        .collapse-content {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 0 0 4px 4px;
+            margin-top: 5px;
+        }
+        .word-item {
+            padding: 8px;
+            background: white;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .process-status-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #6c757d;
+        }
+        .process-status-card.success {
+            border-left-color: #28a745;
+        }
+        .process-status-card.partial {
+            border-left-color: #ffc107;
+        }
+        .process-status-card.failure {
+            border-left-color: #dc3545;
+        }
+        .process-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .error-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .error-list li {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        .word-detail {
+            background: white;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .word-detail-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+        .process-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .process-item.success {
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+        }
+        .process-item.failed {
+            background: #f8d7da;
+            border-left: 3px solid #dc3545;
+        }
+        .process-name {
+            font-weight: 500;
+        }
+        .process-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .image-prompt-override {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .reused-badge {
+            background: #17a2b8;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: normal;
+            margin-left: 10px;
+        }
+        .new-badge {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: normal;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Translation Session Details</h1>
+        <div class="nav-links">
+            <a href="/sessions">← Back to Sessions</a>
+            <a href="/">Home</a>
+            <a href="/translations">📚 Translations</a>
+            <a href="/sentences">📝 Sentences</a>
+            <a href="/character-guide">🎭 Character Guide</a>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h2>Session Information</h2>
+        <div class="info-row">
+            <div class="info-label">Session ID:</div>
+            <div class="info-value" th:text="${translationSession.id}"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Word:</div>
+            <div class="info-value"><strong th:text="${translationSession.word}"></strong></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Source Language:</div>
+            <div class="info-value" th:text="${translationSession.sourceLanguage}"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Target Language:</div>
+            <div class="info-value" th:text="${translationSession.targetLanguage}"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Status:</div>
+            <div class="info-value">
+                <span th:class="'status-badge status-' + ${#strings.toLowerCase(translationSession.status)}"
+                      th:text="${translationSession.status}"></span>
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Image Generation:</div>
+            <div class="info-value" th:text="${translationSession.imageGenerationEnabled ? 'Enabled' : 'Disabled'}"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Audio Generation:</div>
+            <div class="info-value" th:text="${translationSession.audioGenerationEnabled ? 'Enabled' : 'Disabled'}"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Created:</div>
+            <div class="info-value" th:text="${#temporals.format(translationSession.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></div>
+        </div>
+        <div class="info-row" th:if="${translationSession.completedAt != null}">
+            <div class="info-label">Completed:</div>
+            <div class="info-value" th:text="${#temporals.format(translationSession.completedAt, 'yyyy-MM-dd HH:mm:ss')}"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div th:if="${sessionData.containsKey('original_request')}" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+            <form th:action="@{/sessions/{id}/retry(id=${translationSession.id})}" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-warning">🔄 Retry Entire Session</button>
+            </form>
+            <button type="button" class="btn btn-success" onclick="generateWithPreset()">⚙️ Generate with Same Preset</button>
+        </div>
+    </div>
+
+    <!-- Words Section with Detailed Status -->
+    <div class="info-card" th:if="${sessionData.containsKey('words') && !sessionData.get('words').isEmpty()}">
+        <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#words-content" aria-expanded="true" aria-controls="words-content">
+            <h2 style="margin: 0; display: inline-block;">
+                <span th:text="${sessionData.containsKey('total_words') ? sessionData.get('total_words') : sessionData.get('words').size()}"></span> Words
+            </h2>
+            <span th:if="${sessionData.containsKey('dedup_stats')}" style="font-size: 14px; margin-left: 15px; color: #6c757d;">
+                <span th:if="${sessionData.get('dedup_stats').get('reused_count') > 0}"
+                      th:text="'♻️ ' + ${sessionData.get('dedup_stats').get('reused_count')} + ' reused'"
+                      style="margin-right: 10px;"></span>
+                <span th:if="${sessionData.get('dedup_stats').get('new_count') > 0}"
+                      th:text="'✨ ' + ${sessionData.get('dedup_stats').get('new_count')} + ' new'"></span>
+            </span>
+            <span class="arrow">▼</span>
+        </div>
+        <div id="words-content" class="collapse show">
+            <div class="collapse-content">
+            <div th:each="wordData, iterStat : ${sessionData.get('words')}" class="word-detail">
+                <div class="word-detail-header">
+                    <span th:text="${wordData.get('source_word')}"></span>
+                    <span th:if="${wordData.containsKey('source_transliteration')}"
+                          th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
+                          style="font-size: 14px; color: #495057; font-weight: normal; font-style: italic;"></span>
+                    <span th:if="${wordData.containsKey('translations')}"
+                          th:text="' → ' + ${wordData.get('translations')}"
+                          style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
+                    <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == true}"
+                          class="reused-badge">♻️ Reused from previous session</span>
+                    <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == false}"
+                          class="new-badge">✨ Newly generated</span>
+
+                    <!-- Word Actions -->
+                    <span th:if="${wordData.containsKey('word_id')}" style="float: right;">
+                        <a th:href="@{/words/{id}(id=${wordData.get('word_id')})}"
+                           class="btn btn-sm btn-outline-primary"
+                           style="margin-left: 10px;">
+                            📖 View Details
+                        </a>
+                        <button type="button"
+                                th:data-word-id="${wordData.get('word_id')}"
+                                th:data-source-word="${wordData.get('source_word')}"
+                                onclick="showRegenerateModal(this.dataset.wordId, this.dataset.sourceWord)"
+                                class="btn btn-sm btn-outline-warning"
+                                style="margin-left: 5px;">
+                            🔄 Regenerate Image
+                        </button>
+                    </span>
+                </div>
+
+                <!-- Translation Status -->
+                <div th:if="${wordData.containsKey('translation_status')}"
+                     th:class="'process-item ' + (${wordData.get('translation_status')} == 'success' ? 'success' : 'failed')">
+                    <div>
+                        <span class="process-name">Translation:</span>
+                        <span th:if="${wordData.get('translation_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('translation_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                        <small th:if="${wordData.containsKey('translation_error')}"
+                               th:text="' - ' + ${wordData.get('translation_error')}"
+                               style="color: #721c24; display: block; margin-top: 4px;"></small>
+                    </div>
+                    <div class="process-actions" th:if="${wordData.get('translation_status')} == 'failed'">
+                        <form th:action="@{/sessions/{id}/retry-word-translation(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-danger btn-sm">Retry</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Audio Status -->
+                <div th:if="${wordData.containsKey('source_audio_file')}" class="process-item success">
+                    <div>
+                        <span class="process-name">Source Audio:</span>
+                        <span style="color: #28a745;">✓ Generated</span>
+                        <code th:text="${wordData.get('source_audio_file')}" style="font-size: 11px; margin-left: 8px;"></code>
+                    </div>
+                </div>
+
+                <!-- Sentence Status -->
+                <div th:if="${wordData.containsKey('sentence_status')}"
+                     th:class="'process-item ' + (${wordData.get('sentence_status')} == 'success' ? 'success' : 'failed')">
+                    <div>
+                        <span class="process-name">Sentence:</span>
+                        <span th:if="${wordData.get('sentence_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('sentence_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                        <small th:if="${wordData.containsKey('sentence_error')}"
+                               th:text="' - ' + ${wordData.get('sentence_error')}"
+                               style="color: #721c24; display: block; margin-top: 4px;"></small>
+                    </div>
+                    <div class="process-actions" th:if="${wordData.get('sentence_status')} == 'failed'">
+                        <form th:action="@{/sessions/{id}/retry-word-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-danger btn-sm">Retry</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Image Status -->
+                <div th:if="${wordData.containsKey('image_status')}"
+                     th:class="'process-item ' + (${wordData.get('image_status')} == 'success' ? 'success' : 'failed')">
+                    <div style="flex: 1;">
+                        <span class="process-name">Image:</span>
+                        <span th:if="${wordData.get('image_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('image_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                        <small th:if="${wordData.containsKey('image_error')}"
+                               th:text="' - ' + ${wordData.get('image_error')}"
+                               style="color: #721c24; display: block; margin-top: 4px;"></small>
+
+                        <!-- Display image thumbnail if successful -->
+                        <div th:if="${wordData.get('image_status') == 'success' and wordData.containsKey('image_file')}"
+                             style="margin-top: 12px; display: flex; align-items: flex-start; gap: 15px;">
+                            <img th:src="@{'/generated_images/' + ${wordData.get('image_file')}}"
+                                 alt="Word image"
+                                 style="max-width: 200px; max-height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"/>
+                            <div th:if="${wordData.containsKey('image_prompt')}" style="margin-left: 15px;">
+                                <small style="color: #6c757d;">Prompt:</small>
+                                <pre th:text="${wordData.get('image_prompt')}" style="font-size: 11px; background: #f1f3f5; padding: 8px; border-radius: 4px; margin-top: 4px; max-width: 400px; white-space: pre-wrap;"></pre>
+                            </div>
+                        </div>
+
+                        <!-- Show prompt even if no image yet -->
+                        <div th:if="${wordData.get('image_status') != 'success' and wordData.containsKey('image_prompt')}" style="margin-top: 8px;">
+                            <small style="color: #6c757d;">Prompt:</small>
+                            <pre th:text="${wordData.get('image_prompt')}" style="font-size: 11px; background: #f1f3f5; padding: 8px; border-radius: 4px; margin-top: 4px;"></pre>
+                        </div>
+                    </div>
+                    <div class="process-actions" th:if="${wordData.get('image_status')} == 'failed'">
+                        <form th:action="@{/sessions/{id}/retry-word-image(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <div>
+                                <input type="text" name="imagePromptOverride"
+                                       th:placeholder="'Override prompt (optional)'"
+                                       class="image-prompt-override"/>
+                                <button type="submit" class="btn btn-danger btn-sm" style="margin-top: 8px; margin-left: 0;">Retry Image</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Information for In-Progress Sessions -->
+    <div class="info-card" th:if="${translationSession.status.name() == 'IN_PROGRESS'}">
+        <h2>⏳ Processing In Progress</h2>
+
+        <!-- Show progress bar if we have processed_words info -->
+        <div th:if="${sessionData.containsKey('processed_words') && sessionData.containsKey('total_words')}" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-weight: bold;">Progress:</span>
+                <span th:text="${sessionData.get('processed_words')} + ' / ' + ${sessionData.get('total_words')} + ' words processed'"></span>
+            </div>
+            <div style="background: #e9ecef; border-radius: 8px; height: 24px; overflow: hidden;">
+                <div th:style="'width: ' + ${(sessionData.get('processed_words') * 100.0 / sessionData.get('total_words'))} + '%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; border-radius: 8px; transition: width 0.3s ease;'"></div>
+            </div>
+            <div th:if="${sessionData.containsKey('last_update')}" style="margin-top: 8px; font-size: 12px; color: #6c757d;">
+                Last updated: <span th:text="${sessionData.get('last_update')}"></span>
+            </div>
+        </div>
+
+        <!-- Show current word progress if available -->
+        <div th:if="${sessionData.containsKey('words') && !sessionData.get('words').isEmpty()}" style="margin-bottom: 20px;">
+            <h3 style="font-size: 18px; margin-bottom: 15px;">Current Progress by Word:</h3>
+            <div th:each="wordData, iterStat : ${sessionData.get('words')}" class="word-detail" style="opacity: 0.95;">
+                <div class="word-detail-header">
+                    <span th:text="${wordData.get('source_word')}"></span>
+                    <span th:if="${wordData.containsKey('source_transliteration')}"
+                          th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
+                          style="font-size: 14px; color: #495057; font-weight: normal; font-style: italic;"></span>
+                    <span th:if="${wordData.containsKey('translations')}"
+                          th:text="' → ' + ${wordData.get('translations')}"
+                          style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
+                    <span style="float: right; color: #28a745; font-size: 14px;">✓ Processed</span>
+                </div>
+
+                <!-- Translation Status -->
+                <div th:if="${wordData.containsKey('translation_status')}"
+                     th:class="'process-item ' + (${wordData.get('translation_status')} == 'success' ? 'success' : 'failed')">
+                    <div>
+                        <span class="process-name">Translation:</span>
+                        <span th:if="${wordData.get('translation_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('translation_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                    </div>
+                </div>
+
+                <!-- Audio Status -->
+                <div th:if="${wordData.containsKey('source_audio_file')}" class="process-item success">
+                    <div>
+                        <span class="process-name">Source Audio:</span>
+                        <span style="color: #28a745;">✓ Queued</span>
+                    </div>
+                </div>
+
+                <!-- Sentence Status -->
+                <div th:if="${wordData.containsKey('sentence_status')}"
+                     th:class="'process-item ' + (${wordData.get('sentence_status')} == 'success' ? 'success' : 'failed')">
+                    <div>
+                        <span class="process-name">Sentence:</span>
+                        <span th:if="${wordData.get('sentence_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('sentence_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                    </div>
+                </div>
+
+                <!-- Image Status -->
+                <div th:if="${wordData.containsKey('image_status')}"
+                     th:class="'process-item ' + (${wordData.get('image_status')} == 'success' ? 'success' : 'failed')">
+                    <div style="flex: 1;">
+                        <span class="process-name">Image:</span>
+                        <span th:if="${wordData.get('image_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('image_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Show planned steps if no progress data yet -->
+        <div th:if="${!sessionData.containsKey('words') || sessionData.get('words').isEmpty()}">
+            <p>This session is starting. The following steps will be completed:</p>
+            <ul style="list-style: none; padding-left: 0;">
+                <li style="padding: 8px 0;">📝 Translation of words</li>
+                <li th:if="${translationSession.audioGenerationEnabled}" style="padding: 8px 0;">🔊 Audio generation</li>
+                <li th:if="${translationSession.imageGenerationEnabled}" style="padding: 8px 0;">🖼️ Image generation with mnemonics</li>
+                <li th:if="${translationSession.sentenceGenerationEnabled}" style="padding: 8px 0;">📄 Sentence generation</li>
+                <li style="padding: 8px 0;">📦 ZIP file creation</li>
+            </ul>
+        </div>
+
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-top: 20px;">
+            <strong>⚠️ Note:</strong> This session is actively being processed. Refresh the page to see the latest progress.
+        </div>
+        <button onclick="window.location.reload()" class="btn" style="margin-top: 15px;">🔄 Refresh to Check Progress</button>
+
+        <!-- Auto-refresh script -->
+        <script>
+            // Auto-refresh every 5 seconds while processing
+            setTimeout(function() {
+                if (window.location.href.indexOf('sessions/') > -1) {
+                    window.location.reload();
+                }
+            }, 5000);
+        </script>
+    </div>
+
+    <!-- Process Status Section -->
+    <div class="info-card" th:if="${sessionData.containsKey('process_summary')}">
+        <h2>Process Status</h2>
+
+        <!-- Translation Status -->
+        <div th:with="translationErrors=${sessionData.get('process_summary').get('translation_errors')}"
+             th:if="${translationSession.imageGenerationEnabled || translationSession.audioGenerationEnabled}"
+             th:classappend="${translationErrors.isEmpty() ? 'success' : 'failure'}"
+             class="process-status-card">
+            <div class="process-header">
+                Translation:
+                <span th:if="${translationErrors.isEmpty()}" style="color: #28a745;">✓ Success</span>
+                <span th:if="${!translationErrors.isEmpty()}" style="color: #dc3545;">✗ Failed</span>
+            </div>
+            <ul th:if="${!translationErrors.isEmpty()}" class="error-list">
+                <li th:each="error : ${translationErrors}" th:text="${error}"></li>
+            </ul>
+        </div>
+
+        <!-- Audio Status -->
+        <div th:with="audioErrors=${sessionData.get('process_summary').get('audio_errors')},
+                      audioSuccess=${sessionData.get('process_summary').get('audio_success_count')},
+                      audioFailure=${sessionData.get('process_summary').get('audio_failure_count')}"
+             th:if="${translationSession.audioGenerationEnabled}"
+             th:classappend="${audioErrors.isEmpty() ? 'success' : (audioSuccess > 0 ? 'partial' : 'failure')}"
+             class="process-status-card">
+            <div class="process-header">
+                Audio Generation:
+                <span th:if="${audioErrors.isEmpty()}" style="color: #28a745;">✓ All Success (<span th:text="${audioSuccess}"></span> files)</span>
+                <span th:if="${!audioErrors.isEmpty() && audioSuccess > 0}" style="color: #ffc107;">⚠ Partial Success (<span th:text="${audioSuccess}"></span> success, <span th:text="${audioFailure}"></span> failed)</span>
+                <span th:if="${!audioErrors.isEmpty() && audioSuccess == 0}" style="color: #dc3545;">✗ All Failed</span>
+            </div>
+            <ul th:if="${!audioErrors.isEmpty()}" class="error-list">
+                <li th:each="error : ${audioErrors}" th:text="${error}"></li>
+            </ul>
+        </div>
+
+        <!-- Image Status -->
+        <div th:with="imageErrors=${sessionData.get('process_summary').get('image_errors')}"
+             th:if="${translationSession.imageGenerationEnabled}"
+             th:classappend="${imageErrors.isEmpty() ? 'success' : 'failure'}"
+             class="process-status-card">
+            <div class="process-header">
+                Image Generation:
+                <span th:if="${imageErrors.isEmpty()}" style="color: #28a745;">✓ Success</span>
+                <span th:if="${!imageErrors.isEmpty()}" style="color: #dc3545;">✗ Failed</span>
+            </div>
+            <ul th:if="${!imageErrors.isEmpty()}" class="error-list">
+                <li th:each="error : ${imageErrors}" th:text="${error}"></li>
+            </ul>
+        </div>
+
+        <!-- Sentence Status -->
+        <div th:with="sentenceErrors=${sessionData.get('process_summary').get('sentence_errors')}"
+             th:if="${translationSession.sentenceGenerationEnabled}"
+             th:classappend="${sentenceErrors.isEmpty() ? 'success' : 'failure'}"
+             class="process-status-card">
+            <div class="process-header">
+                Sentence Generation:
+                <span th:if="${sentenceErrors.isEmpty()}" style="color: #28a745;">✓ Success</span>
+                <span th:if="${!sentenceErrors.isEmpty()}" style="color: #dc3545;">✗ Failed</span>
+            </div>
+            <ul th:if="${!sentenceErrors.isEmpty()}" class="error-list">
+                <li th:each="error : ${sentenceErrors}" th:text="${error}"></li>
+            </ul>
+        </div>
+
+        <!-- Retry Buttons -->
+        <div th:if="${sessionData.get('process_summary').get('has_errors')}" style="margin-top: 20px;">
+            <form th:action="@{/sessions/{id}/retry(id=${translationSession.id})}" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-warning">Retry Failed Processes</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="info-card" th:if="${translationSession.status.name() == 'COMPLETED'}">
+        <h2>Generated Assets</h2>
+        <div class="info-row" th:if="${sessionData.containsKey('mnemonic_keyword')}">
+            <div class="info-label">Mnemonic Keyword:</div>
+            <div class="info-value"><strong th:text="${sessionData.get('mnemonic_keyword')}"></strong></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('mnemonic_sentence')}">
+            <div class="info-label">Mnemonic Sentence:</div>
+            <div class="info-value" th:text="${sessionData.get('mnemonic_sentence')}"></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('image_file')}">
+            <div class="info-label">Image File:</div>
+            <div class="info-value"><code th:text="${sessionData.get('image_file')}"></code></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('local_path')}">
+            <div class="info-label">Local Path:</div>
+            <div class="info-value"><code th:text="${sessionData.get('local_path')}"></code></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('gcs_url')}">
+            <div class="info-label">GCS Backup:</div>
+            <div class="info-value"><code th:text="${sessionData.get('gcs_url')}"></code></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('credit_cost')}">
+            <div class="info-label">Image Credit Cost:</div>
+            <div class="info-value"><strong th:text="${sessionData.get('credit_cost')} + ' credits'"></strong></div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <a th:href="@{/sessions/{id}/download(id=${translationSession.id})}" class="btn btn-success">Download Assets (ZIP)</a>
+
+            <!-- Anki Card Creation Button -->
+            <div th:if="${translationSession.ankiEnabled}" style="display: inline-block; margin-left: 10px;">
+                <form th:action="@{/sessions/{id}/create-anki-cards(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-primary">Create Anki Cards</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="data-section" th:if="${sessionData.containsKey('image_prompt')}">
+            <h4>Image Prompt Used:</h4>
+            <pre th:text="${sessionData.get('image_prompt')}"></pre>
+        </div>
+    </div>
+
+    <div class="info-card" th:if="${translationSession.status.name() == 'FAILED'}">
+        <h2>Error Information</h2>
+        <div class="error-message" th:if="${sessionData.containsKey('error')}">
+            <strong>Error:</strong>
+            <p th:text="${sessionData.get('error')}"></p>
+            <small th:if="${sessionData.containsKey('errorTime')}" th:text="'Error occurred at: ' + ${sessionData.get('errorTime')}"></small>
+        </div>
+    </div>
+
+    <!-- Session Data Debug Info (for empty sessions) -->
+    <div class="info-card" th:if="${!sessionData.containsKey('words') && translationSession.status.name() == 'COMPLETED'}">
+        <h2>Session Completed (Legacy Format)</h2>
+        <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 4px; border: 1px solid #ffeaa7;">
+            This session was completed using an older format. Detailed word-by-word information is not available.
+        </p>
+        <div th:if="${!sessionData.isEmpty()}">
+            <h3>Available Data:</h3>
+            <div class="data-section">
+                <pre th:text="${sessionData}"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Status -->
+    <div class="info-card" th:if="${translationSession.status.name() == 'PENDING'}">
+        <h2>⏸️ Session Pending</h2>
+        <p>This session is pending and will start processing soon.</p>
+        <button onclick="window.location.reload()" class="btn">Refresh Page</button>
+    </div>
+
+    <!-- Full Session Data (JSON) - Collapsible for debugging -->
+    <div class="info-card" th:if="${!sessionData.isEmpty()}">
+        <div class="collapsible-header collapsed" data-bs-toggle="collapse" data-bs-target="#session-data-content" aria-expanded="false" aria-controls="session-data-content">
+            <h2 style="margin: 0; display: inline-block;">Full Session Data (JSON)</h2>
+            <span style="font-size: 14px; margin-left: 15px; color: #6c757d;">For debugging purposes</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div id="session-data-content" class="collapse">
+            <div class="collapse-content">
+                <div class="data-section">
+                    <pre th:text="${sessionData}"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regenerate Image Modal -->
+    <div id="regenerateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Regenerate Image for <span id="modalWordTitle"></span></h3>
+
+            <!-- Provider Selection -->
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Provider:</label>
+                <div style="display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="imageProvider" value="LEONARDO" checked style="margin-right: 6px;">
+                        Leonardo AI
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="imageProvider" value="OPENAI" style="margin-right: 6px;">
+                        OpenAI DALL-E
+                    </label>
+                </div>
+            </div>
+
+            <!-- Use Same Prompt Checkbox -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="useSamePromptCheckbox" style="margin-right: 8px;">
+                    Use same prompt (reuse existing prompt instead of generating new one)
+                </label>
+            </div>
+
+            <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">Custom prompt (optional - leave blank to auto-generate new prompt):</p>
+            <textarea id="regeneratePromptTextarea"
+                      placeholder="Enter a custom image prompt or leave blank to auto-generate..."
+                      style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;"></textarea>
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="regenerateStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeRegenerateModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="regenerateWordImage()" class="btn btn-warning" id="regenerateBtn">🔄 Regenerate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let currentWordId = null;
+
+        function showRegenerateModal(wordId, sourceWord) {
+            currentWordId = wordId;
+            document.getElementById('modalWordTitle').textContent = sourceWord;
+            document.getElementById('regeneratePromptTextarea').value = '';
+            document.getElementById('useSamePromptCheckbox').checked = false;
+            document.querySelector('input[name="imageProvider"][value="LEONARDO"]').checked = true;
+            document.getElementById('regenerateModal').style.display = 'flex';
+            document.getElementById('regenerateStatus').textContent = '';
+        }
+
+        function closeRegenerateModal() {
+            document.getElementById('regenerateModal').style.display = 'none';
+            currentWordId = null;
+        }
+
+        async function regenerateWordImage() {
+            if (!currentWordId) return;
+
+            const customPrompt = document.getElementById('regeneratePromptTextarea').value.trim();
+            const useSamePrompt = document.getElementById('useSamePromptCheckbox').checked;
+            const provider = document.querySelector('input[name="imageProvider"]:checked').value;
+            const statusEl = document.getElementById('regenerateStatus');
+            const btnEl = document.getElementById('regenerateBtn');
+
+            statusEl.textContent = 'Regenerating image...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const requestBody = {};
+
+                // Add custom prompt if provided
+                if (customPrompt) {
+                    requestBody.imagePrompt = customPrompt;
+                }
+
+                // Add useSamePrompt flag
+                if (useSamePrompt) {
+                    requestBody.useSamePrompt = true;
+                }
+
+                // Add provider selection
+                requestBody.provider = provider;
+
+                const response = await fetch(`/api/words/${currentWordId}/regenerate-image`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.textContent = 'Image regenerated! Reloading page...';
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        // Close modal on background click
+        document.getElementById('regenerateModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRegenerateModal();
+            }
+        });
+
+        // Generate with same preset function
+        function generateWithPreset() {
+            // Store the session configuration in sessionStorage
+            const presetConfig = {
+                sourceLanguage: /*[[${translationSession.sourceLanguage}]]*/ 'hi',
+                targetLanguage: /*[[${translationSession.targetLanguage}]]*/ 'en',
+                enableSourceAudio: /*[[${translationSession.audioGenerationEnabled}]]*/ false,
+                enableTargetAudio: /*[[${translationSession.audioGenerationEnabled}]]*/ false,
+                enableTranslation: true,
+                enableSentenceGeneration: /*[[${translationSession.sentenceGenerationEnabled}]]*/ false,
+                enableImageGeneration: /*[[${translationSession.imageGenerationEnabled}]]*/ false,
+                ankiEnabled: /*[[${translationSession.ankiEnabled}]]*/ false,
+                ankiDeck: /*[[${translationSession.ankiDeck != null ? translationSession.ankiDeck : ''}]]*/ '',
+                ankiFrontTemplate: /*[[${translationSession.ankiFrontTemplate != null ? translationSession.ankiFrontTemplate : ''}]]*/ '',
+                ankiBackTemplate: /*[[${translationSession.ankiBackTemplate != null ? translationSession.ankiBackTemplate : ''}]]*/ ''
+            };
+
+            sessionStorage.setItem('loadPresetConfig', JSON.stringify(presetConfig));
+            window.location.href = '/';
+        }
+    </script>
+</body>
+</html>

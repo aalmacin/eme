@@ -36,3 +36,8 @@ out/
 ### VS Code ###
 .vscode/
 cache-data
+
+### Generated Content ###
+generated_images/
+generated_audio/
+session_zips/

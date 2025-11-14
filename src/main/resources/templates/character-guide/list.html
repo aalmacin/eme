@@ -2,7 +2,7 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Sentences - Eme</title>
+    <title>Character Guide - Eme</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -67,16 +67,10 @@
             padding: 12px;
             text-align: left;
             border-bottom: 1px solid #ddd;
-            vertical-align: top;
-        }
-        .table td {
-            max-width: 200px;
-            word-wrap: break-word;
         }
         .table th {
             background-color: #f8f9fa;
             font-weight: bold;
-            white-space: nowrap;
         }
         .table tr:hover {
             background-color: #f8f9fa;
@@ -101,15 +95,29 @@
             padding: 40px;
             color: #6c757d;
         }
+        .filter-bar {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .filter-bar select {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
     </style>
 </head>
 <body>
     <div class="header">
-        <h1>Sentences Management</h1>
+        <h1>Character Guide Management</h1>
+        <p>Define character associations for mnemonic image generation</p>
         <div class="nav-links">
             <a href="/">← Back to Home</a>
             <a href="/translations">📚 Translations</a>
-            <a href="/character-guide">🎭 Character Guide</a>
+            <a href="/sentences">📝 Sentences</a>
             <a href="/sessions">📦 Sessions</a>
         </div>
     </div>
@@ -118,48 +126,54 @@
     <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
     <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
 
+    <div class="filter-bar">
+        <form method="get" action="/character-guide" style="display: inline;">
+            <label for="language">Filter by Language:</label>
+            <select name="language" id="language" onchange="this.form.submit()">
+                <option value="">All Languages</option>
+                <option value="en" th:selected="${selectedLanguage == 'en'}">English</option>
+                <option value="hi" th:selected="${selectedLanguage == 'hi'}">Hindi</option>
+                <option value="es" th:selected="${selectedLanguage == 'es'}">Spanish</option>
+                <option value="fr" th:selected="${selectedLanguage == 'fr'}">French</option>
+                <option value="jp" th:selected="${selectedLanguage == 'jp'}">Japanese</option>
+                <option value="kr" th:selected="${selectedLanguage == 'kr'}">Korean</option>
+            </select>
+        </form>
+    </div>
+
     <div style="margin-bottom: 20px;">
-        <a href="/sentences/create" class="btn btn-success">+ Create New Sentence</a>
+        <a href="/character-guide/create" class="btn btn-success">+ Add New Character</a>
     </div>
 
-    <div th:if="${#lists.isEmpty(sentences)}" class="empty-state">
-        <h3>No sentences found</h3>
-        <p>Start by creating your first sentence.</p>
-        <a href="/sentences/create" class="btn btn-success">Create Sentence</a>
+    <div th:if="${#lists.isEmpty(characters)}" class="empty-state">
+        <h3>No character guides found</h3>
+        <p>Start by adding your first character association for mnemonic images.</p>
+        <a href="/character-guide/create" class="btn btn-success">Add Character</a>
     </div>
 
-    <table th:if="${!#lists.isEmpty(sentences)}" class="table">
+    <table th:if="${!#lists.isEmpty(characters)}" class="table">
         <thead>
             <tr>
-                <th>Word</th>
-                <th>Romanized</th>
-                <th>Sentence (Source)</th>
-                <th>Transliteration</th>
-                <th>Translation</th>
-                <th>Structure</th>
+                <th>Language</th>
+                <th>Start Sound</th>
+                <th>Character Name</th>
+                <th>Context (Show/Movie)</th>
                 <th>Actions</th>
             </tr>
         </thead>
         <tbody>
-            <tr th:each="sentence : ${sentences}">
+            <tr th:each="character : ${characters}">
+                <td><strong th:text="${character.language}"></strong></td>
+                <td><code th:text="${character.startSound}"></code></td>
+                <td th:text="${character.characterName}"></td>
+                <td th:text="${character.characterContext}"></td>
                 <td>
-                    <strong th:text="${sentence.word}"></strong>
-                    <br><small th:text="${sentence.sourceLanguage} + ' → ' + ${sentence.targetLanguage}"></small>
-                </td>
-                <td th:text="${sentence.targetLanguageLatinCharacters}"></td>
-                <td th:text="${sentence.targetLanguageSentence}"></td>
-                <td th:text="${sentence.targetLanguageTransliteration}"></td>
-                <td th:text="${sentence.sourceLanguageSentence}"></td>
-                <td th:text="${sentence.sourceLanguageStructure}"></td>
-                <td>
-                    <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
-                       class="btn">View</a>
-                    <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}/edit(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
+                    <a th:href="@{/character-guide/{language}/{startSound}/edit(language=${character.language}, startSound=${character.startSound})}"
                        class="btn">Edit</a>
-                    <form th:action="@{/sentences/{word}/{sourceLang}/{targetLang}/delete(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
+                    <form th:action="@{/character-guide/{language}/{startSound}/delete(language=${character.language}, startSound=${character.startSound})}"
                           method="post" style="display: inline;">
-                        <button type="submit" class="btn btn-danger" 
-                                onclick="return confirm('Are you sure you want to delete this sentence?')">Delete</button>
+                        <button type="submit" class="btn btn-danger"
+                                onclick="return confirm('Are you sure you want to delete this character guide?')">Delete</button>
                     </form>
                 </td>
             </tr>
