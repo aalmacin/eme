@@ -8,8 +8,12 @@ import org.springframework.stereotype.Service;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
 import java.net.URL;
 import java.nio.channels.Channels;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -62,22 +66,30 @@ public class GcpStorageService {
         try {
             System.out.println("Downloading image from: " + imageUrl);
 
-            // Download the image
-            URL url = new URL(imageUrl);
             byte[] imageBytes;
 
-            try (InputStream in = url.openStream();
-                 ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+            // Handle file:// URLs (local files)
+            if (imageUrl.startsWith("file://")) {
+                Path localPath = Paths.get(URI.create(imageUrl));
+                imageBytes = Files.readAllBytes(localPath);
+                System.out.println("Read " + imageBytes.length + " bytes from local file");
+            } else {
+                // Download from remote URL
+                URL url = new URL(imageUrl);
 
-                byte[] buffer = new byte[8192];
-                int bytesRead;
-                while ((bytesRead = in.read(buffer)) != -1) {
-                    out.write(buffer, 0, bytesRead);
+                try (InputStream in = url.openStream();
+                     ByteArrayOutputStream out = new ByteArrayOutputStream()) {
+
+                    byte[] buffer = new byte[8192];
+                    int bytesRead;
+                    while ((bytesRead = in.read(buffer)) != -1) {
+                        out.write(buffer, 0, bytesRead);
+                    }
+                    imageBytes = out.toByteArray();
                 }
-                imageBytes = out.toByteArray();
-            }
 
-            System.out.println("Downloaded " + imageBytes.length + " bytes");
+                System.out.println("Downloaded " + imageBytes.length + " bytes");
+            }
 
             // Determine content type from file extension
             String contentType = getContentType(fileName);

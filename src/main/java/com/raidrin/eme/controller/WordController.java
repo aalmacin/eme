@@ -262,6 +262,15 @@ public class WordController {
         Files.createDirectories(Paths.get(imageOutputDirectory));
         Path outputPath = Paths.get(imageOutputDirectory, fileName);
 
+        // Handle file:// URLs (local files from base64 conversion)
+        if (imageUrl.startsWith("file://")) {
+            Path sourcePath = Paths.get(java.net.URI.create(imageUrl));
+            Files.copy(sourcePath, outputPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("Copied local file from: " + sourcePath + " to: " + outputPath);
+            return outputPath;
+        }
+
+        // Handle remote URLs (http/https)
         try (FileOutputStream fos = new FileOutputStream(outputPath.toFile())) {
             URL url = new URL(imageUrl);
             url.openStream().transferTo(fos);

@@ -154,7 +154,13 @@ public class MnemonicGenerationService {
         prompt.append("     Example: If meaning is 'year', show a calendar or clock\n");
         prompt.append("   - The character interacting with both the keyword object and the meaning object\n");
         prompt.append("   - Dynamic, vibrant atmosphere during golden hour\n");
-        prompt.append("   - NO text, NO speech bubbles, NO written words of any kind\n");
+        prompt.append("   CRITICAL: ABSOLUTELY NO text in the image prompt description:\n");
+        prompt.append("   - NO book titles (e.g., NO 'book titled X', just 'book')\n");
+        prompt.append("   - NO labels or signs with text\n");
+        prompt.append("   - NO words in parentheses (e.g., NO '(").append(sourceWord).append(")')\n");
+        prompt.append("   - NO speech bubbles or written words of any kind\n");
+        prompt.append("   - NO captions or subtitles\n");
+        prompt.append("   - Describe objects WITHOUT mentioning any text that would appear on them\n");
         prompt.append("   - NO additional people or characters beyond the one specified\n\n");
 
         prompt.append("Respond with valid JSON in this format:\n");
