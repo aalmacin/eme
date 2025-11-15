@@ -31,19 +31,27 @@ public class MnemonicGenerationService {
     private final ObjectMapper objectMapper;
 
     /**
-     * Generate mnemonic data for a word translation
+     * Generate mnemonic data for a word translation with transliteration for character matching
      *
      * @param sourceWord Word in source language
      * @param targetWord Word in target language (translation)
      * @param sourceLanguage Source language code
      * @param targetLanguage Target language code
+     * @param sourceTransliteration Transliteration of source word (from translation service)
      * @return MnemonicData containing keyword, sentence, and image prompt
      */
     public MnemonicData generateMnemonic(String sourceWord, String targetWord,
-                                         String sourceLanguage, String targetLanguage) {
+                                         String sourceLanguage, String targetLanguage,
+                                         String sourceTransliteration) {
 
-        // Find character association for source word only
-        Optional<CharacterGuideEntity> sourceCharacter = characterGuideService.findMatchingCharacterForWord(sourceWord, sourceLanguage);
+        // Find character association for source word if transliteration is available
+        Optional<CharacterGuideEntity> sourceCharacter = (sourceTransliteration != null && !sourceTransliteration.trim().isEmpty())
+                ? characterGuideService.findMatchingCharacterForWord(sourceWord, sourceLanguage, sourceTransliteration)
+                : Optional.empty();
+
+        if (sourceCharacter.isEmpty() && (sourceTransliteration == null || sourceTransliteration.trim().isEmpty())) {
+            System.out.println("No transliteration provided for mnemonic generation, skipping character matching: " + sourceWord);
+        }
 
         // Build the prompt
         String prompt = buildMnemonicPrompt(sourceWord, targetWord, sourceLanguage, targetLanguage,
@@ -91,6 +99,22 @@ public class MnemonicGenerationService {
             e.printStackTrace();
             throw new RuntimeException("Failed to generate mnemonic: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * Generate mnemonic without transliteration (backward compatibility)
+     * Character matching will be skipped without transliteration.
+     *
+     * @param sourceWord Word in source language
+     * @param targetWord Word in target language (translation)
+     * @param sourceLanguage Source language code
+     * @param targetLanguage Target language code
+     * @return MnemonicData containing keyword, sentence, and image prompt
+     */
+    public MnemonicData generateMnemonic(String sourceWord, String targetWord,
+                                         String sourceLanguage, String targetLanguage) {
+        System.out.println("Warning: generateMnemonic called without transliteration, character matching will be skipped");
+        return generateMnemonic(sourceWord, targetWord, sourceLanguage, targetLanguage, null);
     }
 
     /**

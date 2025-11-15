@@ -40,6 +40,9 @@ public class TranslationSessionEntity {
     @Column(name = "anki_enabled", nullable = false)
     private Boolean ankiEnabled = false;
 
+    @Column(name = "override_translation_enabled", nullable = false)
+    private Boolean overrideTranslationEnabled = false;
+
     @Column(name = "anki_deck", columnDefinition = "TEXT")
     private String ankiDeck;
 
@@ -85,6 +88,7 @@ public class TranslationSessionEntity {
     public TranslationSessionEntity(String word, String sourceLanguage, String targetLanguage,
                                     Boolean imageGenerationEnabled, Boolean audioGenerationEnabled,
                                     Boolean sentenceGenerationEnabled, Boolean ankiEnabled,
+                                    Boolean overrideTranslationEnabled,
                                     String ankiDeck, String ankiFrontTemplate, String ankiBackTemplate) {
         this.word = word;
         this.sourceLanguage = sourceLanguage;
@@ -93,6 +97,7 @@ public class TranslationSessionEntity {
         this.audioGenerationEnabled = audioGenerationEnabled;
         this.sentenceGenerationEnabled = sentenceGenerationEnabled;
         this.ankiEnabled = ankiEnabled;
+        this.overrideTranslationEnabled = overrideTranslationEnabled;
         this.ankiDeck = ankiDeck;
         this.ankiFrontTemplate = ankiFrontTemplate;
         this.ankiBackTemplate = ankiBackTemplate;

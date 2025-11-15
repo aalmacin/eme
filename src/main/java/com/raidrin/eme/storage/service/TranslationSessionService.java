@@ -27,13 +27,14 @@ public class TranslationSessionService {
                                                    boolean imageGenerationEnabled, boolean audioGenerationEnabled) {
         return createSession(word, sourceLanguage, targetLanguage,
                 imageGenerationEnabled, audioGenerationEnabled,
-                false, false, null, null, null);
+                false, false, false, null, null, null);
     }
 
     @Transactional
     public TranslationSessionEntity createSession(String word, String sourceLanguage, String targetLanguage,
                                                    boolean imageGenerationEnabled, boolean audioGenerationEnabled,
                                                    boolean sentenceGenerationEnabled, boolean ankiEnabled,
+                                                   boolean overrideTranslationEnabled,
                                                    String ankiDeck, String ankiFrontTemplate, String ankiBackTemplate) {
         validateParameters(word, sourceLanguage, targetLanguage);
 
@@ -41,6 +42,7 @@ public class TranslationSessionService {
                 word, sourceLanguage, targetLanguage,
                 imageGenerationEnabled, audioGenerationEnabled,
                 sentenceGenerationEnabled, ankiEnabled,
+                overrideTranslationEnabled,
                 ankiDeck, ankiFrontTemplate, ankiBackTemplate
         );
 

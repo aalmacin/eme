@@ -92,7 +92,8 @@ public class SessionOrchestrationService {
                     request.getTargetLanguage()
                 );
 
-                if (existingWordData != null) {
+                // If override is enabled, skip reusing existing data and force new translation
+                if (existingWordData != null && !request.isOverrideTranslation()) {
                     System.out.println("Found existing data for word: " + sourceWord + ", reusing assets");
                     existingWordData.put("reused", true);
                     existingWordData.put("reused_timestamp", java.time.LocalDateTime.now().toString());
@@ -113,6 +114,10 @@ public class SessionOrchestrationService {
                     continue; // Skip to next word
                 }
 
+                if (request.isOverrideTranslation()) {
+                    System.out.println("Override translation enabled - forcing new translation for: " + sourceWord);
+                }
+
                 System.out.println("No existing data found for word: " + sourceWord + ", generating new assets");
                 Map<String, Object> wordData = new HashMap<>();
                 wordData.put("source_word", sourceWord);
@@ -120,19 +125,35 @@ public class SessionOrchestrationService {
 
                 // Step 1: Get translations
                 Set<String> translations = null;
+                String transliteration = null;
                 if (request.isEnableTranslation()) {
                     try {
-                        translations = translationService.translateText(
+                        com.raidrin.eme.translator.TranslationData translationData = translationService.translateText(
                             sourceWord,
                             request.getSourceLanguageCode(),
-                            request.getTargetLanguageCode()
+                            request.getTargetLanguageCode(),
+                            request.isOverrideTranslation()
                         );
+                        translations = translationData.getTranslations();
                         wordData.put("translations", new ArrayList<>(translations));
                         wordData.put("translation_status", "success");
 
-                        // Generate transliteration for the source word
-                        String transliteration = com.raidrin.eme.codec.TransliterationService.transliterate(sourceWord);
-                        wordData.put("source_transliteration", transliteration);
+                        // Get transliteration from translation response
+                        transliteration = translationData.getTransliteration();
+                        if (transliteration == null || transliteration.trim().isEmpty()) {
+                            // Check if existingWordData already has transliteration
+                            if (existingWordData != null && existingWordData.containsKey("source_transliteration")) {
+                                transliteration = (String) existingWordData.get("source_transliteration");
+                                System.out.println("Using stored transliteration from cache: " + transliteration);
+                            } else {
+                                System.out.println("No transliteration available for: " + sourceWord);
+                            }
+                        } else {
+                            System.out.println("Transliteration from translation service: " + transliteration);
+                        }
+                        if (transliteration != null && !transliteration.trim().isEmpty()) {
+                            wordData.put("source_transliteration", transliteration);
+                        }
                     } catch (Exception e) {
                         String error = "Translation failed for '" + sourceWord + "': " + e.getMessage();
                         translationErrors.add(error);
@@ -224,10 +245,11 @@ public class SessionOrchestrationService {
                     try {
                         String primaryTranslation = translations.iterator().next();
 
-                        // Generate mnemonic
+                        // Generate mnemonic with transliteration for character matching
                         MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
                             sourceWord, primaryTranslation,
-                            request.getSourceLanguage(), request.getTargetLanguage()
+                            request.getSourceLanguage(), request.getTargetLanguage(),
+                            transliteration
                         );
 
                         wordData.put("mnemonic_keyword", mnemonicData.getMnemonicKeyword());
@@ -486,6 +508,10 @@ public class SessionOrchestrationService {
         request.setEnableSentenceGeneration((Boolean) originalRequest.get("enable_sentence_generation"));
         request.setEnableImageGeneration((Boolean) originalRequest.get("enable_image_generation"));
 
+        // Default to false if not present (for backward compatibility)
+        Boolean overrideTranslation = (Boolean) originalRequest.get("override_translation");
+        request.setOverrideTranslation(overrideTranslation != null ? overrideTranslation : false);
+
         return request;
     }
 
@@ -514,5 +540,6 @@ public class SessionOrchestrationService {
         private boolean enableTranslation;
         private boolean enableSentenceGeneration;
         private boolean enableImageGeneration;
+        private boolean overrideTranslation; // Force new translation, skip cache
     }
 }

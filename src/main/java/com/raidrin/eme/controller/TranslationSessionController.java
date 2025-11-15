@@ -1,7 +1,6 @@
 package com.raidrin.eme.controller;
 
 import com.raidrin.eme.anki.AnkiNoteCreatorService;
-import com.raidrin.eme.codec.TransliterationService;
 import com.raidrin.eme.session.SessionOrchestrationService;
 import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
@@ -619,17 +618,23 @@ public class TranslationSessionController {
     private void enrichWithCharacterGuideInfo(Map<String, Object> wordData, String language) {
         String sourceWord = (String) wordData.get("source_word");
         String mnemonicKeyword = (String) wordData.get("mnemonic_keyword");
+        String transliteration = (String) wordData.get("source_transliteration");
 
         if (sourceWord == null || mnemonicKeyword == null) {
             return;
         }
 
-        // Transliterate the source word to get the start sound
-        String transliteratedWord = TransliterationService.transliterate(sourceWord);
-        String normalizedWord = transliteratedWord.toLowerCase().trim();
+        // Transliteration should come from the translation process (OpenAI provides it)
+        if (transliteration == null || transliteration.trim().isEmpty()) {
+            System.out.println("No transliteration available for character enrichment: " + sourceWord);
+            // Can't enrich without transliteration
+            return;
+        }
+
+        String normalizedWord = transliteration.toLowerCase().trim();
 
         // Check if there's a matching character guide entry
-        Optional<CharacterGuideEntity> characterMatch = characterGuideService.findMatchingCharacterForWord(sourceWord, language);
+        Optional<CharacterGuideEntity> characterMatch = characterGuideService.findMatchingCharacterForWord(sourceWord, language, transliteration);
 
         if (characterMatch.isPresent()) {
             CharacterGuideEntity character = characterMatch.get();

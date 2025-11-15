@@ -32,11 +32,15 @@ public class AsyncImageGenerationService {
 
     private final MnemonicGenerationService mnemonicService;
     private final LeonardoApiService leonardoService;
+    private final OpenAiImageService openAiImageService;
     private final GcpStorageService gcpStorageService;
     private final TranslationSessionService sessionService;
 
     @Value("${image.output.directory:./generated_images}")
     private String outputDirectory;
+
+    @Value("${image.provider:OPENAI}")
+    private ImageProvider imageProvider;
 
     /**
      * Generate images for a single word translation asynchronously with pre-generated mnemonic data
@@ -54,9 +58,9 @@ public class AsyncImageGenerationService {
             System.out.println("Starting async image generation for session: " + sessionId + " with pre-generated mnemonic");
             sessionService.updateStatus(sessionId, SessionStatus.IN_PROGRESS);
 
-            // Step 1: Generate image using Leonardo API
+            // Step 1: Generate image using configured provider
             System.out.println("Generating image with prompt: " + mnemonicData.getImagePrompt());
-            LeonardoApiService.GeneratedImage generatedImage = leonardoService.generateImage(
+            GeneratedImageInfo generatedImage = generateImage(
                     mnemonicData.getImagePrompt(), 1152, 768);
 
             // Step 2: Download image to local file
@@ -85,8 +89,13 @@ public class AsyncImageGenerationService {
             sessionData.put("image_file", fileName);
             sessionData.put("local_path", localFilePath.toString());
             sessionData.put("gcs_url", gcsUrl);
-            sessionData.put("leonardo_generation_id", generatedImage.getGenerationId());
-            sessionData.put("credit_cost", generatedImage.getCreditCost());
+            sessionData.put("image_provider", generatedImage.getProvider());
+            if (generatedImage.getGenerationId() != null) {
+                sessionData.put("generation_id", generatedImage.getGenerationId());
+            }
+            if (generatedImage.getCreditCost() != null) {
+                sessionData.put("credit_cost", generatedImage.getCreditCost());
+            }
 
             sessionService.updateSessionData(sessionId, sessionData);
             sessionService.updateStatus(sessionId, SessionStatus.COMPLETED);
@@ -127,9 +136,9 @@ public class AsyncImageGenerationService {
             MnemonicData mnemonicData = mnemonicService.generateMnemonic(
                     sourceWord, targetWord, sourceLanguage, targetLanguage);
 
-            // Step 2: Generate image using Leonardo API
+            // Step 2: Generate image using configured provider
             System.out.println("Generating image with prompt: " + mnemonicData.getImagePrompt());
-            LeonardoApiService.GeneratedImage generatedImage = leonardoService.generateImage(
+            GeneratedImageInfo generatedImage = generateImage(
                     mnemonicData.getImagePrompt(), 1152, 768);
 
             // Step 3: Download image to local file
@@ -161,8 +170,13 @@ public class AsyncImageGenerationService {
             sessionData.put("image_file", fileName);
             sessionData.put("local_path", localFilePath.toString());
             sessionData.put("gcs_url", gcsUrl);
-            sessionData.put("leonardo_generation_id", generatedImage.getGenerationId());
-            sessionData.put("credit_cost", generatedImage.getCreditCost());
+            sessionData.put("image_provider", generatedImage.getProvider());
+            if (generatedImage.getGenerationId() != null) {
+                sessionData.put("generation_id", generatedImage.getGenerationId());
+            }
+            if (generatedImage.getCreditCost() != null) {
+                sessionData.put("credit_cost", generatedImage.getCreditCost());
+            }
 
             sessionService.updateSessionData(sessionId, sessionData);
             sessionService.updateStatus(sessionId, SessionStatus.COMPLETED);
@@ -205,8 +219,8 @@ public class AsyncImageGenerationService {
                         pair.getSourceWord(), pair.getTargetWord(),
                         sourceLanguage, targetLanguage);
 
-                // Generate image
-                LeonardoApiService.GeneratedImage generatedImage = leonardoService.generateImage(
+                // Generate image using configured provider
+                GeneratedImageInfo generatedImage = generateImage(
                         mnemonicData.getImagePrompt(), 1152, 768);
 
                 // Download and save
@@ -253,6 +267,62 @@ public class AsyncImageGenerationService {
             sessionService.markAsFailed(sessionId, e.getMessage());
             return CompletableFuture.failedFuture(e);
         }
+    }
+
+    /**
+     * Generate image using the configured provider (Leonardo or OpenAI)
+     *
+     * @param prompt The image generation prompt
+     * @param width Desired width (used for Leonardo)
+     * @param height Desired height (used for Leonardo)
+     * @return Generated image info with URL
+     */
+    private GeneratedImageInfo generateImage(String prompt, int width, int height) {
+        return switch (imageProvider) {
+            case LEONARDO -> {
+                LeonardoApiService.GeneratedImage leonardoImage = leonardoService.generateImage(prompt, width, height);
+                yield new GeneratedImageInfo(
+                        leonardoImage.getImageUrl(),
+                        leonardoImage.getGenerationId(),
+                        leonardoImage.getCreditCost(),
+                        "leonardo"
+                );
+            }
+            case OPENAI -> {
+                // OpenAI uses fixed sizes - choose closest match
+                String size = (width > height) ? "1792x1024" : (width < height) ? "1024x1792" : "1024x1024";
+                OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(
+                        prompt, size, "medium", null);
+                yield new GeneratedImageInfo(
+                        openAiImage.getImageUrl(),
+                        null,  // OpenAI doesn't have generation ID
+                        null,  // OpenAI doesn't provide credit cost in response
+                        "openai"
+                );
+            }
+        };
+    }
+
+    /**
+     * Unified image info structure
+     */
+    private static class GeneratedImageInfo {
+        private final String imageUrl;
+        private final String generationId;
+        private final Integer creditCost;
+        private final String provider;
+
+        public GeneratedImageInfo(String imageUrl, String generationId, Integer creditCost, String provider) {
+            this.imageUrl = imageUrl;
+            this.generationId = generationId;
+            this.creditCost = creditCost;
+            this.provider = provider;
+        }
+
+        public String getImageUrl() { return imageUrl; }
+        public String getGenerationId() { return generationId; }
+        public Integer getCreditCost() { return creditCost; }
+        public String getProvider() { return provider; }
     }
 
     private Path downloadImageToLocal(String imageUrl, String fileName) throws IOException {

@@ -32,7 +32,12 @@ public class OpenAITranslationService implements TranslationService {
     private final RestTemplate restTemplate;
 
     @Override
-    public Set<String> translateText(String text, String sourceLanguage, String targetLanguage) {
+    public TranslationData translateText(String text, String sourceLanguage, String targetLanguage) {
+        return translateText(text, sourceLanguage, targetLanguage, false);
+    }
+
+    @Override
+    public TranslationData translateText(String text, String sourceLanguage, String targetLanguage, boolean skipCache) {
         if (sourceLanguage == null || sourceLanguage.trim().isEmpty()) {
             throw new IllegalArgumentException("Source language must be provided");
         }
@@ -40,38 +45,53 @@ public class OpenAITranslationService implements TranslationService {
             throw new IllegalArgumentException("Target language must be provided");
         }
 
-        // Check if translation already exists in storage
-        Optional<Set<String>> existingTranslation = translationStorageService.findTranslations(text, sourceLanguage, targetLanguage);
-        if (existingTranslation.isPresent()) {
-            System.out.println("Found existing translation for: " + text + " (" + sourceLanguage + " -> " + targetLanguage + ")");
-            return existingTranslation.get();
+        // Check if translation already exists in storage (unless skipCache is true)
+        if (!skipCache) {
+            Optional<Set<String>> existingTranslation = translationStorageService.findTranslations(text, sourceLanguage, targetLanguage);
+            if (existingTranslation.isPresent()) {
+                System.out.println("Found existing translation for: " + text + " (" + sourceLanguage + " -> " + targetLanguage + ")");
+                // Return existing translation without transliteration (will be generated separately if needed)
+                TranslationData data = new TranslationData();
+                data.setWord(text);
+                data.setSourceLanguage(sourceLanguage);
+                data.setTargetLanguage(targetLanguage);
+                data.setTranslations(existingTranslation.get());
+                data.setTransliteration(null); // Will be filled from DB or generated later
+                return data;
+            }
+        } else {
+            System.out.println("Skipping cache - forcing new translation for: " + text + " (" + sourceLanguage + " -> " + targetLanguage + ")");
         }
 
         // Perform new translation
         System.out.println("Translating with OpenAI API: " + text + " (" + sourceLanguage + " -> " + targetLanguage + ")");
-        Set<String> translations = performTranslation(text, sourceLanguage, targetLanguage);
+        TranslationData translationData = performTranslation(text, sourceLanguage, targetLanguage);
 
         // Save the translation
-        translationStorageService.saveTranslations(text, sourceLanguage, targetLanguage, translations);
+        translationStorageService.saveTranslations(text, sourceLanguage, targetLanguage, translationData.getTranslations());
 
-        return translations;
+        return translationData;
     }
 
-    private Set<String> performTranslation(String text, String sourceLanguage, String targetLanguage) {
+    private TranslationData performTranslation(String text, String sourceLanguage, String targetLanguage) {
         String sourceLangName = getLanguageName(sourceLanguage);
         String targetLangName = getLanguageName(targetLanguage);
 
         String prompt = String.format(
-                "Translate the following text from %s to %s. Provide only the translation(s), " +
-                "separated by newlines if there are multiple valid translations. " +
-                "Do not include explanations or additional text.\n\nText to translate: %s",
+                "Translate the following text from %s to %s and provide its romanization/transliteration.\n\n" +
+                "Format your response EXACTLY as follows:\n" +
+                "TRANSLITERATION: [romanized version of the source text]\n" +
+                "TRANSLATIONS:\n" +
+                "[translation 1]\n" +
+                "[translation 2] (if applicable)\n\n" +
+                "Text to translate: %s",
                 sourceLangName, targetLangName, text
         );
 
         OpenAiRequest request = new OpenAiRequest();
         request.setModel("gpt-4o-mini");
         request.setMessages(List.of(
-                new OpenAiMessage("system", "You are a professional translator. Provide only the translation(s), one per line. No explanations."),
+                new OpenAiMessage("system", "You are a professional translator. Follow the exact format requested. Provide clear transliteration and accurate translations."),
                 new OpenAiMessage("user", prompt)
         ));
         request.setMaxTokens(200);
@@ -97,7 +117,7 @@ public class OpenAITranslationService implements TranslationService {
             if (response.getBody() != null && !response.getBody().getChoices().isEmpty()) {
                 String content = response.getBody().getChoices().get(0).getMessage().getContent();
                 System.out.println("OpenAI translation response: " + content);
-                return parseTranslationResponse(content);
+                return parseTranslationDataResponse(content, text, sourceLanguage, targetLanguage);
             } else {
                 System.out.println("OpenAI response body is null or has no choices");
                 throw new RuntimeException("OpenAI API returned empty response");
@@ -109,12 +129,69 @@ public class OpenAITranslationService implements TranslationService {
         }
     }
 
+    private TranslationData parseTranslationDataResponse(String response, String originalText,
+                                                         String sourceLanguage, String targetLanguage) {
+        TranslationData data = new TranslationData();
+        data.setWord(originalText);
+        data.setSourceLanguage(sourceLanguage);
+        data.setTargetLanguage(targetLanguage);
+
+        Set<String> translations = new HashSet<>();
+        String transliteration = null;
+
+        String[] lines = response.split("\n");
+        boolean inTranslationsSection = false;
+
+        for (String line : lines) {
+            String trimmedLine = line.trim();
+
+            // Check for transliteration line
+            if (trimmedLine.startsWith("TRANSLITERATION:")) {
+                transliteration = trimmedLine.substring("TRANSLITERATION:".length()).trim();
+                continue;
+            }
+
+            // Check for translations section
+            if (trimmedLine.equals("TRANSLATIONS:")) {
+                inTranslationsSection = true;
+                continue;
+            }
+
+            // If we're in the translations section, collect translations
+            if (inTranslationsSection && !trimmedLine.isEmpty()) {
+                // Remove any numbering or bullet points
+                String cleaned = trimmedLine.replaceAll("^[\\d\\-\\*\\.]+\\s*", "");
+                if (!cleaned.isEmpty()) {
+                    translations.add(cleaned);
+                }
+            }
+        }
+
+        // If parsing failed, fallback to old format
+        if (translations.isEmpty()) {
+            System.out.println("Failed to parse structured response, using fallback parsing");
+            translations = parseTranslationResponse(response);
+        }
+
+        data.setTranslations(translations);
+        data.setTransliteration(transliteration);
+
+        System.out.println("Parsed transliteration: " + transliteration);
+        System.out.println("Parsed translations: " + translations);
+
+        return data;
+    }
+
     private Set<String> parseTranslationResponse(String response) {
         Set<String> translations = new HashSet<>();
         String[] lines = response.split("\n");
 
         for (String line : lines) {
             String cleanedLine = line.trim();
+            // Skip lines that look like headers
+            if (cleanedLine.startsWith("TRANSLITERATION:") || cleanedLine.equals("TRANSLATIONS:")) {
+                continue;
+            }
             // Remove any numbering or bullet points
             cleanedLine = cleanedLine.replaceAll("^[\\d\\-\\*\\.]+\\s*", "");
             if (!cleanedLine.isEmpty()) {
@@ -152,6 +229,9 @@ public class OpenAITranslationService implements TranslationService {
             }
             case "hi" -> {
                 return "Hindi";
+            }
+            case "pa" -> {
+                return "Punjabi";
             }
             default -> {
                 return "English";

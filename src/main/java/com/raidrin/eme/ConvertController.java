@@ -60,6 +60,7 @@ public class ConvertController {
             @RequestParam(required = false) String back,
             @RequestParam(required = false) String deck,
             @RequestParam(required = false) Boolean translation,
+            @RequestParam(name = "override-translation", required = false) Boolean overrideTranslation,
             @RequestParam(name = "source-audio", required = false) Boolean sourceAudio,
             @RequestParam(name = "target-audio", required = false) Boolean targetAudio,
             @RequestParam(name = "target-lang", required = false) String targetLang,
@@ -68,6 +69,7 @@ public class ConvertController {
             @RequestParam(name = "image-generation", required = false) Boolean imageGeneration
     ) {
         translation = translation != null && translation;
+        overrideTranslation = overrideTranslation != null && overrideTranslation;
         sourceAudio = sourceAudio != null && sourceAudio;
         targetAudio = targetAudio != null && targetAudio;
         anki = anki != null && anki;
@@ -98,6 +100,7 @@ public class ConvertController {
                 (sourceAudio || targetAudio),
                 sentenceGeneration,
                 anki,
+                overrideTranslation,
                 deck,
                 front,
                 back
@@ -135,6 +138,7 @@ public class ConvertController {
         request.setEnableTranslation(translation);
         request.setEnableSentenceGeneration(sentenceGeneration);
         request.setEnableImageGeneration(imageGeneration);
+        request.setOverrideTranslation(overrideTranslation);
 
         // Start async processing
         sessionOrchestrationService.processTranslationBatchAsync(session.getId(), request);
@@ -196,7 +200,8 @@ public class ConvertController {
             if (translation) {
                 final LanguageTranslationCodes sourceLangCode = getTranslationCode(lang);
                 final LanguageTranslationCodes targetLangCode = getTranslationCode(targetLang);
-                emeData.translatedTextList = translationService.translateText(sourceText, sourceLangCode.getCode(), targetLangCode.getCode());
+                com.raidrin.eme.translator.TranslationData translationData = translationService.translateText(sourceText, sourceLangCode.getCode(), targetLangCode.getCode());
+                emeData.translatedTextList = translationData.getTranslations();
             }
 
             // Generate Target Audio
@@ -417,6 +422,9 @@ public class ConvertController {
             case "hi" -> {
                 return LanguageTranslationCodes.Hindi;
             }
+            case "pa" -> {
+                return LanguageTranslationCodes.Punjabi;
+            }
             default -> throw new RuntimeException("Invalid language code");
         }
     }
@@ -443,6 +451,9 @@ public class ConvertController {
             }
             case "hi" -> {
                 return "Hindi";
+            }
+            case "pa" -> {
+                return "Punjabi";
             }
             default -> {
                 return "English";
@@ -535,6 +546,12 @@ public class ConvertController {
                 langAudioOption.languageCode = LanguageAudioCodes.Hindi;
                 langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
                 langAudioOption.voiceName = "hi-IN-Neural2-A";
+                return langAudioOption;
+            }
+            case "pa" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Punjabi;
+                langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
+                langAudioOption.voiceName = "pa-IN-Standard-A";
                 return langAudioOption;
             }
             default -> throw new RuntimeException("Invalid language code");

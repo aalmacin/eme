@@ -1,6 +1,5 @@
 package com.raidrin.eme.storage.service;
 
-import com.raidrin.eme.codec.TransliterationService;
 import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.repository.CharacterGuideRepository;
 import lombok.RequiredArgsConstructor;
@@ -69,21 +68,23 @@ public class CharacterGuideService {
 
     /**
      * Helper method to find character by matching the start of a word.
-     * Transliterates the word to Latin characters first before matching.
+     * Requires transliteration to be provided (from translation service or cache).
      */
-    public Optional<CharacterGuideEntity> findMatchingCharacterForWord(String word, String language) {
+    public Optional<CharacterGuideEntity> findMatchingCharacterForWord(String word, String language, String transliteration) {
         if (word == null || word.trim().isEmpty()) {
             return Optional.empty();
         }
         if (language == null || language.trim().isEmpty()) {
             return Optional.empty();
         }
+        if (transliteration == null || transliteration.trim().isEmpty()) {
+            System.out.println("No transliteration provided for character matching: word='" + word + "', language='" + language + "'");
+            return Optional.empty();
+        }
 
-        // Transliterate the word to Latin characters for matching
-        String transliteratedWord = TransliterationService.transliterate(word);
-        String normalizedWord = transliteratedWord.toLowerCase().trim();
+        String normalizedWord = transliteration.toLowerCase().trim();
 
-        System.out.println("Character matching: original word='" + word + "', transliterated='" + transliteratedWord + "', normalized='" + normalizedWord + "'");
+        System.out.println("Character matching: original word='" + word + "', transliteration='" + transliteration + "', normalized='" + normalizedWord + "', language='" + language + "'");
 
         List<CharacterGuideEntity> charactersForLanguage = findByLanguage(language);
 

@@ -22,6 +22,7 @@ public class TranslatorService {
      */
     @Deprecated
     public Set<String> translateText(String text, String sourceLanguage, String targetLanguage) {
-        return translationService.translateText(text, sourceLanguage, targetLanguage);
+        TranslationData data = translationService.translateText(text, sourceLanguage, targetLanguage);
+        return data.getTranslations();
     }
 }
