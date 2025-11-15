@@ -268,6 +268,32 @@
             font-weight: normal;
             margin-left: 10px;
         }
+        .word-select-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+        .word-detail.selected {
+            border-color: #007bff;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+        }
+        .selection-toolbar {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #dee2e6;
+        }
+        .selection-count {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 16px;
+        }
     </style>
 </head>
 <body>
@@ -350,12 +376,31 @@
         </div>
         <div id="words-content" class="collapse show">
             <div class="collapse-content">
+            <!-- Selection Toolbar -->
+            <div class="selection-toolbar" id="selectionToolbar" style="display: none;">
+                <div>
+                    <span class="selection-count" id="selectionCount">0 selected</span>
+                </div>
+                <div>
+                    <button onclick="selectAllWords()" class="btn btn-sm" style="background: #6c757d; margin-right: 5px;">Select All</button>
+                    <button onclick="deselectAllWords()" class="btn btn-sm" style="background: #6c757d; margin-right: 10px;">Deselect All</button>
+                    <button onclick="showBatchRegenerateModal()" class="btn btn-warning" id="batchRegenerateBtn" style="display: none;">
+                        🔄 Regenerate Selected (<span id="batchRegenerateCount">0</span>)
+                    </button>
+                </div>
+            </div>
             <div th:each="wordData, iterStat : ${sessionData.get('words')}" class="word-detail">
                 <div class="word-detail-header">
+                    <input type="checkbox"
+                           class="word-select-checkbox"
+                           th:if="${wordData.containsKey('word_id')}"
+                           th:data-word-id="${wordData.get('word_id')}"
+                           th:data-source-word="${wordData.get('source_word')}"
+                           onchange="handleWordCheckboxChange(this)">
                     <span th:text="${wordData.get('source_word')}"></span>
                     <span th:if="${wordData.containsKey('source_transliteration')}"
                           th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
-                          style="font-size: 14px; color: #495057; font-weight: normal; font-style: italic;"></span>
+                          style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${wordData.get('translations')}"
                           style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
@@ -470,6 +515,48 @@
                         </form>
                     </div>
                 </div>
+
+                <!-- Character Guide Information -->
+                <div th:if="${wordData.containsKey('character_name')}" class="process-item" style="background: #f8f9fa; border-left: 3px solid #6c757d;">
+                    <div style="flex: 1;">
+                        <span class="process-name">Character Used:</span>
+                        <strong th:text="${wordData.get('character_name')}"></strong>
+                        <span th:if="${wordData.containsKey('character_context') && !wordData.get('character_context').isEmpty()}"
+                              th:text="' (' + ${wordData.get('character_context')} + ')'"
+                              style="color: #6c757d; font-size: 12px;"></span>
+
+                        <div style="margin-top: 8px;">
+                            <small style="color: #6c757d;">
+                                Start sound: <code th:text="${wordData.get('character_start_sound')}" style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;"></code>
+                            </small>
+                        </div>
+
+                        <!-- Show status badge -->
+                        <div style="margin-top: 8px;">
+                            <span th:if="${wordData.get('character_in_guide') == true}"
+                                  style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                                ✓ In Character Guide
+                            </span>
+                            <span th:if="${wordData.get('character_in_guide') == false}"
+                                  style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                                ⚠ Not in Character Guide
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Add to Character Guide button -->
+                    <div class="process-actions" th:if="${wordData.get('character_in_guide') == false}">
+                        <button type="button"
+                                th:data-language="${translationSession.sourceLanguage}"
+                                th:data-start-sound="${wordData.get('character_start_sound')}"
+                                th:data-character-name="${wordData.get('character_name')}"
+                                th:data-character-context="${wordData.get('character_context')}"
+                                onclick="showAddCharacterModal(this.dataset)"
+                                class="btn btn-success btn-sm">
+                            ➕ Add to Character Guide
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -500,7 +587,7 @@
                     <span th:text="${wordData.get('source_word')}"></span>
                     <span th:if="${wordData.containsKey('source_transliteration')}"
                           th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
-                          style="font-size: 14px; color: #495057; font-weight: normal; font-style: italic;"></span>
+                          style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${wordData.get('translations')}"
                           style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
@@ -782,8 +869,440 @@
         </div>
     </div>
 
+    <!-- Batch Regenerate Image Modal -->
+    <div id="batchRegenerateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 900px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Batch Regenerate Images (<span id="batchModalCount">0</span> words)</h3>
+
+            <!-- Global Settings -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #007bff;">
+                <h4 style="margin-top: 0; font-size: 16px;">Apply to All Words:</h4>
+                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <label style="font-weight: bold; margin-right: 10px;">Provider:</label>
+                        <select id="globalProvider" onchange="applyProviderToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="">-- Don't change --</option>
+                            <option value="LEONARDO">Leonardo AI</option>
+                            <option value="OPENAI">OpenAI DALL-E</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="globalUseSamePrompt" onchange="applyUseSamePromptToAll()" style="margin-right: 6px;">
+                            Use same prompt for all
+                        </label>
+                    </div>
+                    <div style="flex: 1;">
+                        <button onclick="applyCustomPromptToAll()" class="btn btn-sm" style="background: #6c757d;">
+                            Apply Custom Prompt to All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Word List -->
+            <div id="batchWordList" style="max-height: 500px; overflow-y: auto; margin-bottom: 20px;">
+                <!-- Words will be dynamically added here -->
+            </div>
+
+            <!-- Progress Section -->
+            <div id="batchProgress" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-top: 0; font-size: 16px;">Progress:</h4>
+                <div style="margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span id="batchProgressText">Processing...</span>
+                        <span id="batchProgressNumbers">0 / 0</span>
+                    </div>
+                    <div style="background: #e9ecef; border-radius: 8px; height: 24px; overflow: hidden;">
+                        <div id="batchProgressBar" style="width: 0%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; border-radius: 8px; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+                <div id="batchProgressDetails" style="max-height: 200px; overflow-y: auto; font-size: 14px;">
+                    <!-- Progress details will be shown here -->
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div id="batchStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeBatchRegenerateModal()" class="btn btn-secondary" style="margin-right: 10px;" id="batchCancelBtn">Cancel</button>
+                    <button onclick="startBatchRegeneration()" class="btn btn-warning" id="batchStartBtn">🔄 Start Batch Regeneration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Character Guide Modal -->
+    <div id="addCharacterModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Add Character to Guide</h3>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Language:</label>
+                <input type="text" id="addCharLanguage" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Start Sound:</label>
+                <input type="text" id="addCharStartSound" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <small style="color: #6c757d; display: block; margin-top: 4px;">The phonetic sound at the start of the word (e.g., "cha", "sh")</small>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Character Name:</label>
+                <input type="text" id="addCharName" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <small style="color: #6c757d; display: block; margin-top: 4px;">The character or person's name (e.g., "Charizard", "Shanks")</small>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Character Context:</label>
+                <input type="text" id="addCharContext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <small style="color: #6c757d; display: block; margin-top: 4px;">Where the character is from (e.g., "Pokemon", "One Piece")</small>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="addCharStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeAddCharacterModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="addCharacterToGuide()" class="btn btn-success" id="addCharBtn">➕ Add to Guide</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Batch Regeneration State
+        let selectedWords = new Set();
+        let batchRegenerationData = {};
+        let batchInProgress = false;
+
+        // Update selection UI
+        function updateSelectionUI() {
+            const count = selectedWords.size;
+            const toolbar = document.getElementById('selectionToolbar');
+            const countEl = document.getElementById('selectionCount');
+            const batchBtn = document.getElementById('batchRegenerateBtn');
+            const batchCountEl = document.getElementById('batchRegenerateCount');
+
+            if (count > 0) {
+                toolbar.style.display = 'flex';
+                countEl.textContent = `${count} selected`;
+                batchBtn.style.display = 'inline-block';
+                batchCountEl.textContent = count;
+            } else {
+                toolbar.style.display = 'none';
+            }
+        }
+
+        // Handle individual checkbox change
+        function handleWordCheckboxChange(checkbox) {
+            const wordId = checkbox.dataset.wordId;
+            const wordDetail = checkbox.closest('.word-detail');
+
+            if (checkbox.checked) {
+                selectedWords.add(wordId);
+                wordDetail.classList.add('selected');
+            } else {
+                selectedWords.delete(wordId);
+                wordDetail.classList.remove('selected');
+            }
+
+            updateSelectionUI();
+        }
+
+        // Select all words
+        function selectAllWords() {
+            const checkboxes = document.querySelectorAll('.word-select-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                selectedWords.add(checkbox.dataset.wordId);
+                checkbox.closest('.word-detail').classList.add('selected');
+            });
+            updateSelectionUI();
+        }
+
+        // Deselect all words
+        function deselectAllWords() {
+            const checkboxes = document.querySelectorAll('.word-select-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                checkbox.closest('.word-detail').classList.remove('selected');
+            });
+            selectedWords.clear();
+            updateSelectionUI();
+        }
+
+        // Show batch regenerate modal
+        function showBatchRegenerateModal() {
+            if (selectedWords.size === 0) return;
+
+            // Initialize regeneration data
+            batchRegenerationData = {};
+            selectedWords.forEach(wordId => {
+                const checkbox = document.querySelector(`[data-word-id="${wordId}"]`);
+                batchRegenerationData[wordId] = {
+                    wordId: wordId,
+                    sourceWord: checkbox.dataset.sourceWord,
+                    provider: 'LEONARDO',
+                    useSamePrompt: false,
+                    customPrompt: '',
+                    status: 'pending'
+                };
+            });
+
+            // Populate modal
+            populateBatchModal();
+
+            // Show modal
+            document.getElementById('batchRegenerateModal').style.display = 'block';
+            document.getElementById('batchModalCount').textContent = selectedWords.size;
+
+            // Reset progress
+            document.getElementById('batchProgress').style.display = 'none';
+            document.getElementById('batchStatus').textContent = '';
+        }
+
+        // Close batch regenerate modal
+        function closeBatchRegenerateModal() {
+            if (batchInProgress) {
+                if (!confirm('Regeneration is in progress. Are you sure you want to close?')) {
+                    return;
+                }
+            }
+            document.getElementById('batchRegenerateModal').style.display = 'none';
+        }
+
+        // Populate batch modal with word list
+        function populateBatchModal() {
+            const wordListEl = document.getElementById('batchWordList');
+            wordListEl.innerHTML = '';
+
+            Object.values(batchRegenerationData).forEach((data, index) => {
+                const wordDiv = document.createElement('div');
+                wordDiv.style.cssText = 'background: white; padding: 15px; margin-bottom: 15px; border: 1px solid #dee2e6; border-radius: 8px;';
+                wordDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 10px; font-size: 16px;">${index + 1}. ${data.sourceWord}</div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-weight: bold; margin-right: 10px;">Provider:</label>
+                        <select class="word-provider" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="LEONARDO" selected>Leonardo AI</option>
+                            <option value="OPENAI">OpenAI DALL-E</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" class="word-use-same-prompt" data-word-id="${data.wordId}" style="margin-right: 6px;">
+                            Use same prompt
+                        </label>
+                    </div>
+
+                    <div>
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Custom Prompt (optional):</label>
+                        <textarea class="word-custom-prompt" data-word-id="${data.wordId}"
+                                  placeholder="Leave blank to auto-generate..."
+                                  style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px;"></textarea>
+                    </div>
+
+                    <div class="word-status-${data.wordId}" style="margin-top: 10px; display: none; padding: 8px; border-radius: 4px; font-size: 13px;"></div>
+                `;
+                wordListEl.appendChild(wordDiv);
+
+                // Add event listeners
+                wordDiv.querySelector('.word-provider').addEventListener('change', (e) => {
+                    batchRegenerationData[data.wordId].provider = e.target.value;
+                });
+                wordDiv.querySelector('.word-use-same-prompt').addEventListener('change', (e) => {
+                    batchRegenerationData[data.wordId].useSamePrompt = e.target.checked;
+                });
+                wordDiv.querySelector('.word-custom-prompt').addEventListener('input', (e) => {
+                    batchRegenerationData[data.wordId].customPrompt = e.target.value.trim();
+                });
+            });
+        }
+
+        // Apply provider to all
+        function applyProviderToAll() {
+            const provider = document.getElementById('globalProvider').value;
+            if (!provider) return;
+
+            document.querySelectorAll('.word-provider').forEach(select => {
+                select.value = provider;
+                const wordId = select.dataset.wordId;
+                batchRegenerationData[wordId].provider = provider;
+            });
+        }
+
+        // Apply use same prompt to all
+        function applyUseSamePromptToAll() {
+            const checked = document.getElementById('globalUseSamePrompt').checked;
+            document.querySelectorAll('.word-use-same-prompt').forEach(checkbox => {
+                checkbox.checked = checked;
+                const wordId = checkbox.dataset.wordId;
+                batchRegenerationData[wordId].useSamePrompt = checked;
+            });
+        }
+
+        // Apply custom prompt to all
+        function applyCustomPromptToAll() {
+            const prompt = window.prompt('Enter custom prompt to apply to all words:');
+            if (prompt === null) return;
+
+            document.querySelectorAll('.word-custom-prompt').forEach(textarea => {
+                textarea.value = prompt;
+                const wordId = textarea.dataset.wordId;
+                batchRegenerationData[wordId].customPrompt = prompt.trim();
+            });
+        }
+
+        // Start batch regeneration
+        async function startBatchRegeneration() {
+            if (batchInProgress) return;
+
+            batchInProgress = true;
+            const words = Object.values(batchRegenerationData);
+            const totalWords = words.length;
+            let completedCount = 0;
+            let successCount = 0;
+            let failureCount = 0;
+
+            // Show progress section
+            document.getElementById('batchProgress').style.display = 'block';
+            document.getElementById('batchStartBtn').disabled = true;
+            document.getElementById('batchCancelBtn').disabled = true;
+
+            // Initialize progress
+            updateBatchProgress(completedCount, totalWords, 'Starting batch regeneration...');
+
+            // Create promises for all words
+            const promises = words.map(async (data) => {
+                const wordId = data.wordId;
+                const statusEl = document.querySelector(`.word-status-${wordId}`);
+
+                // Show pending status
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#fff3cd';
+                statusEl.style.color = '#856404';
+                statusEl.textContent = '⏳ Pending...';
+
+                try {
+                    // Prepare request body
+                    const requestBody = {
+                        provider: data.provider
+                    };
+
+                    if (data.customPrompt) {
+                        requestBody.imagePrompt = data.customPrompt;
+                    }
+
+                    if (data.useSamePrompt) {
+                        requestBody.useSamePrompt = true;
+                    }
+
+                    // Update status to processing
+                    statusEl.style.background = '#cfe2ff';
+                    statusEl.style.color = '#084298';
+                    statusEl.textContent = '🔄 Regenerating...';
+
+                    // Make API call
+                    const response = await fetch(`/api/words/${wordId}/regenerate-image`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Success
+                        statusEl.style.background = '#d1e7dd';
+                        statusEl.style.color = '#0f5132';
+                        statusEl.textContent = '✓ Success! Image regenerated.';
+                        batchRegenerationData[wordId].status = 'success';
+                        successCount++;
+                    } else {
+                        // API returned error
+                        statusEl.style.background = '#f8d7da';
+                        statusEl.style.color = '#842029';
+                        statusEl.textContent = '✗ Error: ' + (result.error || 'Unknown error');
+                        batchRegenerationData[wordId].status = 'failed';
+                        failureCount++;
+                    }
+                } catch (error) {
+                    // Network or other error
+                    statusEl.style.background = '#f8d7da';
+                    statusEl.style.color = '#842029';
+                    statusEl.textContent = '✗ Error: ' + error.message;
+                    batchRegenerationData[wordId].status = 'failed';
+                    failureCount++;
+                }
+
+                // Update progress
+                completedCount++;
+                updateBatchProgress(completedCount, totalWords, `Processing... (${completedCount}/${totalWords})`);
+                addProgressDetail(data.sourceWord, batchRegenerationData[wordId].status);
+            });
+
+            // Wait for all promises to complete
+            await Promise.all(promises);
+
+            // All done
+            batchInProgress = false;
+            updateBatchProgress(totalWords, totalWords, 'Batch regeneration completed!');
+
+            // Show summary
+            const statusEl = document.getElementById('batchStatus');
+            statusEl.style.color = successCount === totalWords ? '#28a745' : (failureCount === totalWords ? '#dc3545' : '#ffc107');
+            statusEl.innerHTML = `<strong>Completed:</strong> ${successCount} succeeded, ${failureCount} failed`;
+
+            // Update buttons
+            document.getElementById('batchStartBtn').style.display = 'none';
+            document.getElementById('batchCancelBtn').textContent = 'Close';
+            document.getElementById('batchCancelBtn').disabled = false;
+
+            // Auto-reload after delay if all succeeded
+            if (failureCount === 0) {
+                statusEl.innerHTML += ' <br><small>Page will reload in 3 seconds...</small>';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            }
+        }
+
+        // Update batch progress bar
+        function updateBatchProgress(completed, total, text) {
+            const percentage = total > 0 ? (completed / total) * 100 : 0;
+            document.getElementById('batchProgressBar').style.width = percentage + '%';
+            document.getElementById('batchProgressText').textContent = text;
+            document.getElementById('batchProgressNumbers').textContent = `${completed} / ${total}`;
+        }
+
+        // Add progress detail
+        function addProgressDetail(sourceWord, status) {
+            const detailsEl = document.getElementById('batchProgressDetails');
+            const item = document.createElement('div');
+            item.style.cssText = 'padding: 6px; margin-bottom: 4px; border-radius: 4px;';
+
+            if (status === 'success') {
+                item.style.background = '#d1e7dd';
+                item.style.color = '#0f5132';
+                item.textContent = `✓ ${sourceWord} - Success`;
+            } else {
+                item.style.background = '#f8d7da';
+                item.style.color = '#842029';
+                item.textContent = `✗ ${sourceWord} - Failed`;
+            }
+
+            detailsEl.appendChild(item);
+            // Scroll to bottom
+            detailsEl.scrollTop = detailsEl.scrollHeight;
+        }
+
         let currentWordId = null;
 
         function showRegenerateModal(wordId, sourceWord) {
@@ -865,6 +1384,13 @@
             }
         });
 
+        // Close batch modal on background click
+        document.getElementById('batchRegenerateModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBatchRegenerateModal();
+            }
+        });
+
         // Generate with same preset function
         function generateWithPreset() {
             // Store the session configuration in sessionStorage
@@ -885,6 +1411,80 @@
             sessionStorage.setItem('loadPresetConfig', JSON.stringify(presetConfig));
             window.location.href = '/';
         }
+
+        // Character Guide Modal Functions
+        function showAddCharacterModal(dataset) {
+            document.getElementById('addCharLanguage').value = dataset.language;
+            document.getElementById('addCharStartSound').value = dataset.startSound;
+            document.getElementById('addCharName').value = dataset.characterName;
+            document.getElementById('addCharContext').value = dataset.characterContext || '';
+            document.getElementById('addCharacterModal').style.display = 'flex';
+            document.getElementById('addCharStatus').textContent = '';
+        }
+
+        function closeAddCharacterModal() {
+            document.getElementById('addCharacterModal').style.display = 'none';
+        }
+
+        async function addCharacterToGuide() {
+            const language = document.getElementById('addCharLanguage').value;
+            const startSound = document.getElementById('addCharStartSound').value.trim();
+            const characterName = document.getElementById('addCharName').value.trim();
+            const characterContext = document.getElementById('addCharContext').value.trim();
+            const statusEl = document.getElementById('addCharStatus');
+            const btnEl = document.getElementById('addCharBtn');
+
+            if (!startSound || !characterName) {
+                statusEl.textContent = 'Please fill in required fields';
+                statusEl.style.color = '#dc3545';
+                return;
+            }
+
+            statusEl.textContent = 'Adding character to guide...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const response = await fetch('/character-guide/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        language: language,
+                        startSound: startSound,
+                        characterName: characterName,
+                        characterContext: characterContext
+                    })
+                });
+
+                if (response.ok) {
+                    statusEl.textContent = 'Character added successfully!';
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        closeAddCharacterModal();
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    const text = await response.text();
+                    statusEl.textContent = 'Error: ' + (text || 'Failed to add character');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error adding character:', error);
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        // Close modal on background click
+        document.getElementById('addCharacterModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddCharacterModal();
+            }
+        });
     </script>
 </body>
 </html>

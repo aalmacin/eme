@@ -1,9 +1,12 @@
 package com.raidrin.eme.controller;
 
 import com.raidrin.eme.anki.AnkiNoteCreatorService;
+import com.raidrin.eme.codec.TransliterationService;
 import com.raidrin.eme.session.SessionOrchestrationService;
+import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
 import com.raidrin.eme.storage.entity.WordEntity;
+import com.raidrin.eme.storage.service.CharacterGuideService;
 import com.raidrin.eme.storage.service.TranslationSessionService;
 import com.raidrin.eme.storage.service.WordService;
 import com.raidrin.eme.util.ZipFileGenerator;
@@ -31,6 +34,7 @@ public class TranslationSessionController {
     private final ZipFileGenerator zipFileGenerator;
     private final AnkiNoteCreatorService ankiNoteCreatorService;
     private final SessionOrchestrationService sessionOrchestrationService;
+    private final CharacterGuideService characterGuideService;
 
     @GetMapping
     public String listSessions(Model model,
@@ -85,6 +89,9 @@ public class TranslationSessionController {
                             );
                             wordData.putAll(mergedData);
                         }
+
+                        // Add character guide information
+                        enrichWithCharacterGuideInfo(wordData, session.getSourceLanguage());
                     }
                 }
             }
@@ -472,5 +479,66 @@ public class TranslationSessionController {
         }
 
         return mergedData;
+    }
+
+    /**
+     * Enrich word data with character guide information
+     * Adds information about whether the character is in the character guide DB
+     */
+    private void enrichWithCharacterGuideInfo(Map<String, Object> wordData, String language) {
+        String sourceWord = (String) wordData.get("source_word");
+        String mnemonicKeyword = (String) wordData.get("mnemonic_keyword");
+
+        if (sourceWord == null || mnemonicKeyword == null) {
+            return;
+        }
+
+        // Transliterate the source word to get the start sound
+        String transliteratedWord = TransliterationService.transliterate(sourceWord);
+        String normalizedWord = transliteratedWord.toLowerCase().trim();
+
+        // Check if there's a matching character guide entry
+        Optional<CharacterGuideEntity> characterMatch = characterGuideService.findMatchingCharacterForWord(sourceWord, language);
+
+        if (characterMatch.isPresent()) {
+            CharacterGuideEntity character = characterMatch.get();
+            wordData.put("character_in_guide", true);
+            wordData.put("character_start_sound", character.getStartSound());
+            wordData.put("character_name", character.getCharacterName());
+            wordData.put("character_context", character.getCharacterContext());
+        } else {
+            // Character not in guide - determine the start sound that should be used
+            wordData.put("character_in_guide", false);
+
+            // Extract a reasonable start sound (first 2-3 characters of transliterated word)
+            String suggestedStartSound = normalizedWord.length() >= 3 ? normalizedWord.substring(0, 3) :
+                                        normalizedWord.length() >= 2 ? normalizedWord.substring(0, 2) :
+                                        normalizedWord;
+
+            wordData.put("character_start_sound", suggestedStartSound);
+            wordData.put("character_name", mnemonicKeyword);
+            // Try to extract character context from mnemonic_sentence if available
+            String mnemonicSentence = (String) wordData.get("mnemonic_sentence");
+            if (mnemonicSentence != null && !mnemonicSentence.isEmpty()) {
+                // Extract context from the sentence (simplified - just use the sentence itself)
+                wordData.put("character_context", extractContextFromMnemonic(mnemonicSentence, mnemonicKeyword));
+            } else {
+                wordData.put("character_context", "");
+            }
+        }
+    }
+
+    /**
+     * Extract character context from mnemonic sentence
+     * This tries to find where the character appears in the mnemonic
+     */
+    private String extractContextFromMnemonic(String mnemonicSentence, String characterName) {
+        // Simple heuristic: if the character appears in the sentence, extract surrounding context
+        int index = mnemonicSentence.toLowerCase().indexOf(characterName.toLowerCase());
+        if (index >= 0) {
+            // Return a short description mentioning the character
+            return "From mnemonic: " + characterName;
+        }
+        return characterName;
     }
 }
