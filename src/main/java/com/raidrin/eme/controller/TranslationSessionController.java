@@ -21,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Controller
@@ -207,6 +208,40 @@ public class TranslationSessionController {
         return "redirect:/sessions/" + id + "?message=word-image-retry-not-implemented";
     }
 
+    @PostMapping("/{id}/cancel")
+    public String cancelSession(@PathVariable Long id,
+                                @RequestParam(required = false) String reason) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+
+        // Only allow cancellation of PENDING or IN_PROGRESS sessions
+        if (session.getStatus() != TranslationSessionEntity.SessionStatus.PENDING &&
+            session.getStatus() != TranslationSessionEntity.SessionStatus.IN_PROGRESS) {
+            return "redirect:/sessions/" + id + "?error=cannot-cancel-" + session.getStatus().name().toLowerCase();
+        }
+
+        try {
+            String cancellationReason = (reason != null && !reason.trim().isEmpty())
+                    ? reason
+                    : "Cancelled by user";
+
+            translationSessionService.markAsCancelled(id, cancellationReason);
+
+            System.out.println("Cancelled session " + id + ": " + cancellationReason);
+            return "redirect:/sessions/" + id + "?message=session-cancelled";
+
+        } catch (Exception e) {
+            System.err.println("Failed to cancel session: " + e.getMessage());
+            e.printStackTrace();
+            return "redirect:/sessions/" + id + "?error=cancel-failed";
+        }
+    }
+
     @PostMapping("/{id}/retry")
     @SuppressWarnings("unchecked")
     public String retrySession(@PathVariable Long id) {
@@ -214,6 +249,14 @@ public class TranslationSessionController {
 
         if (sessionOpt.isEmpty()) {
             return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+
+        // Only allow retry of FAILED or CANCELLED sessions
+        if (session.getStatus() != TranslationSessionEntity.SessionStatus.FAILED &&
+            session.getStatus() != TranslationSessionEntity.SessionStatus.CANCELLED) {
+            return "redirect:/sessions/" + id + "?error=cannot-retry-" + session.getStatus().name().toLowerCase();
         }
 
         // Get session data
@@ -232,8 +275,19 @@ public class TranslationSessionController {
             // Reset session status to IN_PROGRESS
             translationSessionService.updateStatus(id, TranslationSessionEntity.SessionStatus.IN_PROGRESS);
 
-            // Clear error data from previous attempt
+            // Clear error/cancellation data from previous attempt
             Map<String, Object> updatedSessionData = new HashMap<>(sessionData);
+
+            // Clear error data
+            updatedSessionData.remove("error");
+            updatedSessionData.remove("errorTime");
+
+            // Clear cancellation data
+            updatedSessionData.remove("cancelled");
+            updatedSessionData.remove("cancellationTime");
+            updatedSessionData.remove("cancellationReason");
+
+            // Clear process summary errors
             if (updatedSessionData.containsKey("process_summary")) {
                 Map<String, Object> processSummary = (Map<String, Object>) updatedSessionData.get("process_summary");
                 processSummary.put("translation_errors", new ArrayList<>());
@@ -242,12 +296,20 @@ public class TranslationSessionController {
                 processSummary.put("sentence_errors", new ArrayList<>());
                 processSummary.put("has_errors", false);
             }
+
+            // Add retry metadata
+            updatedSessionData.put("retry_count",
+                ((Integer) updatedSessionData.getOrDefault("retry_count", 0)) + 1);
+            updatedSessionData.put("last_retry_time", LocalDateTime.now().toString());
+            updatedSessionData.put("retried_from_status", session.getStatus().name());
+
             translationSessionService.updateSessionData(id, updatedSessionData);
 
             // Start async processing
             sessionOrchestrationService.processTranslationBatchAsync(id, request);
 
-            System.out.println("Started retry processing for session " + id);
+            System.out.println("Started retry processing for session " + id +
+                " (retrying from " + session.getStatus() + ")");
             return "redirect:/sessions/" + id + "?message=retry-started";
 
         } catch (Exception e) {

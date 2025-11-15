@@ -74,6 +74,8 @@ public class TranslationSessionService {
         session.setStatus(status);
         if (status == SessionStatus.COMPLETED || status == SessionStatus.FAILED) {
             session.setCompletedAt(LocalDateTime.now());
+        } else if (status == SessionStatus.CANCELLED) {
+            session.setCancelledAt(LocalDateTime.now());
         }
 
         sessionRepository.save(session);
@@ -124,6 +126,25 @@ public class TranslationSessionService {
         Map<String, Object> currentData = deserializeData(session.getSessionData());
         currentData.put("error", errorMessage);
         currentData.put("errorTime", LocalDateTime.now().toString());
+        session.setSessionData(serializeData(currentData));
+
+        sessionRepository.save(session);
+    }
+
+    @Transactional
+    public void markAsCancelled(Long sessionId, String cancellationReason) {
+        TranslationSessionEntity session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        session.setStatus(SessionStatus.CANCELLED);
+        session.setCancelledAt(LocalDateTime.now());
+        session.setCancellationReason(cancellationReason != null ? cancellationReason : "Cancelled by user");
+
+        // Add cancellation info to session data
+        Map<String, Object> currentData = deserializeData(session.getSessionData());
+        currentData.put("cancelled", true);
+        currentData.put("cancellationTime", LocalDateTime.now().toString());
+        currentData.put("cancellationReason", session.getCancellationReason());
         session.setSessionData(serializeData(currentData));
 
         sessionRepository.save(session);

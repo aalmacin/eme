@@ -70,6 +70,12 @@ public class TranslationSessionEntity {
     @Column(name = "completed_at")
     private LocalDateTime completedAt;
 
+    @Column(name = "cancelled_at")
+    private LocalDateTime cancelledAt;
+
+    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
+    private String cancellationReason;
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -108,6 +114,7 @@ public class TranslationSessionEntity {
         PENDING,
         IN_PROGRESS,
         COMPLETED,
-        FAILED
+        FAILED,
+        CANCELLED
     }
 }

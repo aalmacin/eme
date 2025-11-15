@@ -274,8 +274,9 @@ public class AsyncImageGenerationService {
      * @return Generated image info with URL
      */
     private GeneratedImageInfo generateImage(String prompt, int width, int height) {
-        // OpenAI uses fixed sizes - choose closest match based on aspect ratio
-        String size = (width > height) ? "1792x1024" : (width < height) ? "1024x1792" : "1024x1024";
+        // OpenAI gpt-image-1-mini supports: 1024x1024, 1024x1536, 1536x1024, auto
+        // Choose closest match based on aspect ratio
+        String size = (width > height) ? "1536x1024" : (width < height) ? "1024x1536" : "1024x1024";
         OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(
                 prompt, size, "medium", null);
         return new GeneratedImageInfo(

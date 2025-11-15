@@ -42,7 +42,8 @@ public class OpenAiImageService {
      * Generate an image using OpenAI Image Generation
      *
      * @param prompt The image generation prompt
-     * @param size Image size (must be: "1024x1024", "1024x1792", or "1792x1024")
+     * @param size Image size (gpt-image-1-mini: "1024x1024", "1024x1536", "1536x1024", "auto";
+     *             gpt-image-1: "1024x1024", "1024x1792", "1792x1024")
      * @param quality Quality setting ("low", "medium", "high", or "auto")
      * @param modelOverride Optional model to override the default
      * @return GeneratedImage with the URL
@@ -52,9 +53,10 @@ public class OpenAiImageService {
             throw new IllegalArgumentException("Prompt must be provided");
         }
 
-        // Validate size
-        if (!"1024x1024".equals(size) && !"1024x1792".equals(size) && !"1792x1024".equals(size)) {
-            throw new IllegalArgumentException("Size must be one of: 1024x1024, 1024x1792, or 1792x1024");
+        // Validate size - support sizes for both gpt-image-1 and gpt-image-1-mini
+        if (!"1024x1024".equals(size) && !"1024x1536".equals(size) && !"1536x1024".equals(size) &&
+            !"1024x1792".equals(size) && !"1792x1024".equals(size) && !"auto".equals(size)) {
+            throw new IllegalArgumentException("Size must be one of: 1024x1024, 1024x1536, 1536x1024, 1024x1792, 1792x1024, or auto");
         }
 
         String modelToUse = modelOverride != null ? modelOverride : model;

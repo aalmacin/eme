@@ -1,7 +1,6 @@
 package com.raidrin.eme.controller;
 
 import com.raidrin.eme.image.ImageProvider;
-import com.raidrin.eme.image.LeonardoApiService;
 import com.raidrin.eme.image.OpenAiImageService;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService;
 import com.raidrin.eme.storage.entity.WordEntity;
@@ -31,7 +30,6 @@ import java.util.*;
 public class WordController {
 
     private final WordService wordService;
-    private final LeonardoApiService leonardoService;
     private final OpenAiImageService openAiImageService;
     private final GcpStorageService gcpStorageService;
     private final MnemonicGenerationService mnemonicGenerationService;

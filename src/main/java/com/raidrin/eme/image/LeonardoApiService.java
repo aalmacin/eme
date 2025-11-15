@@ -15,8 +15,11 @@ import java.util.List;
 /**
  * Service for generating images using Leonardo AI API
  * Documentation: https://docs.leonardo.ai/docs
+ *
+ * NOTE: This service is deprecated and no longer used.
+ * Kept for reference only. Use OpenAiImageService instead.
  */
-@Service
+// @Service - Commented out to prevent Spring from instantiating this deprecated service
 @RequiredArgsConstructor
 public class LeonardoApiService {
 

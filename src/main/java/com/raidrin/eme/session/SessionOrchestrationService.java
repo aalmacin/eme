@@ -4,7 +4,7 @@ import com.google.cloud.texttospeech.v1.SsmlVoiceGender;
 import com.raidrin.eme.audio.AsyncAudioGenerationService;
 import com.raidrin.eme.audio.LanguageAudioCodes;
 import com.raidrin.eme.codec.Codec;
-import com.raidrin.eme.image.LeonardoApiService;
+import com.raidrin.eme.image.OpenAiImageService;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService.MnemonicData;
 import com.raidrin.eme.sentence.SentenceData;
@@ -45,7 +45,7 @@ public class SessionOrchestrationService {
     private final SentenceGenerationService sentenceGenerationService;
     private final MnemonicGenerationService mnemonicGenerationService;
     private final AsyncAudioGenerationService audioGenerationService;
-    private final LeonardoApiService leonardoService;
+    private final OpenAiImageService openAiImageService;
     private final GcpStorageService gcpStorageService;
     private final TranslationSessionService sessionService;
     private final ZipFileGenerator zipFileGenerator;
@@ -256,9 +256,12 @@ public class SessionOrchestrationService {
                         wordData.put("mnemonic_sentence", mnemonicData.getMnemonicSentence());
                         wordData.put("image_prompt", mnemonicData.getImagePrompt());
 
-                        // Generate image
-                        LeonardoApiService.GeneratedImage generatedImage = leonardoService.generateImage(
-                            mnemonicData.getImagePrompt(), 1152, 768
+                        // Generate image using OpenAI
+                        // Use 1536x1024 for landscape format (closest to 1152x768 ratio)
+                        // gpt-image-1-mini supports: 1024x1024, 1024x1536, 1536x1024, auto
+                        String size = "1536x1024";
+                        OpenAiImageService.GeneratedImage generatedImage = openAiImageService.generateImage(
+                            mnemonicData.getImagePrompt(), size, "medium", null
                         );
 
                         // Download image
@@ -272,8 +275,7 @@ public class SessionOrchestrationService {
                         // Upload to GCP
                         String gcsUrl = gcpStorageService.downloadAndUpload(generatedImage.getImageUrl(), imageFileName);
                         wordData.put("image_gcs_url", gcsUrl);
-                        wordData.put("leonardo_generation_id", generatedImage.getGenerationId());
-                        wordData.put("credit_cost", generatedImage.getCreditCost());
+                        wordData.put("image_provider", "openai");
                         wordData.put("image_status", "success");
                     } catch (Exception e) {
                         String error = "Image generation failed for '" + sourceWord + "': " + e.getMessage();
