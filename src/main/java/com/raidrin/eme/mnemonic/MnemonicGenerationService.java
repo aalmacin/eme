@@ -55,7 +55,7 @@ public class MnemonicGenerationService {
 
         // Build the prompt
         String prompt = buildMnemonicPrompt(sourceWord, targetWord, sourceLanguage, targetLanguage,
-                sourceCharacter);
+                sourceCharacter, sourceTransliteration);
 
         System.out.println("Generating mnemonic with OpenAI for: " + sourceWord + " -> " + targetWord);
 
@@ -130,7 +130,8 @@ public class MnemonicGenerationService {
 
     private String buildMnemonicPrompt(String sourceWord, String targetWord,
                                        String sourceLanguage, String targetLanguage,
-                                       Optional<CharacterGuideEntity> sourceCharacter) {
+                                       Optional<CharacterGuideEntity> sourceCharacter,
+                                       String sourceTransliteration) {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("Create a mnemonic to remember that '").append(sourceWord).append("' (")
@@ -146,11 +147,22 @@ public class MnemonicGenerationService {
             prompt.append("- Use ONLY this character: ").append(sc.getCharacterName()).append(" from ").append(sc.getCharacterContext())
                     .append(" (REQUIRED - DO NOT CHANGE THIS CHARACTER)\n");
         } else {
-            prompt.append("- You MUST choose EXACTLY ONE REAL, WELL-KNOWN character whose name starts with the EXACT SAME PHONETIC SOUND as '")
-                    .append(sourceWord).append("'.\n");
-            prompt.append("  CRITICAL: First determine how '").append(sourceWord).append("' is PRONOUNCED (romanization), then match that sound.\n");
-            prompt.append("  Example: If '").append(sourceWord).append("' sounds like 'aa' or 'aap', choose 'Aang from Avatar: The Last Airbender' (starts with 'A').\n");
-            prompt.append("  Example: If sounds like 'kha', choose 'Krillin from Dragon Ball' (starts with 'K').\n");
+            // Include transliteration if available
+            if (sourceTransliteration != null && !sourceTransliteration.trim().isEmpty()) {
+                prompt.append("- The word '").append(sourceWord).append("' is romanized as: ").append(sourceTransliteration).append("\n");
+            }
+            prompt.append("- CRITICAL CHARACTER SELECTION RULE: You MUST choose EXACTLY ONE REAL, WELL-KNOWN character whose name starts with the FIRST 2-3 LETTERS of the source word's ROMANIZATION.\n");
+            prompt.append("  STEP 1: Determine the romanization (pronunciation in English letters) of '").append(sourceWord).append("'");
+            if (sourceTransliteration != null && !sourceTransliteration.trim().isEmpty()) {
+                prompt.append(" (provided above: ").append(sourceTransliteration).append(")");
+            }
+            prompt.append(".\n");
+            prompt.append("  STEP 2: Try to find a character whose name starts with the FIRST 3 LETTERS of the romanization.\n");
+            prompt.append("  STEP 3: If no 3-letter match exists, find a character whose name starts with the FIRST 2 LETTERS.\n");
+            prompt.append("  Example: If romanization is 'motsu', look for characters starting with 'mot' first (e.g., 'Motoko from Ghost in the Shell').\n");
+            prompt.append("  Example: If no 'mot' match, look for 'mo' (e.g., 'Monkey D. Luffy from One Piece' starts with 'mo').\n");
+            prompt.append("  IMPORTANT: DO NOT use the mnemonic keyword for character selection! The mnemonic keyword is ONLY for scene objects.\n");
+            prompt.append("  Example: If the word is 'motsu' (romanized), DO NOT choose 'Matsuno' just because the keyword is 'mat'.\n");
             prompt.append("  NEVER choose a character with a different starting sound!\n");
         }
 

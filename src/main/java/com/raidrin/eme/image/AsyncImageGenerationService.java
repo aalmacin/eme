@@ -31,16 +31,12 @@ import java.util.concurrent.CompletableFuture;
 public class AsyncImageGenerationService {
 
     private final MnemonicGenerationService mnemonicService;
-    private final LeonardoApiService leonardoService;
     private final OpenAiImageService openAiImageService;
     private final GcpStorageService gcpStorageService;
     private final TranslationSessionService sessionService;
 
     @Value("${image.output.directory:./generated_images}")
     private String outputDirectory;
-
-    @Value("${image.provider:OPENAI}")
-    private ImageProvider imageProvider;
 
     /**
      * Generate images for a single word translation asynchronously with pre-generated mnemonic data
@@ -270,37 +266,24 @@ public class AsyncImageGenerationService {
     }
 
     /**
-     * Generate image using the configured provider (Leonardo or OpenAI)
+     * Generate image using OpenAI
      *
      * @param prompt The image generation prompt
-     * @param width Desired width (used for Leonardo)
-     * @param height Desired height (used for Leonardo)
+     * @param width Desired width (used to determine aspect ratio)
+     * @param height Desired height (used to determine aspect ratio)
      * @return Generated image info with URL
      */
     private GeneratedImageInfo generateImage(String prompt, int width, int height) {
-        return switch (imageProvider) {
-            case LEONARDO -> {
-                LeonardoApiService.GeneratedImage leonardoImage = leonardoService.generateImage(prompt, width, height);
-                yield new GeneratedImageInfo(
-                        leonardoImage.getImageUrl(),
-                        leonardoImage.getGenerationId(),
-                        leonardoImage.getCreditCost(),
-                        "leonardo"
-                );
-            }
-            case OPENAI -> {
-                // OpenAI uses fixed sizes - choose closest match
-                String size = (width > height) ? "1792x1024" : (width < height) ? "1024x1792" : "1024x1024";
-                OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(
-                        prompt, size, "medium", null);
-                yield new GeneratedImageInfo(
-                        openAiImage.getImageUrl(),
-                        null,  // OpenAI doesn't have generation ID
-                        null,  // OpenAI doesn't provide credit cost in response
-                        "openai"
-                );
-            }
-        };
+        // OpenAI uses fixed sizes - choose closest match based on aspect ratio
+        String size = (width > height) ? "1792x1024" : (width < height) ? "1024x1792" : "1024x1024";
+        OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(
+                prompt, size, "medium", null);
+        return new GeneratedImageInfo(
+                openAiImage.getImageUrl(),
+                null,  // OpenAI doesn't have generation ID
+                null,  // OpenAI doesn't provide credit cost in response
+                "openai"
+        );
     }
 
     /**
