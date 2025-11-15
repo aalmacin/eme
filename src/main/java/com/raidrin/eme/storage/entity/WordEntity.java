@@ -53,6 +53,18 @@ public class WordEntity {
     @Column(name = "source_transliteration", columnDefinition = "TEXT")
     private String sourceTransliteration;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "translation_status", length = 20)
+    private ProcessingStatus translationStatus = ProcessingStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "audio_generation_status", length = 20)
+    private ProcessingStatus audioGenerationStatus = ProcessingStatus.PENDING;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "image_generation_status", length = 20)
+    private ProcessingStatus imageGenerationStatus = ProcessingStatus.PENDING;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

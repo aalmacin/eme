@@ -101,6 +101,14 @@
             background-color: #dc3545;
             color: #fff;
         }
+        .status-processing {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+        .status-cancelled {
+            background-color: #6c757d;
+            color: #fff;
+        }
         .data-section {
             background: #f8f9fa;
             padding: 15px;
@@ -430,8 +438,37 @@
                     </span>
                 </div>
 
-                <!-- Translation Status -->
-                <div th:if="${wordData.containsKey('translation_status')}"
+                <!-- Processing Pipeline Status -->
+                <div th:if="${wordData.containsKey('translation_status') || wordData.containsKey('audio_generation_status') || wordData.containsKey('image_generation_status')}"
+                     style="margin: 12px 0; padding: 12px; background: #f8f9fa; border-radius: 6px; border: 1px solid #dee2e6;">
+                    <div style="font-weight: 600; font-size: 13px; color: #495057; margin-bottom: 8px;">Processing Pipeline Status:</div>
+                    <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                        <!-- Translation Status Badge -->
+                        <div th:if="${wordData.containsKey('translation_status')}" style="flex: 1; min-width: 150px;">
+                            <span style="font-size: 12px; color: #6c757d;">Translation:</span>
+                            <span th:class="'status-badge status-' + ${#strings.toLowerCase(wordData.get('translation_status'))}"
+                                  th:text="${wordData.get('translation_status')}"
+                                  style="margin-left: 6px; font-size: 11px; padding: 3px 8px;"></span>
+                        </div>
+                        <!-- Audio Generation Status Badge -->
+                        <div th:if="${wordData.containsKey('audio_generation_status')}" style="flex: 1; min-width: 150px;">
+                            <span style="font-size: 12px; color: #6c757d;">Audio:</span>
+                            <span th:class="'status-badge status-' + ${#strings.toLowerCase(wordData.get('audio_generation_status'))}"
+                                  th:text="${wordData.get('audio_generation_status')}"
+                                  style="margin-left: 6px; font-size: 11px; padding: 3px 8px;"></span>
+                        </div>
+                        <!-- Image Generation Status Badge -->
+                        <div th:if="${wordData.containsKey('image_generation_status')}" style="flex: 1; min-width: 150px;">
+                            <span style="font-size: 12px; color: #6c757d;">Image:</span>
+                            <span th:class="'status-badge status-' + ${#strings.toLowerCase(wordData.get('image_generation_status'))}"
+                                  th:text="${wordData.get('image_generation_status')}"
+                                  style="margin-left: 6px; font-size: 11px; padding: 3px 8px;"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Translation Status (Legacy) -->
+                <div th:if="${wordData.containsKey('translation_status') && wordData.get('translation_status') == 'success'}"
                      th:class="'process-item ' + (${wordData.get('translation_status')} == 'success' ? 'success' : 'failed')">
                     <div>
                         <span class="process-name">Translation:</span>

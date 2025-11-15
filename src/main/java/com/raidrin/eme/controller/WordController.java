@@ -38,6 +38,69 @@ public class WordController {
     private String imageOutputDirectory;
 
     /**
+     * Create a new word and trigger async processing pipeline
+     *
+     * @param request Request body with word details:
+     *                - word: The source word
+     *                - sourceLanguage: Source language code (e.g., "en", "hi", "tl")
+     *                - targetLanguage: Target language code (e.g., "en", "hi", "tl")
+     */
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> createWord(@RequestBody Map<String, String> request) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            String word = request.get("word");
+            String sourceLanguage = request.get("sourceLanguage");
+            String targetLanguage = request.get("targetLanguage");
+
+            if (word == null || word.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Word must be provided");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (sourceLanguage == null || sourceLanguage.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Source language must be provided");
+                return ResponseEntity.badRequest().body(response);
+            }
+            if (targetLanguage == null || targetLanguage.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Target language must be provided");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Check if word already exists
+            if (wordService.hasWord(word, sourceLanguage, targetLanguage)) {
+                response.put("success", false);
+                response.put("error", "Word already exists");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Create word and trigger processing pipeline
+            var wordEntity = wordService.createWordAndTriggerProcessing(word, sourceLanguage, targetLanguage);
+
+            response.put("success", true);
+            response.put("wordId", wordEntity.getId());
+            response.put("word", wordEntity.getWord());
+            response.put("sourceLanguage", wordEntity.getSourceLanguage());
+            response.put("targetLanguage", wordEntity.getTargetLanguage());
+            response.put("translationStatus", wordEntity.getTranslationStatus().toString());
+            response.put("audioGenerationStatus", wordEntity.getAudioGenerationStatus().toString());
+            response.put("imageGenerationStatus", wordEntity.getImageGenerationStatus().toString());
+            response.put("message", "Word created and processing started. Check status via GET /api/words/{wordId}");
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
      * Update image prompt and regenerate image for a word
      *
      * @param wordId The ID of the word to regenerate image for

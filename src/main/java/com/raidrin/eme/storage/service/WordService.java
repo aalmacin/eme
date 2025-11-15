@@ -3,6 +3,9 @@ package com.raidrin.eme.storage.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.raidrin.eme.messaging.WordMessage;
+import com.raidrin.eme.messaging.RedisStreamPublisher;
+import com.raidrin.eme.storage.entity.ProcessingStatus;
 import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.repository.WordRepository;
 import lombok.RequiredArgsConstructor;
@@ -17,6 +20,7 @@ public class WordService {
 
     private final WordRepository wordRepository;
     private final ObjectMapper objectMapper;
+    private final RedisStreamPublisher messagePublisher;
 
     public Optional<WordEntity> findWord(String word, String sourceLanguage, String targetLanguage) {
         validateParameters(word, sourceLanguage, targetLanguage);
@@ -32,8 +36,41 @@ public class WordService {
             return existing.get();
         } else {
             WordEntity entity = new WordEntity(word, sourceLanguage, targetLanguage);
-            return wordRepository.save(entity);
+            entity = wordRepository.save(entity);
+
+            // Publish message to translation topic
+            publishWordMessage(entity);
+
+            return entity;
         }
+    }
+
+    @Transactional
+    public WordEntity createWordAndTriggerProcessing(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = new WordEntity(word, sourceLanguage, targetLanguage);
+        entity.setTranslationStatus(ProcessingStatus.PENDING);
+        entity.setAudioGenerationStatus(ProcessingStatus.PENDING);
+        entity.setImageGenerationStatus(ProcessingStatus.PENDING);
+        entity = wordRepository.save(entity);
+
+        // Publish message to translation topic to start the pipeline
+        publishWordMessage(entity);
+
+        return entity;
+    }
+
+    private void publishWordMessage(WordEntity entity) {
+        WordMessage message = new WordMessage(
+            entity.getId(),
+            entity.getWord(),
+            entity.getSourceLanguage(),
+            entity.getTargetLanguage()
+        );
+
+        // Publish to translation topic (first step in the pipeline)
+        messagePublisher.publishTranslationMessage(message);
     }
 
     @Transactional
@@ -45,6 +82,39 @@ public class WordService {
 
         WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
         entity.setTranslation(serializeTranslations(translations));
+        entity.setTranslationStatus(ProcessingStatus.COMPLETED);
+        entity = wordRepository.save(entity);
+
+        // After translation is complete, trigger audio and image generation
+        WordMessage message = new WordMessage(
+            entity.getId(),
+            entity.getWord(),
+            entity.getSourceLanguage(),
+            entity.getTargetLanguage()
+        );
+        messagePublisher.publishAudioGenerationMessage(message);
+        messagePublisher.publishImageGenerationMessage(message);
+
+        return entity;
+    }
+
+    @Transactional
+    public WordEntity updateStatus(Long wordId, ProcessingStatus translationStatus,
+                                     ProcessingStatus audioGenerationStatus,
+                                     ProcessingStatus imageGenerationStatus) {
+        WordEntity entity = wordRepository.findById(wordId)
+            .orElseThrow(() -> new IllegalArgumentException("Word not found with ID: " + wordId));
+
+        if (translationStatus != null) {
+            entity.setTranslationStatus(translationStatus);
+        }
+        if (audioGenerationStatus != null) {
+            entity.setAudioGenerationStatus(audioGenerationStatus);
+        }
+        if (imageGenerationStatus != null) {
+            entity.setImageGenerationStatus(imageGenerationStatus);
+        }
+
         return wordRepository.save(entity);
     }
 

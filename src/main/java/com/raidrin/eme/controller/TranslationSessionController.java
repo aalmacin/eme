@@ -670,6 +670,17 @@ public class TranslationSessionController {
             mergedData.put("image_status", "success");
         }
 
+        // Add processing statuses
+        if (wordEntity.getTranslationStatus() != null) {
+            mergedData.put("translation_status", wordEntity.getTranslationStatus().toString());
+        }
+        if (wordEntity.getAudioGenerationStatus() != null) {
+            mergedData.put("audio_generation_status", wordEntity.getAudioGenerationStatus().toString());
+        }
+        if (wordEntity.getImageGenerationStatus() != null) {
+            mergedData.put("image_generation_status", wordEntity.getImageGenerationStatus().toString());
+        }
+
         return mergedData;
     }
 

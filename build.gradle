@@ -41,6 +41,9 @@ dependencies {
     // ICU4J for transliteration support
     implementation 'com.ibm.icu:icu4j:74.2'
 
+    // Redis for message queue (works with Upstash Redis)
+    implementation 'org.springframework.boot:spring-boot-starter-data-redis'
+
     annotationProcessor 'org.projectlombok:lombok'
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
 }
