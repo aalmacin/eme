@@ -272,7 +272,7 @@ public class CostTrackingService {
             "gpt-4o-mini", 0.000150 / 1000,      // per 1K input tokens
             "gpt-4o", 0.002500 / 1000,
             "claude-3-5-sonnet", 0.003000 / 1000,
-            "dall-e-3", 0.040000                  // per image
+            "gpt-image-1", 0.040000                  // per image
         );
 
         return pricing.getOrDefault(model, 0.001) * tokens;

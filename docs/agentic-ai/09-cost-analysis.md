@@ -524,7 +524,7 @@ Proceed with full implementation starting with Phase 1. The financial case is co
 **OpenAI Pricing (as of 2025):**
 - GPT-4o-mini input: $0.150 per 1M tokens
 - GPT-4o input: $2.50 per 1M tokens
-- DALL-E 3: $0.040 per image (1024×1024)
+- GPT Image 1 3: $0.040 per image (1024×1024)
 
 **Average Token Usage:**
 - Translation prompt: ~100 tokens input, ~50 tokens output
@@ -546,7 +546,7 @@ Mnemonic:
 **Per word (all operations):**
 ```
 Translation + Sentence + Mnemonic = $0.00015
-Image (DALL-E 3 or Leonardo): $0.04
+Image (GPT Image 1 3 or Leonardo): $0.04
 Audio (Google TTS): $0.016 × 2 files = $0.032
 
 Total per word: ~$0.048

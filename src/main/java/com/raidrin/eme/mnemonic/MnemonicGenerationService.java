@@ -142,14 +142,15 @@ public class MnemonicGenerationService {
         }
 
         prompt.append("\nCreate:\n");
-        prompt.append("1. A 'mnemonic_keyword' - a VISUALIZABLE NOUN that sounds like '").append(sourceWord)
+        prompt.append("1. A 'mnemonic_keyword' - a VISUALIZABLE ENGLISH NOUN that sounds like '").append(sourceWord)
                 .append("' but is easier to remember\n");
         prompt.append("   CRITICAL REQUIREMENTS for mnemonic_keyword:\n");
+        prompt.append("   - MUST be an ENGLISH word (not in any other language)\n");
         prompt.append("   - MUST be a concrete, visualizable NOUN (something you can see/touch)\n");
         prompt.append("   - MUST NOT be the word '").append(sourceWord).append("' itself\n");
         prompt.append("   - MUST NOT be the word '").append(targetWord).append("' itself\n");
         prompt.append("   - Examples of GOOD keywords: 'apple', 'boat', 'crown', 'dragon', 'tree'\n");
-        prompt.append("   - Examples of BAD keywords: verbs, adjectives, abstract concepts, or the actual words being learned\n");
+        prompt.append("   - Examples of BAD keywords: verbs, adjectives, abstract concepts, the actual words being learned, or non-English words\n");
         prompt.append("2. A 'mnemonic_sentence' - a vivid, memorable sentence connecting the character")
                 .append(" with the meaning '").append(targetWord).append("'\n");
         prompt.append("3. An 'image_prompt' - a detailed prompt for generating a 3D animated cinematic image showing:\n");

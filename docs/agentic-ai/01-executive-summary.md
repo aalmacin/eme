@@ -14,7 +14,7 @@ This document presents a comprehensive plan to enhance the EME language learning
 
 EME is already leveraging cutting-edge AI:
 - ✅ OpenAI GPT-4o-mini for translation, sentences, and mnemonics
-- ✅ Leonardo AI & DALL-E 3 for mnemonic visualization
+- ✅ Leonardo AI & GPT Image 1 3 for mnemonic visualization
 - ✅ Google Text-to-Speech for pronunciation practice
 - ✅ Async batch processing for efficiency
 - ✅ Database caching for cost optimization

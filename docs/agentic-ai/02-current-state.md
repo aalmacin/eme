@@ -52,7 +52,7 @@ PostgreSQL 15
 AI/ML Services:
 ├── OpenAI API (gpt-4o-mini for translation, sentences, mnemonics)
 ├── Leonardo AI (image generation)
-├── OpenAI DALL-E 3 (alternative image generation)
+├── OpenAI GPT Image 1 3 (alternative image generation)
 └── Google Cloud Text-to-Speech (audio generation)
 
 Storage:
