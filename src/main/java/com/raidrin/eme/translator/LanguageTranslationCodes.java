@@ -7,7 +7,8 @@ public enum LanguageTranslationCodes {
     Korean("ko"),
     Japanese("ja"),
     Hindi("hi"),
-    Punjabi("pa");
+    Punjabi("pa"),
+    Tagalog("tl");
 
     private final String code;
 

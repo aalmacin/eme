@@ -425,6 +425,9 @@ public class ConvertController {
             case "pa" -> {
                 return LanguageTranslationCodes.Punjabi;
             }
+            case "tl" -> {
+                return LanguageTranslationCodes.Tagalog;
+            }
             default -> throw new RuntimeException("Invalid language code");
         }
     }
@@ -454,6 +457,9 @@ public class ConvertController {
             }
             case "pa" -> {
                 return "Punjabi";
+            }
+            case "tl" -> {
+                return "Tagalog";
             }
             default -> {
                 return "English";
@@ -552,6 +558,12 @@ public class ConvertController {
                 langAudioOption.languageCode = LanguageAudioCodes.Punjabi;
                 langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
                 langAudioOption.voiceName = "pa-IN-Standard-A";
+                return langAudioOption;
+            }
+            case "tl" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Tagalog;
+                langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
+                langAudioOption.voiceName = "tl-PH-Standard-A";
                 return langAudioOption;
             }
             default -> throw new RuntimeException("Invalid language code");

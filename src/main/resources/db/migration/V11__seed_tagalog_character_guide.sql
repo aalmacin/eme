@@ -1,0 +1,76 @@
+-- Seed Character Guide for Tagalog
+-- This maps Tagalog sounds to memorable characters from anime, cartoons, and pop culture
+-- Characters are chosen based on their name's starting sound matching the Tagalog phoneme
+
+-- Clear existing Tagalog character guide entries (in case of re-run)
+DELETE FROM character_guide WHERE language = 'tl';
+
+-- Insert Tagalog character guide data
+INSERT INTO character_guide (language, start_sound, character_name, character_context, created_at, updated_at)
+VALUES
+    ('tl', 'a', 'Aang', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ang', 'Aang', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'at', 'Aang', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ay', 'Alya Cesaire', 'Miraculous', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ba', 'Barb', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ban', 'Barb', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'bin', 'Biggie', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'bo', 'Boss Baby', 'Boss Baby', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'bol', 'Boss Baby', 'Boss Baby', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'bu', 'Bumi', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'da', 'Danny Dog', 'Peppa Pig', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ga', 'Gabby', 'Gabby''s Dollhouse', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'gu', 'Gabby', 'Gabby''s Dollhouse', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'gus', 'Gabby', 'Gabby''s Dollhouse', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ha', 'Hajime Taki', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'hi', 'Hikaru Matsuyama', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'i', 'Ishizaki Ryo', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'is', 'Ishizaki Ryo', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'it', 'Ishizaki Ryo', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ka', 'Karl Heinz Schneider', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'kai', 'Karl Heinz Schneider', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'kar', 'Karl Heinz Schneider', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ku', 'Kurtzberg Nathaniel', 'Miraculous', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'kwa', 'Kurtzberg Nathaniel', 'Miraculous', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'la', 'Laa-Laa', 'Teletubbies', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'li', 'Lila Rossi', 'Miraculous', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'lib', 'Lila Rossi', 'Miraculous', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'lu', 'Luigi', 'Super Mario Bros Movie', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ma', 'Masha', 'Masha and the Bear', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'mag', 'Masha', 'Masha and the Bear', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'mai', 'Masha', 'Masha and the Bear', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'man', 'Masha', 'Masha and the Bear', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'may', 'Masha', 'Masha and the Bear', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'me', 'Meiling', 'Cardcaptor Sakura', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'mi', 'Misugi Jun', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'na', 'Nathalie Sancoeur', 'Miraculous', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'nai', 'Nathalie Sancoeur', 'Miraculous', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ng', 'Aang', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'nga', 'Aang', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'o', 'Ozai', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pa', 'Poppy', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pag', 'Poppy', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pang', 'Poppy', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pe', 'Peppa Pig', 'Peppa Pig', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pi', 'Pikachu', 'Pokémon', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pin', 'Pikachu', 'Pokémon', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pr', 'Princess Fiona', 'Shrek', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pru', 'Princess Fiona', 'Shrek', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'pwe', 'Peppa Pig', 'Peppa Pig', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'sa', 'Sakura', 'Cardcaptor Sakura', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 's', 'Smidge', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'se', 'Smidge', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'si', 'Smidge', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'sil', 'Smidge', 'Trolls', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ta', 'Taro Misaki', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'ti', 'Tikki', 'Miraculous', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'tsa', 'Tsubasa Oozora', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'to', 'Toph Beifong', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'tu', 'Toph Beifong', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'u', 'Ursa', 'Avatar: The Last Airbender', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+    ('tl', 'wa', 'Wakabayashi Genzo', 'Captain Tsubasa', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+ON CONFLICT (language, start_sound)
+DO UPDATE SET
+    character_name = EXCLUDED.character_name,
+    character_context = EXCLUDED.character_context,
+    updated_at = CURRENT_TIMESTAMP;
