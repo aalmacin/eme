@@ -404,6 +404,9 @@
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${wordData.get('translations')}"
                           style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
+                    <span th:if="${wordData.containsKey('mnemonic_keyword')}"
+                          th:text="' 🔑 ' + ${wordData.get('mnemonic_keyword')}"
+                          style="font-size: 14px; color: #17a2b8; font-weight: 600; margin-left: 8px; background: #e7f6f8; padding: 2px 8px; border-radius: 4px;"></span>
                     <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == true}"
                           class="reused-badge">♻️ Reused from previous session</span>
                     <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == false}"
@@ -769,9 +772,7 @@
 
             <!-- Anki Card Creation Button -->
             <div th:if="${translationSession.ankiEnabled}" style="display: inline-block; margin-left: 10px;">
-                <form th:action="@{/sessions/{id}/create-anki-cards(id=${translationSession.id})}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-primary">Create Anki Cards</button>
-                </form>
+                <button type="button" class="btn btn-primary" onclick="showAnkiCardPreview()">Create Anki Cards</button>
             </div>
         </div>
 
@@ -832,16 +833,16 @@
         <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <h3 style="margin-top: 0;">Regenerate Image for <span id="modalWordTitle"></span></h3>
 
-            <!-- Provider Selection -->
+            <!-- Model Selection -->
             <div style="margin-bottom: 20px;">
-                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Provider:</label>
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Model:</label>
                 <div style="display: flex; gap: 20px;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="imageProvider" value="LEONARDO" checked style="margin-right: 6px;">
-                        Leonardo AI
+                        <input type="radio" name="imageModel" value="gpt-image-1-mini" checked style="margin-right: 6px;">
+                        GPT Image 1 Mini
                     </label>
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="imageProvider" value="OPENAI" style="margin-right: 6px;">
+                        <input type="radio" name="imageModel" value="gpt-image-1" style="margin-right: 6px;">
                         GPT Image 1
                     </label>
                 </div>
@@ -879,11 +880,11 @@
                 <h4 style="margin-top: 0; font-size: 16px;">Apply to All Words:</h4>
                 <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
                     <div>
-                        <label style="font-weight: bold; margin-right: 10px;">Provider:</label>
-                        <select id="globalProvider" onchange="applyProviderToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                        <label style="font-weight: bold; margin-right: 10px;">Model:</label>
+                        <select id="globalModel" onchange="applyModelToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
                             <option value="">-- Don't change --</option>
-                            <option value="LEONARDO">Leonardo AI</option>
-                            <option value="OPENAI">GPT Image 1</option>
+                            <option value="gpt-image-1-mini">GPT Image 1 Mini</option>
+                            <option value="gpt-image-1">GPT Image 1</option>
                         </select>
                     </div>
                     <div>
@@ -971,6 +972,89 @@
         </div>
     </div>
 
+    <!-- Anki Card Preview Modal -->
+    <div id="ankiCardPreviewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 1200px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h2 style="margin-top: 0;">Review and Edit Anki Cards</h2>
+            <p style="color: #6c757d; margin-bottom: 20px;">Review the cards below and edit as needed before creating them in Anki.</p>
+
+            <!-- Card List -->
+            <div id="ankiCardList" style="margin-bottom: 30px;">
+                <!-- Cards will be dynamically added here -->
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 2px solid #dee2e6;">
+                <div id="ankiCardStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeAnkiCardPreview()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="createAnkiCards()" class="btn btn-primary" id="createAnkiCardsBtn">Create All Cards</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .anki-card-item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+        }
+        .card-header-row h4 {
+            margin: 0;
+            color: #007bff;
+        }
+        .card-edit-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .placeholder-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .placeholder-buttons button {
+            font-size: 11px;
+            padding: 4px 8px;
+        }
+        .preview-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .preview-label {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .preview-content {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            min-height: 60px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+    </style>
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         // Batch Regeneration State
@@ -1045,7 +1129,7 @@
                 batchRegenerationData[wordId] = {
                     wordId: wordId,
                     sourceWord: checkbox.dataset.sourceWord,
-                    provider: 'LEONARDO',
+                    model: 'gpt-image-1-mini',
                     useSamePrompt: false,
                     customPrompt: '',
                     status: 'pending'
@@ -1086,10 +1170,10 @@
                     <div style="font-weight: bold; margin-bottom: 10px; font-size: 16px;">${index + 1}. ${data.sourceWord}</div>
 
                     <div style="margin-bottom: 10px;">
-                        <label style="font-weight: bold; margin-right: 10px;">Provider:</label>
-                        <select class="word-provider" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
-                            <option value="LEONARDO" selected>Leonardo AI</option>
-                            <option value="OPENAI">GPT Image 1</option>
+                        <label style="font-weight: bold; margin-right: 10px;">Model:</label>
+                        <select class="word-model" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="gpt-image-1-mini" selected>GPT Image 1 Mini</option>
+                            <option value="gpt-image-1">GPT Image 1</option>
                         </select>
                     </div>
 
@@ -1112,8 +1196,8 @@
                 wordListEl.appendChild(wordDiv);
 
                 // Add event listeners
-                wordDiv.querySelector('.word-provider').addEventListener('change', (e) => {
-                    batchRegenerationData[data.wordId].provider = e.target.value;
+                wordDiv.querySelector('.word-model').addEventListener('change', (e) => {
+                    batchRegenerationData[data.wordId].model = e.target.value;
                 });
                 wordDiv.querySelector('.word-use-same-prompt').addEventListener('change', (e) => {
                     batchRegenerationData[data.wordId].useSamePrompt = e.target.checked;
@@ -1124,15 +1208,15 @@
             });
         }
 
-        // Apply provider to all
-        function applyProviderToAll() {
-            const provider = document.getElementById('globalProvider').value;
-            if (!provider) return;
+        // Apply model to all
+        function applyModelToAll() {
+            const model = document.getElementById('globalModel').value;
+            if (!model) return;
 
-            document.querySelectorAll('.word-provider').forEach(select => {
-                select.value = provider;
+            document.querySelectorAll('.word-model').forEach(select => {
+                select.value = model;
                 const wordId = select.dataset.wordId;
-                batchRegenerationData[wordId].provider = provider;
+                batchRegenerationData[wordId].model = model;
             });
         }
 
@@ -1191,7 +1275,7 @@
                 try {
                     // Prepare request body
                     const requestBody = {
-                        provider: data.provider
+                        model: data.model
                     };
 
                     if (data.customPrompt) {
@@ -1310,7 +1394,7 @@
             document.getElementById('modalWordTitle').textContent = sourceWord;
             document.getElementById('regeneratePromptTextarea').value = '';
             document.getElementById('useSamePromptCheckbox').checked = false;
-            document.querySelector('input[name="imageProvider"][value="LEONARDO"]').checked = true;
+            document.querySelector('input[name="imageModel"][value="gpt-image-1-mini"]').checked = true;
             document.getElementById('regenerateModal').style.display = 'flex';
             document.getElementById('regenerateStatus').textContent = '';
         }
@@ -1325,7 +1409,7 @@
 
             const customPrompt = document.getElementById('regeneratePromptTextarea').value.trim();
             const useSamePrompt = document.getElementById('useSamePromptCheckbox').checked;
-            const provider = document.querySelector('input[name="imageProvider"]:checked').value;
+            const model = document.querySelector('input[name="imageModel"]:checked').value;
             const statusEl = document.getElementById('regenerateStatus');
             const btnEl = document.getElementById('regenerateBtn');
 
@@ -1346,8 +1430,8 @@
                     requestBody.useSamePrompt = true;
                 }
 
-                // Add provider selection
-                requestBody.provider = provider;
+                // Add model selection
+                requestBody.model = model;
 
                 const response = await fetch(`/api/words/${currentWordId}/regenerate-image`, {
                     method: 'POST',
@@ -1483,6 +1567,315 @@
         document.getElementById('addCharacterModal')?.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeAddCharacterModal();
+            }
+        });
+
+        // Anki Card Preview Functions
+        let ankiCardData = null;
+        let currentSessionId = [[${translationSession.id}]];
+
+        async function showAnkiCardPreview() {
+            try {
+                const response = await fetch(`/sessions/${currentSessionId}/anki-cards-preview`);
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                ankiCardData = data;
+                populateAnkiCardModal(data);
+                document.getElementById('ankiCardPreviewModal').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading Anki card preview:', error);
+                alert('Failed to load card preview: ' + error.message);
+            }
+        }
+
+        function populateAnkiCardModal(data) {
+            const cardListEl = document.getElementById('ankiCardList');
+            cardListEl.innerHTML = '';
+
+            // Add template overview section
+            const overviewDiv = document.createElement('div');
+            overviewDiv.style.cssText = 'background: #e7f3ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #007bff;';
+            overviewDiv.innerHTML = `
+                <h3 style="margin-top: 0; color: #007bff;">Card Format Preview</h3>
+                <p style="margin-bottom: 15px; color: #495057;">This format will be applied to all ${data.cards.length} cards.</p>
+
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Front Template:</div>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].frontTemplate)}</div>
+                </div>
+
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Back Template:</div>
+                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].backTemplate)}</div>
+                </div>
+
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Sample Preview (First Card: ${escapeHtml(data.cards[0].sourceWord)}):</div>
+                    <div style="margin-bottom: 10px;">
+                        <div style="font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 4px;">FRONT:</div>
+                        <div id="sampleFrontPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745; white-space: pre-wrap; word-break: break-word;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 4px;">BACK:</div>
+                        <div id="sampleBackPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #dc3545; white-space: pre-wrap; word-break: break-word;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
+                    <strong>Note:</strong> If you need to edit individual cards, click "Show All Cards" below.
+                </div>
+            `;
+            cardListEl.appendChild(overviewDiv);
+
+            // Safely set preview content using textContent to avoid HTML parsing issues
+            setTimeout(() => {
+                const frontPreviewEl = document.getElementById('sampleFrontPreview');
+                const backPreviewEl = document.getElementById('sampleBackPreview');
+                if (frontPreviewEl) frontPreviewEl.textContent = data.cards[0].frontPreview;
+                if (backPreviewEl) backPreviewEl.textContent = data.cards[0].backPreview;
+            }, 0);
+
+            // Add toggle button
+            const toggleDiv = document.createElement('div');
+            toggleDiv.style.cssText = 'text-align: center; margin-bottom: 20px;';
+            toggleDiv.innerHTML = `
+                <button type="button" class="btn btn-secondary" onclick="toggleAllCardsView()" id="toggleAllCardsBtn">
+                    📋 Show All ${data.cards.length} Cards
+                </button>
+            `;
+            cardListEl.appendChild(toggleDiv);
+
+            // Add individual cards section (hidden by default)
+            const allCardsDiv = document.createElement('div');
+            allCardsDiv.id = 'allCardsSection';
+            allCardsDiv.style.display = 'none';
+
+            data.cards.forEach((card, index) => {
+                const cardDiv = document.createElement('div');
+                cardDiv.className = 'anki-card-item';
+                cardDiv.innerHTML = `
+                    <div class="card-header-row">
+                        <h4>${index + 1}. ${card.sourceWord}</h4>
+                        <div class="card-actions">
+                            <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCardEdit(${index})">
+                                ✏️ Edit
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Edit Mode (hidden by default) -->
+                    <div class="card-edit-section" id="cardEdit${index}" style="display: none;">
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Front Template:</strong></label>
+                            <textarea class="form-control card-front-edit" id="cardFront${index}" rows="4">${escapeHtml(card.frontTemplate)}</textarea>
+                            <div class="placeholder-buttons">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[source-text]')">source-text</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[source_transliteration]')">source_transliteration</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[target-text]')">target-text</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[source-audio]')">source-audio</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[target-audio]')">target-audio</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[image]')">image</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[mnemonic_keyword]')">mnemonic_keyword</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[mnemonic_sentence]')">mnemonic_sentence</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '<br>')">line break</button>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label"><strong>Back Template:</strong></label>
+                            <textarea class="form-control card-back-edit" id="cardBack${index}" rows="4">${escapeHtml(card.backTemplate)}</textarea>
+                            <div class="placeholder-buttons">
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[source-text]')">source-text</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[source_transliteration]')">source_transliteration</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[target-text]')">target-text</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[source-audio]')">source-audio</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[target-audio]')">target-audio</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[image]')">image</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[mnemonic_keyword]')">mnemonic_keyword</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[mnemonic_sentence]')">mnemonic_sentence</button>
+                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '<br>')">line break</button>
+                            </div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm" onclick="updateCardPreview(${index})">Update Preview</button>
+                    </div>
+
+                    <!-- Preview Mode -->
+                    <div class="card-preview-section" id="cardPreview${index}">
+                        <div class="preview-card">
+                            <div class="preview-label">Front:</div>
+                            <div class="preview-content" id="frontPreview${index}"></div>
+                        </div>
+                        <div class="preview-card">
+                            <div class="preview-label">Back:</div>
+                            <div class="preview-content" id="backPreview${index}"></div>
+                        </div>
+                    </div>
+                `;
+                allCardsDiv.appendChild(cardDiv);
+
+                // Safely set preview content using textContent
+                setTimeout(() => {
+                    const frontEl = document.getElementById(`frontPreview${index}`);
+                    const backEl = document.getElementById(`backPreview${index}`);
+                    if (frontEl) frontEl.textContent = card.frontPreview;
+                    if (backEl) backEl.textContent = card.backPreview;
+                }, 0);
+            });
+
+            cardListEl.appendChild(allCardsDiv);
+        }
+
+        function toggleAllCardsView() {
+            const section = document.getElementById('allCardsSection');
+            const btn = document.getElementById('toggleAllCardsBtn');
+
+            if (section.style.display === 'none') {
+                section.style.display = 'block';
+                btn.textContent = '📋 Hide All Cards';
+            } else {
+                section.style.display = 'none';
+                btn.textContent = '📋 Show All ' + ankiCardData.cards.length + ' Cards';
+            }
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function toggleCardEdit(index) {
+            const editSection = document.getElementById(`cardEdit${index}`);
+            const previewSection = document.getElementById(`cardPreview${index}`);
+
+            if (editSection.style.display === 'none') {
+                editSection.style.display = 'block';
+                previewSection.style.display = 'none';
+            } else {
+                editSection.style.display = 'none';
+                previewSection.style.display = 'block';
+            }
+        }
+
+        function insertPlaceholder(cardIndex, field, placeholder) {
+            const textareaId = field === 'front' ? `cardFront${cardIndex}` : `cardBack${cardIndex}`;
+            const textarea = document.getElementById(textareaId);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            textarea.value = text.substring(0, start) + placeholder + text.substring(end);
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
+        }
+
+        function updateCardPreview(index) {
+            const frontTemplate = document.getElementById(`cardFront${index}`).value;
+            const backTemplate = document.getElementById(`cardBack${index}`).value;
+            const wordData = ankiCardData.cards[index].wordData;
+
+            // Update templates in data
+            ankiCardData.cards[index].frontTemplate = frontTemplate;
+            ankiCardData.cards[index].backTemplate = backTemplate;
+
+            // Generate previews by replacing placeholders
+            const frontPreview = replacePlaceholders(frontTemplate, wordData);
+            const backPreview = replacePlaceholders(backTemplate, wordData);
+
+            // Update preview display using textContent to avoid HTML parsing
+            document.getElementById(`frontPreview${index}`).textContent = frontPreview;
+            document.getElementById(`backPreview${index}`).textContent = backPreview;
+
+            // Update stored preview
+            ankiCardData.cards[index].frontPreview = frontPreview;
+            ankiCardData.cards[index].backPreview = backPreview;
+        }
+
+        function replacePlaceholders(template, wordData) {
+            let result = template;
+
+            result = result.replace(/\[source-text\]/g, wordData.source_word || '');
+            result = result.replace(/\[source_transliteration\]/g, wordData.source_transliteration || '');
+
+            if (wordData.translations && Array.isArray(wordData.translations)) {
+                result = result.replace(/\[target-text\]/g, wordData.translations.join(', '));
+            }
+
+            if (wordData.source_audio_file) {
+                result = result.replace(/\[source-audio\]/g, '[sound:' + wordData.source_audio_file + ']');
+            }
+
+            if (wordData.target_audio_files && wordData.target_audio_files.length > 0) {
+                result = result.replace(/\[target-audio\]/g, '[sound:' + wordData.target_audio_files[0] + ']');
+            }
+
+            result = result.replace(/\[mnemonic_keyword\]/g, wordData.mnemonic_keyword || '');
+            result = result.replace(/\[mnemonic_sentence\]/g, wordData.mnemonic_sentence || '');
+
+            if (wordData.image_file) {
+                result = result.replace(/\[image\]/g, '[Image: ' + wordData.image_file + ']');
+            } else {
+                result = result.replace(/\[image\]/g, '[No image]');
+            }
+
+            return result;
+        }
+
+        function closeAnkiCardPreview() {
+            document.getElementById('ankiCardPreviewModal').style.display = 'none';
+        }
+
+        async function createAnkiCards() {
+            const createBtn = document.getElementById('createAnkiCardsBtn');
+            const statusEl = document.getElementById('ankiCardStatus');
+
+            createBtn.disabled = true;
+            statusEl.textContent = 'Creating Anki cards...';
+            statusEl.style.color = '#007bff';
+
+            try {
+                const cards = ankiCardData.cards.map(card => ({
+                    front: card.frontPreview,
+                    back: card.backPreview
+                }));
+
+                const response = await fetch(`/sessions/${currentSessionId}/create-anki-cards-with-edits`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ cards: cards })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.textContent = `Successfully created ${result.cardsCreated} Anki cards!`;
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        closeAnkiCardPreview();
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    createBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error creating Anki cards:', error);
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                createBtn.disabled = false;
+            }
+        }
+
+        // Close modal on background click
+        document.getElementById('ankiCardPreviewModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAnkiCardPreview();
             }
         });
     </script>

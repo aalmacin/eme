@@ -54,7 +54,21 @@ public class TranslationSessionController {
             sessions = translationSessionService.findAll();
         }
 
+        // Enrich sessions with transliteration data
+        Map<Long, String> transliterations = new HashMap<>();
+        for (TranslationSessionEntity session : sessions) {
+            Optional<WordEntity> wordEntity = wordService.findWord(
+                    session.getWord(),
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+            );
+            if (wordEntity.isPresent() && wordEntity.get().getSourceTransliteration() != null) {
+                transliterations.put(session.getId(), wordEntity.get().getSourceTransliteration());
+            }
+        }
+
         model.addAttribute("sessions", sessions);
+        model.addAttribute("transliterations", transliterations);
         return "sessions/list";
     }
 
@@ -261,6 +275,123 @@ public class TranslationSessionController {
         }
 
         return "redirect:/sessions?message=fixed-" + fixed + "-sessions";
+    }
+
+    @GetMapping("/{id}/anki-cards-preview")
+    @ResponseBody
+    public ResponseEntity<?> getAnkiCardsPreview(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+
+        // Check if session is completed
+        if (session.getStatus() != TranslationSessionEntity.SessionStatus.COMPLETED) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Session not completed"));
+        }
+
+        // Check if Anki is enabled
+        if (!Boolean.TRUE.equals(session.getAnkiEnabled())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Anki not enabled"));
+        }
+
+        // Get session data
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+        List<Map<String, Object>> cardPreviews = new ArrayList<>();
+
+        // Get words from session data
+        if (sessionData.containsKey("words") && sessionData.get("words") instanceof List) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            for (Map<String, Object> wordData : words) {
+                // Merge with latest data from WordEntity
+                Map<String, Object> latestWordData = mergeWithLatestWordData(
+                        wordData,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage()
+                );
+
+                // Build front and back content using latest data
+                String frontTemplate = session.getAnkiFrontTemplate();
+                String backTemplate = session.getAnkiBackTemplate();
+                String frontPreview = buildAnkiFront(session, latestWordData);
+                String backPreview = buildAnkiBack(session, latestWordData);
+
+                Map<String, Object> cardPreview = new HashMap<>();
+                cardPreview.put("sourceWord", latestWordData.get("source_word"));
+                cardPreview.put("frontTemplate", frontTemplate != null ? frontTemplate : "[source-text]");
+                cardPreview.put("backTemplate", backTemplate != null ? backTemplate : "[target-text]");
+                cardPreview.put("frontPreview", frontPreview);
+                cardPreview.put("backPreview", backPreview);
+                cardPreview.put("wordData", latestWordData);
+
+                cardPreviews.add(cardPreview);
+            }
+        }
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("deck", session.getAnkiDeck());
+        response.put("cards", cardPreviews);
+        response.put("sessionId", session.getId());
+
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/create-anki-cards-with-edits")
+    @ResponseBody
+    public ResponseEntity<?> createAnkiCardsWithEdits(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
+
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+
+        // Check if session is completed
+        if (session.getStatus() != TranslationSessionEntity.SessionStatus.COMPLETED) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Session not completed"));
+        }
+
+        // Check if Anki is enabled
+        if (!Boolean.TRUE.equals(session.getAnkiEnabled())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Anki not enabled"));
+        }
+
+        try {
+            @SuppressWarnings("unchecked")
+            List<Map<String, String>> cards = (List<Map<String, String>>) request.get("cards");
+
+            int cardsCreated = 0;
+            for (Map<String, String> card : cards) {
+                String front = card.get("front");
+                String back = card.get("back");
+
+                // Create Anki card with edited content
+                ankiNoteCreatorService.addNote(session.getAnkiDeck(), front, back);
+                cardsCreated++;
+            }
+
+            return ResponseEntity.ok(Map.of(
+                "success", true,
+                "cardsCreated", cardsCreated
+            ));
+
+        } catch (Exception e) {
+            System.err.println("Failed to create Anki cards: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(Map.of(
+                "success", false,
+                "error", e.getMessage()
+            ));
+        }
     }
 
     @PostMapping("/{id}/create-anki-cards")

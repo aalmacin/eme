@@ -269,6 +269,14 @@ public class TranslationSessionService {
             }
         }
 
+        // Update transliteration if available
+        if (wordData.containsKey("source_transliteration")) {
+            String transliteration = (String) wordData.get("source_transliteration");
+            if (transliteration != null && !transliteration.isEmpty()) {
+                wordService.updateTransliteration(sourceWord, sourceLanguage, targetLanguage, transliteration);
+            }
+        }
+
         // Update audio files if available
         String audioSourceFile = (String) wordData.get("source_audio_file");
         String audioTargetFile = null;

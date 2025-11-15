@@ -178,14 +178,14 @@
 
             <!-- Provider Selection -->
             <div style="margin-bottom: 20px;">
-                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Provider:</label>
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Model:</label>
                 <div style="display: flex; gap: 20px;">
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="imageProvider" value="LEONARDO" checked style="margin-right: 6px;">
-                        Leonardo AI
+                        <input type="radio" name="imageModel" value="gpt-image-1-mini" checked style="margin-right: 6px;">
+                        GPT Image 1 Mini
                     </label>
                     <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="imageProvider" value="OPENAI" style="margin-right: 6px;">
+                        <input type="radio" name="imageModel" value="gpt-image-1" style="margin-right: 6px;">
                         GPT Image 1
                     </label>
                 </div>
@@ -222,7 +222,7 @@
             document.getElementById('modalWordTitle').textContent = sourceWord;
             document.getElementById('regeneratePromptTextarea').value = '';
             document.getElementById('useSamePromptCheckbox').checked = false;
-            document.querySelector('input[name="imageProvider"][value="LEONARDO"]').checked = true;
+            document.querySelector('input[name="imageModel"][value="gpt-image-1-mini"]').checked = true;
             document.getElementById('regenerateModal').style.display = 'flex';
             document.getElementById('regenerateStatus').textContent = '';
         }
@@ -237,7 +237,7 @@
 
             const customPrompt = document.getElementById('regeneratePromptTextarea').value.trim();
             const useSamePrompt = document.getElementById('useSamePromptCheckbox').checked;
-            const provider = document.querySelector('input[name="imageProvider"]:checked').value;
+            const model = document.querySelector('input[name="imageModel"]:checked').value;
             const statusEl = document.getElementById('regenerateStatus');
             const btnEl = document.getElementById('regenerateBtn');
 
@@ -258,8 +258,8 @@
                     requestBody.useSamePrompt = true;
                 }
 
-                // Add provider selection
-                requestBody.provider = provider;
+                // Add model selection
+                requestBody.model = model;
 
                 const response = await fetch(`/api/words/${currentWordId}/regenerate-image`, {
                     method: 'POST',

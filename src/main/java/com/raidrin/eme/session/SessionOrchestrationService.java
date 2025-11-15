@@ -129,6 +129,10 @@ public class SessionOrchestrationService {
                         );
                         wordData.put("translations", new ArrayList<>(translations));
                         wordData.put("translation_status", "success");
+
+                        // Generate transliteration for the source word
+                        String transliteration = com.raidrin.eme.codec.TransliterationService.transliterate(sourceWord);
+                        wordData.put("source_transliteration", transliteration);
                     } catch (Exception e) {
                         String error = "Translation failed for '" + sourceWord + "': " + e.getMessage();
                         translationErrors.add(error);

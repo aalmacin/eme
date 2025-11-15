@@ -46,7 +46,7 @@ public class WordController {
      * @param request Optional request body with parameters:
      *                - imagePrompt: Custom prompt (overrides useSamePrompt)
      *                - useSamePrompt: Boolean, if true uses existing prompt instead of generating new one
-     *                - provider: "LEONARDO" or "OPENAI" (default: LEONARDO)
+     *                - model: "gpt-image-1-mini" or "gpt-image-1" (default: gpt-image-1-mini)
      */
     @PostMapping("/{wordId}/regenerate-image")
     public ResponseEntity<Map<String, Object>> regenerateImage(
@@ -72,7 +72,7 @@ public class WordController {
             // Parse parameters
             String customPrompt = null;
             Boolean useSamePrompt = false;
-            ImageProvider provider = ImageProvider.LEONARDO; // Default to Leonardo
+            String model = "gpt-image-1-mini"; // Default model
 
             if (request != null) {
                 if (request.containsKey("imagePrompt")) {
@@ -81,12 +81,12 @@ public class WordController {
                 if (request.containsKey("useSamePrompt")) {
                     useSamePrompt = Boolean.parseBoolean(request.get("useSamePrompt").toString());
                 }
-                if (request.containsKey("provider")) {
-                    try {
-                        provider = ImageProvider.valueOf(request.get("provider").toString().toUpperCase());
-                    } catch (IllegalArgumentException e) {
+                if (request.containsKey("model")) {
+                    model = request.get("model").toString();
+                    // Validate model
+                    if (!"gpt-image-1-mini".equals(model) && !"gpt-image-1".equals(model)) {
                         response.put("success", false);
-                        response.put("error", "Invalid provider. Must be LEONARDO or OPENAI");
+                        response.put("error", "Invalid model. Must be gpt-image-1-mini or gpt-image-1");
                         return ResponseEntity.badRequest().body(response);
                     }
                 }
@@ -153,25 +153,15 @@ public class WordController {
                 wordService.updateImagePromptAndClearImage(wordId, imagePrompt);
             }
 
-            // Generate new image using selected provider
+            // Generate new image using OpenAI with selected model
             String imageUrl;
-            Integer creditCost = null;
             String revisedPrompt = null;
 
-            System.out.println("Generating image with provider: " + provider);
+            System.out.println("Generating image with OpenAI model: " + model);
 
-            if (provider == ImageProvider.OPENAI) {
-                OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(imagePrompt);
-                imageUrl = openAiImage.getImageUrl();
-                revisedPrompt = openAiImage.getRevisedPrompt();
-            } else {
-                // Leonardo (default)
-                LeonardoApiService.GeneratedImage leonardoImage = leonardoService.generateImage(
-                        imagePrompt, 1152, 768
-                );
-                imageUrl = leonardoImage.getImageUrl();
-                creditCost = leonardoImage.getCreditCost();
-            }
+            OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(imagePrompt, model);
+            imageUrl = openAiImage.getImageUrl();
+            revisedPrompt = openAiImage.getRevisedPrompt();
 
             // Download image to local directory
             String imageFileName = FileNameSanitizer.fromMnemonicSentence(
@@ -190,12 +180,9 @@ public class WordController {
             response.put("success", true);
             response.put("imageFile", imageFileName);
             response.put("imageUrl", gcsUrl);
-            response.put("provider", provider.toString());
+            response.put("model", model);
             response.put("usedSamePrompt", useSamePrompt);
 
-            if (creditCost != null) {
-                response.put("creditCost", creditCost);
-            }
             if (revisedPrompt != null) {
                 response.put("revisedPrompt", revisedPrompt);
             }

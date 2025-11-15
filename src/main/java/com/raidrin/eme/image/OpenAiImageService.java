@@ -44,9 +44,10 @@ public class OpenAiImageService {
      * @param prompt The image generation prompt
      * @param size Image size (must be: "1024x1024", "1024x1792", or "1792x1024")
      * @param quality Quality setting ("low", "medium", "high", or "auto")
+     * @param modelOverride Optional model to override the default
      * @return GeneratedImage with the URL
      */
-    public GeneratedImage generateImage(String prompt, String size, String quality) {
+    public GeneratedImage generateImage(String prompt, String size, String quality, String modelOverride) {
         if (prompt == null || prompt.trim().isEmpty()) {
             throw new IllegalArgumentException("Prompt must be provided");
         }
@@ -56,10 +57,11 @@ public class OpenAiImageService {
             throw new IllegalArgumentException("Size must be one of: 1024x1024, 1024x1792, or 1792x1024");
         }
 
-        System.out.println("Generating image with OpenAI - Prompt: " + prompt);
+        String modelToUse = modelOverride != null ? modelOverride : model;
+        System.out.println("Generating image with OpenAI - Model: " + modelToUse + ", Prompt: " + prompt);
 
         OpenAiImageRequest request = new OpenAiImageRequest();
-        request.setModel(model);
+        request.setModel(modelToUse);
         request.setPrompt(prompt);
         request.setN(1); // Number of images to generate
         request.setSize(size);
@@ -121,7 +123,21 @@ public class OpenAiImageService {
      * Generate image with default settings (1024x1024, medium quality)
      */
     public GeneratedImage generateImage(String prompt) {
-        return generateImage(prompt, "1024x1024", "medium");
+        return generateImage(prompt, "1024x1024", "medium", null);
+    }
+
+    /**
+     * Generate image with custom model and default settings
+     */
+    public GeneratedImage generateImage(String prompt, String modelOverride) {
+        return generateImage(prompt, "1024x1024", "medium", modelOverride);
+    }
+
+    /**
+     * Generate image with size, quality settings
+     */
+    public GeneratedImage generateImage(String prompt, String size, String quality) {
+        return generateImage(prompt, size, quality, null);
     }
 
     /**

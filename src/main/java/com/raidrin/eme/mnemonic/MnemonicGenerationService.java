@@ -153,7 +153,8 @@ public class MnemonicGenerationService {
         prompt.append("   - Examples of BAD keywords: verbs, adjectives, abstract concepts, the actual words being learned, or non-English words\n");
         prompt.append("2. A 'mnemonic_sentence' - a vivid, memorable sentence connecting the character")
                 .append(" with the meaning '").append(targetWord).append("'\n");
-        prompt.append("3. An 'image_prompt' - a detailed prompt for generating a 3D animated cinematic image showing:\n");
+        prompt.append("3. An 'image_prompt' - a detailed prompt for generating an image in REALISTIC CINEMATIC style showing:\n");
+        prompt.append("   STYLE REQUIREMENT: The image MUST be described as 'Realistic Cinematic' style\n");
         prompt.append("   - ONLY ONE character (the one specified above) as the main focus\n");
         prompt.append("   - The mnemonic keyword represented VISUALLY through objects, actions, or scenery (NOT as text)\n");
         prompt.append("     Example: If keyword is 'sail', show the character sailing on a boat\n");
