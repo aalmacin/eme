@@ -12,6 +12,7 @@ import com.raidrin.eme.sentence.SentenceData;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
 import com.raidrin.eme.storage.service.TranslationSessionService;
 import com.raidrin.eme.image.AsyncImageGenerationService;
+import com.raidrin.eme.image.ImageStyle;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService.MnemonicData;
 import com.raidrin.eme.util.FileNameSanitizer;
@@ -66,7 +67,8 @@ public class ConvertController {
             @RequestParam(name = "target-lang", required = false) String targetLang,
             @RequestParam(required = false) Boolean anki,
             @RequestParam(name = "sentence-generation", required = false) Boolean sentenceGeneration,
-            @RequestParam(name = "image-generation", required = false) Boolean imageGeneration
+            @RequestParam(name = "image-generation", required = false) Boolean imageGeneration,
+            @RequestParam(name = "image-style", required = false) String imageStyle
     ) {
         translation = translation != null && translation;
         overrideTranslation = overrideTranslation != null && overrideTranslation;
@@ -139,6 +141,10 @@ public class ConvertController {
         request.setEnableSentenceGeneration(sentenceGeneration);
         request.setEnableImageGeneration(imageGeneration);
         request.setOverrideTranslation(overrideTranslation);
+
+        // Image style configuration
+        ImageStyle imageStyleEnum = ImageStyle.fromString(imageStyle);
+        request.setImageStyle(imageStyleEnum);
 
         // Start async processing
         sessionOrchestrationService.processTranslationBatchAsync(session.getId(), request);

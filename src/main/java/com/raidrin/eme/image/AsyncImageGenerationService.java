@@ -116,12 +116,13 @@ public class AsyncImageGenerationService {
      * @param targetWord Word in target language (translation)
      * @param sourceLanguage Source language code
      * @param targetLanguage Target language code
+     * @param imageStyle Style for image generation (defaults to REALISTIC_CINEMATIC if null)
      * @return CompletableFuture with list of generated image file paths
      */
     @Async("taskExecutor")
     public CompletableFuture<List<ImageResult>> generateImagesAsync(
             Long sessionId, String sourceWord, String targetWord,
-            String sourceLanguage, String targetLanguage) {
+            String sourceLanguage, String targetLanguage, ImageStyle imageStyle) {
 
         try {
             System.out.println("Starting async image generation for session: " + sessionId);
@@ -130,7 +131,7 @@ public class AsyncImageGenerationService {
             // Step 1: Generate mnemonic data
             System.out.println("Generating mnemonic for: " + sourceWord + " -> " + targetWord);
             MnemonicData mnemonicData = mnemonicService.generateMnemonic(
-                    sourceWord, targetWord, sourceLanguage, targetLanguage);
+                    sourceWord, targetWord, sourceLanguage, targetLanguage, imageStyle);
 
             // Step 2: Generate image using configured provider
             System.out.println("Generating image with prompt: " + mnemonicData.getImagePrompt());
@@ -191,11 +192,18 @@ public class AsyncImageGenerationService {
 
     /**
      * Generate images for multiple word translations
+     *
+     * @param sessionId ID of the translation session
+     * @param translations List of translation pairs
+     * @param sourceLanguage Source language code
+     * @param targetLanguage Target language code
+     * @param imageStyle Style for image generation (defaults to REALISTIC_CINEMATIC if null)
+     * @return CompletableFuture with list of generated images
      */
     @Async("taskExecutor")
     public CompletableFuture<List<ImageResult>> generateMultipleImagesAsync(
             Long sessionId, List<TranslationPair> translations,
-            String sourceLanguage, String targetLanguage) {
+            String sourceLanguage, String targetLanguage, ImageStyle imageStyle) {
 
         try {
             System.out.println("Starting async image generation for " + translations.size() + " words");
@@ -213,7 +221,7 @@ public class AsyncImageGenerationService {
                 // Generate mnemonic
                 MnemonicData mnemonicData = mnemonicService.generateMnemonic(
                         pair.getSourceWord(), pair.getTargetWord(),
-                        sourceLanguage, targetLanguage);
+                        sourceLanguage, targetLanguage, imageStyle);
 
                 // Generate image using configured provider
                 GeneratedImageInfo generatedImage = generateImage(

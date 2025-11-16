@@ -53,6 +53,15 @@ public class WordEntity {
     @Column(name = "source_transliteration", columnDefinition = "TEXT")
     private String sourceTransliteration;
 
+    @Column(name = "character_guide_id")
+    private Long characterGuideId;
+
+    @Column(name = "image_status", length = 20)
+    private String imageStatus; // PENDING, GENERATING, COMPLETED, FAILED
+
+    @Column(name = "audio_status", length = 20)
+    private String audioStatus; // PENDING, GENERATING, COMPLETED, FAILED
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

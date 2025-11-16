@@ -54,8 +54,9 @@ public class TranslationSessionController {
             sessions = translationSessionService.findAll();
         }
 
-        // Enrich sessions with transliteration data
+        // Enrich sessions with transliteration data and source words
         Map<Long, String> transliterations = new HashMap<>();
+        Map<Long, String> sourceWordsMap = new HashMap<>();
         for (TranslationSessionEntity session : sessions) {
             Optional<WordEntity> wordEntity = wordService.findWord(
                     session.getWord(),
@@ -65,10 +66,25 @@ public class TranslationSessionController {
             if (wordEntity.isPresent() && wordEntity.get().getSourceTransliteration() != null) {
                 transliterations.put(session.getId(), wordEntity.get().getSourceTransliteration());
             }
+
+            // Extract source words from session data
+            Map<String, Object> sessionData = translationSessionService.getSessionData(session.getId());
+            if (sessionData != null && sessionData.containsKey("original_request")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> originalRequest = (Map<String, Object>) sessionData.get("original_request");
+                if (originalRequest != null && originalRequest.containsKey("source_words")) {
+                    @SuppressWarnings("unchecked")
+                    List<String> sourceWords = (List<String>) originalRequest.get("source_words");
+                    if (sourceWords != null && !sourceWords.isEmpty()) {
+                        sourceWordsMap.put(session.getId(), String.join(", ", sourceWords));
+                    }
+                }
+            }
         }
 
         model.addAttribute("sessions", sessions);
         model.addAttribute("transliterations", transliterations);
+        model.addAttribute("sourceWordsMap", sourceWordsMap);
         return "sessions/list";
     }
 

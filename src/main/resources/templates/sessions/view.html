@@ -302,6 +302,7 @@
         <div class="nav-links">
             <a href="/sessions">← Back to Sessions</a>
             <a href="/">Home</a>
+            <a href="/words">📖 Words Library</a>
             <a href="/translations">📚 Translations</a>
             <a href="/sentences">📝 Sentences</a>
             <a href="/character-guide">🎭 Character Guide</a>
@@ -337,6 +338,17 @@
             <div class="info-label">Image Generation:</div>
             <div class="info-value" th:text="${translationSession.imageGenerationEnabled ? 'Enabled' : 'Disabled'}"></div>
         </div>
+        <div class="info-row" th:if="${translationSession.imageGenerationEnabled && sessionData.containsKey('original_request') && sessionData.get('original_request').containsKey('image_style')}">
+            <div class="info-label">Image Style:</div>
+            <div class="info-value">
+                <span th:switch="${sessionData.get('original_request').get('image_style')}">
+                    <span th:case="'REALISTIC_CINEMATIC'">Realistic Cinematic</span>
+                    <span th:case="'ANIMATED_2D_CINEMATIC'">2D Animated Cinematic</span>
+                    <span th:case="'ANIMATED_3D_CINEMATIC'">3D Animated Cinematic</span>
+                    <span th:case="*" th:text="${sessionData.get('original_request').get('image_style')}">Unknown Style</span>
+                </span>
+            </div>
+        </div>
         <div class="info-row">
             <div class="info-label">Audio Generation:</div>
             <div class="info-value" th:text="${translationSession.audioGenerationEnabled ? 'Enabled' : 'Disabled'}"></div>
@@ -351,11 +363,21 @@
         </div>
 
         <!-- Action Buttons -->
-        <div th:if="${sessionData.containsKey('original_request')}" style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
-            <form th:action="@{/sessions/{id}/retry(id=${translationSession.id})}" method="post" style="display: inline;">
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+            <form th:if="${translationSession.status.name() == 'PENDING' || translationSession.status.name() == 'IN_PROGRESS'}"
+                  th:action="@{/sessions/{id}/cancel(id=${translationSession.id})}"
+                  method="post"
+                  style="display: inline;"
+                  onsubmit="return confirm('Are you sure you want to cancel this session?');">
+                <button type="submit" class="btn btn-danger">❌ Cancel Session</button>
+            </form>
+            <form th:if="${(translationSession.status.name() == 'FAILED' || translationSession.status.name() == 'CANCELLED') && sessionData.containsKey('original_request')}"
+                  th:action="@{/sessions/{id}/retry(id=${translationSession.id})}"
+                  method="post"
+                  style="display: inline;">
                 <button type="submit" class="btn btn-warning">🔄 Retry Entire Session</button>
             </form>
-            <button type="button" class="btn btn-success" onclick="generateWithPreset()">⚙️ Generate with Same Preset</button>
+            <button th:if="${sessionData.containsKey('original_request')}" type="button" class="btn btn-success" onclick="generateWithPreset()">⚙️ Generate with Same Preset</button>
         </div>
     </div>
 
@@ -848,6 +870,16 @@
                 </div>
             </div>
 
+            <!-- Image Style Selection -->
+            <div style="margin-bottom: 20px;">
+                <label for="imageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
+                <select id="imageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                </select>
+            </div>
+
             <!-- Use Same Prompt Checkbox -->
             <div style="margin-bottom: 15px;">
                 <label style="display: flex; align-items: center; cursor: pointer;">
@@ -885,6 +917,15 @@
                             <option value="">-- Don't change --</option>
                             <option value="gpt-image-1-mini">GPT Image 1 Mini</option>
                             <option value="gpt-image-1">GPT Image 1</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; margin-right: 10px;">Image Style:</label>
+                        <select id="globalImageStyle" onchange="applyImageStyleToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="">-- Don't change --</option>
+                            <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                            <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                            <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
                         </select>
                     </div>
                     <div>
@@ -1130,6 +1171,7 @@
                     wordId: wordId,
                     sourceWord: checkbox.dataset.sourceWord,
                     model: 'gpt-image-1-mini',
+                    imageStyle: 'REALISTIC_CINEMATIC',
                     useSamePrompt: false,
                     customPrompt: '',
                     status: 'pending'
@@ -1178,6 +1220,15 @@
                     </div>
 
                     <div style="margin-bottom: 10px;">
+                        <label style="font-weight: bold; margin-right: 10px;">Image Style:</label>
+                        <select class="word-image-style" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="REALISTIC_CINEMATIC" selected>Realistic Cinematic</option>
+                            <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                            <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
                         <label style="display: flex; align-items: center; cursor: pointer;">
                             <input type="checkbox" class="word-use-same-prompt" data-word-id="${data.wordId}" style="margin-right: 6px;">
                             Use same prompt
@@ -1199,6 +1250,9 @@
                 wordDiv.querySelector('.word-model').addEventListener('change', (e) => {
                     batchRegenerationData[data.wordId].model = e.target.value;
                 });
+                wordDiv.querySelector('.word-image-style').addEventListener('change', (e) => {
+                    batchRegenerationData[data.wordId].imageStyle = e.target.value;
+                });
                 wordDiv.querySelector('.word-use-same-prompt').addEventListener('change', (e) => {
                     batchRegenerationData[data.wordId].useSamePrompt = e.target.checked;
                 });
@@ -1217,6 +1271,18 @@
                 select.value = model;
                 const wordId = select.dataset.wordId;
                 batchRegenerationData[wordId].model = model;
+            });
+        }
+
+        // Apply image style to all
+        function applyImageStyleToAll() {
+            const imageStyle = document.getElementById('globalImageStyle').value;
+            if (!imageStyle) return;
+
+            document.querySelectorAll('.word-image-style').forEach(select => {
+                select.value = imageStyle;
+                const wordId = select.dataset.wordId;
+                batchRegenerationData[wordId].imageStyle = imageStyle;
             });
         }
 
@@ -1275,7 +1341,8 @@
                 try {
                     // Prepare request body
                     const requestBody = {
-                        model: data.model
+                        model: data.model,
+                        imageStyle: data.imageStyle
                     };
 
                     if (data.customPrompt) {
@@ -1395,6 +1462,7 @@
             document.getElementById('regeneratePromptTextarea').value = '';
             document.getElementById('useSamePromptCheckbox').checked = false;
             document.querySelector('input[name="imageModel"][value="gpt-image-1-mini"]').checked = true;
+            document.getElementById('imageStyleSelect').value = 'REALISTIC_CINEMATIC';
             document.getElementById('regenerateModal').style.display = 'flex';
             document.getElementById('regenerateStatus').textContent = '';
         }
@@ -1410,6 +1478,7 @@
             const customPrompt = document.getElementById('regeneratePromptTextarea').value.trim();
             const useSamePrompt = document.getElementById('useSamePromptCheckbox').checked;
             const model = document.querySelector('input[name="imageModel"]:checked').value;
+            const imageStyle = document.getElementById('imageStyleSelect').value;
             const statusEl = document.getElementById('regenerateStatus');
             const btnEl = document.getElementById('regenerateBtn');
 
@@ -1432,6 +1501,9 @@
 
                 // Add model selection
                 requestBody.model = model;
+
+                // Add image style selection
+                requestBody.imageStyle = imageStyle;
 
                 const response = await fetch(`/api/words/${currentWordId}/regenerate-image`, {
                     method: 'POST',
@@ -1486,6 +1558,7 @@
                 enableTranslation: true,
                 enableSentenceGeneration: /*[[${translationSession.sentenceGenerationEnabled}]]*/ false,
                 enableImageGeneration: /*[[${translationSession.imageGenerationEnabled}]]*/ false,
+                imageStyle: /*[[${sessionData.containsKey('original_request') && sessionData.get('original_request').containsKey('image_style') ? sessionData.get('original_request').get('image_style') : 'REALISTIC_CINEMATIC'}]]*/ 'REALISTIC_CINEMATIC',
                 ankiEnabled: /*[[${translationSession.ankiEnabled}]]*/ false,
                 ankiDeck: /*[[${translationSession.ankiDeck != null ? translationSession.ankiDeck : ''}]]*/ '',
                 ankiFrontTemplate: /*[[${translationSession.ankiFrontTemplate != null ? translationSession.ankiFrontTemplate : ''}]]*/ '',

@@ -74,6 +74,7 @@
     <h1 class="mb-4">Eme</h1>
     
     <div class="nav-links">
+        <a href="/words">📖 Words Library</a>
         <a href="/translations">📚 Manage Translations</a>
         <a href="/sentences">📝 Manage Sentences</a>
         <a href="/character-guide">🎭 Character Guide</a>
@@ -171,6 +172,15 @@
                                 <input type="checkbox" class="form-check-input" id="image-generation" name="image-generation" v-model="imageGeneration">
                                 <label class="form-check-label" for="image-generation">Generate Mnemonic Images</label>
                                 <div class="form-text">Creates visual mnemonics using characters from your Character Guide</div>
+                            </div>
+                            <div class="mb-3" v-show="imageGeneration">
+                                <label for="image-style" class="form-label">Image Style:</label>
+                                <select class="form-select" id="image-style" name="image-style" v-model="imageStyle">
+                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                                </select>
+                                <div class="form-text">Choose the artistic style for generated images</div>
                             </div>
                             <div class="mb-3">
                                 <label for="target-lang" class="form-label">Select Target Language:</label>
@@ -421,6 +431,7 @@
             anki: false,
             sentenceGeneration: false,
             imageGeneration: false,
+            imageStyle: 'REALISTIC_CINEMATIC',
             front: '',
             back: '',
             presets: [],
@@ -561,6 +572,7 @@
                 this.translation = preset.enableTranslation !== false;
                 this.sentenceGeneration = !!preset.enableSentenceGeneration;
                 this.imageGeneration = !!preset.enableImageGeneration;
+                this.imageStyle = preset.imageStyle || 'REALISTIC_CINEMATIC';
                 this.anki = !!preset.ankiEnabled;
                 this.deck = preset.ankiDeck || '';
                 this.front = preset.ankiFrontTemplate || '';
@@ -591,6 +603,7 @@
                     enableTranslation: this.translation,
                     enableSentenceGeneration: this.sentenceGeneration,
                     enableImageGeneration: this.imageGeneration,
+                    imageStyle: this.imageStyle,
                     ankiEnabled: this.anki,
                     ankiDeck: this.deck,
                     ankiFrontTemplate: this.front,
@@ -639,6 +652,7 @@
                         this.translation = presetConfig.enableTranslation !== false;
                         this.sentenceGeneration = !!presetConfig.enableSentenceGeneration;
                         this.imageGeneration = !!presetConfig.enableImageGeneration;
+                        this.imageStyle = presetConfig.imageStyle || 'REALISTIC_CINEMATIC';
                         this.anki = !!presetConfig.ankiEnabled;
                         this.deck = presetConfig.ankiDeck || '';
                         this.front = presetConfig.ankiFrontTemplate || '';

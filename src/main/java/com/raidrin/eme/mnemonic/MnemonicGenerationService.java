@@ -1,6 +1,7 @@
 package com.raidrin.eme.mnemonic;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.raidrin.eme.image.ImageStyle;
 import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.service.CharacterGuideService;
 import lombok.Data;
@@ -38,11 +39,17 @@ public class MnemonicGenerationService {
      * @param sourceLanguage Source language code
      * @param targetLanguage Target language code
      * @param sourceTransliteration Transliteration of source word (from translation service)
+     * @param imageStyle Style for image generation (defaults to REALISTIC_CINEMATIC if null)
      * @return MnemonicData containing keyword, sentence, and image prompt
      */
     public MnemonicData generateMnemonic(String sourceWord, String targetWord,
                                          String sourceLanguage, String targetLanguage,
-                                         String sourceTransliteration) {
+                                         String sourceTransliteration, ImageStyle imageStyle) {
+
+        // Default to REALISTIC_CINEMATIC if no style provided
+        if (imageStyle == null) {
+            imageStyle = ImageStyle.REALISTIC_CINEMATIC;
+        }
 
         // Find character association for source word if transliteration is available
         Optional<CharacterGuideEntity> sourceCharacter = (sourceTransliteration != null && !sourceTransliteration.trim().isEmpty())
@@ -55,7 +62,7 @@ public class MnemonicGenerationService {
 
         // Build the prompt
         String prompt = buildMnemonicPrompt(sourceWord, targetWord, sourceLanguage, targetLanguage,
-                sourceCharacter, sourceTransliteration);
+                sourceCharacter, sourceTransliteration, imageStyle);
 
         System.out.println("Generating mnemonic with OpenAI for: " + sourceWord + " -> " + targetWord);
 
@@ -109,12 +116,29 @@ public class MnemonicGenerationService {
      * @param targetWord Word in target language (translation)
      * @param sourceLanguage Source language code
      * @param targetLanguage Target language code
+     * @param imageStyle Style for image generation (defaults to REALISTIC_CINEMATIC if null)
+     * @return MnemonicData containing keyword, sentence, and image prompt
+     */
+    public MnemonicData generateMnemonic(String sourceWord, String targetWord,
+                                         String sourceLanguage, String targetLanguage,
+                                         ImageStyle imageStyle) {
+        System.out.println("Warning: generateMnemonic called without transliteration, character matching will be skipped");
+        return generateMnemonic(sourceWord, targetWord, sourceLanguage, targetLanguage, null, imageStyle);
+    }
+
+    /**
+     * Generate mnemonic without transliteration and with default style (backward compatibility)
+     * Character matching will be skipped without transliteration.
+     *
+     * @param sourceWord Word in source language
+     * @param targetWord Word in target language (translation)
+     * @param sourceLanguage Source language code
+     * @param targetLanguage Target language code
      * @return MnemonicData containing keyword, sentence, and image prompt
      */
     public MnemonicData generateMnemonic(String sourceWord, String targetWord,
                                          String sourceLanguage, String targetLanguage) {
-        System.out.println("Warning: generateMnemonic called without transliteration, character matching will be skipped");
-        return generateMnemonic(sourceWord, targetWord, sourceLanguage, targetLanguage, null);
+        return generateMnemonic(sourceWord, targetWord, sourceLanguage, targetLanguage, null, null);
     }
 
     /**
@@ -131,7 +155,7 @@ public class MnemonicGenerationService {
     private String buildMnemonicPrompt(String sourceWord, String targetWord,
                                        String sourceLanguage, String targetLanguage,
                                        Optional<CharacterGuideEntity> sourceCharacter,
-                                       String sourceTransliteration) {
+                                       String sourceTransliteration, ImageStyle imageStyle) {
 
         StringBuilder prompt = new StringBuilder();
         prompt.append("Create a mnemonic to remember that '").append(sourceWord).append("' (")
@@ -189,8 +213,8 @@ public class MnemonicGenerationService {
         prompt.append("   - Examples of BAD keywords: verbs, adjectives, abstract concepts, the actual words being learned, or non-English words\n");
         prompt.append("2. A 'mnemonic_sentence' - a vivid, memorable sentence connecting the character")
                 .append(" with the meaning '").append(targetWord).append("'\n");
-        prompt.append("3. An 'image_prompt' - a detailed prompt for generating an image in REALISTIC CINEMATIC style showing:\n");
-        prompt.append("   STYLE REQUIREMENT: The image MUST be described as 'Realistic Cinematic' style\n");
+        prompt.append("3. An 'image_prompt' - a detailed prompt for generating an image in ").append(imageStyle.getDisplayName().toUpperCase()).append(" style showing:\n");
+        prompt.append("   STYLE REQUIREMENT: The image MUST be described as '").append(imageStyle.getDisplayName()).append("' style\n");
         prompt.append("   - ONLY ONE character (the one specified above) as the main focus\n");
         prompt.append("   - The mnemonic keyword represented VISUALLY through objects, actions, or scenery (NOT as text)\n");
         prompt.append("     Example: If keyword is 'sail', show the character sailing on a boat\n");

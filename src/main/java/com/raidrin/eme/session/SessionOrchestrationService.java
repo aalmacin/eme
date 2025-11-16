@@ -4,6 +4,7 @@ import com.google.cloud.texttospeech.v1.SsmlVoiceGender;
 import com.raidrin.eme.audio.AsyncAudioGenerationService;
 import com.raidrin.eme.audio.LanguageAudioCodes;
 import com.raidrin.eme.codec.Codec;
+import com.raidrin.eme.image.ImageStyle;
 import com.raidrin.eme.image.OpenAiImageService;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService.MnemonicData;
@@ -30,6 +31,9 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 /**
  * Orchestrates the complete async workflow for translation sessions:
@@ -56,6 +60,9 @@ public class SessionOrchestrationService {
     @Value("${image.output.directory:./generated_images}")
     private String imageOutputDirectory;
 
+    @Value("${processing.concurrency.level:3}")
+    private int concurrencyLevel;
+
     /**
      * Process a batch of words/translations asynchronously
      *
@@ -69,21 +76,26 @@ public class SessionOrchestrationService {
             System.out.println("Starting async batch processing for session: " + sessionId);
             sessionService.updateStatus(sessionId, SessionStatus.IN_PROGRESS);
 
-            // Track process statuses
-            Map<String, Object> processStatuses = new HashMap<>();
-            List<String> translationErrors = new ArrayList<>();
-            List<String> audioErrors = new ArrayList<>();
-            List<String> imageErrors = new ArrayList<>();
-            List<String> sentenceErrors = new ArrayList<>();
+            // Track process statuses - use thread-safe collections for concurrent processing
+            List<String> translationErrors = Collections.synchronizedList(new ArrayList<>());
+            List<String> audioErrors = Collections.synchronizedList(new ArrayList<>());
+            List<String> imageErrors = Collections.synchronizedList(new ArrayList<>());
+            List<String> sentenceErrors = Collections.synchronizedList(new ArrayList<>());
 
-            List<Map<String, Object>> wordResults = new ArrayList<>();
-            List<AsyncAudioGenerationService.AudioRequest> allAudioRequests = new ArrayList<>();
-            Set<String> processedAudioFiles = new HashSet<>(); // Avoid duplicate audio files
+            List<Map<String, Object>> wordResults = Collections.synchronizedList(new ArrayList<>());
+            List<AsyncAudioGenerationService.AudioRequest> allAudioRequests = Collections.synchronizedList(new ArrayList<>());
+            Set<String> processedAudioFiles = ConcurrentHashMap.newKeySet(); // Thread-safe set
+            AtomicInteger processedWordCount = new AtomicInteger(0);
 
-            // Process each source word
-            int currentWordIndex = 0;
-            for (String sourceWord : request.getSourceWords()) {
-                System.out.println("Processing word: " + sourceWord + " (" + (currentWordIndex + 1) + "/" + request.getSourceWords().size() + ")");
+            // Process words concurrently in batches
+            List<CompletableFuture<Map<String, Object>>> wordFutures = new ArrayList<>();
+
+            for (int i = 0; i < request.getSourceWords().size(); i++) {
+                final int wordIndex = i;
+                final String sourceWord = request.getSourceWords().get(wordIndex);
+
+                CompletableFuture<Map<String, Object>> wordFuture = CompletableFuture.supplyAsync(() -> {
+                System.out.println("Processing word: " + sourceWord + " (" + (wordIndex + 1) + "/" + request.getSourceWords().size() + ")");
 
                 // Check if this word has been processed before
                 Map<String, Object> existingWordData = sessionService.findExistingWordData(
@@ -97,7 +109,6 @@ public class SessionOrchestrationService {
                     System.out.println("Found existing data for word: " + sourceWord + ", reusing assets");
                     existingWordData.put("reused", true);
                     existingWordData.put("reused_timestamp", java.time.LocalDateTime.now().toString());
-                    wordResults.add(existingWordData);
 
                     // Still add audio requests if audio files exist (they might not be in the current directory)
                     if (existingWordData.containsKey("source_audio_file") && request.isEnableSourceAudio()) {
@@ -107,11 +118,8 @@ public class SessionOrchestrationService {
                         }
                     }
 
-                    // Update progress incrementally
-                    currentWordIndex++;
-                    updateProgressData(sessionId, request, wordResults, currentWordIndex);
-
-                    continue; // Skip to next word
+                    // Return existing data early (skip processing)
+                    return existingWordData;
                 }
 
                 if (request.isOverrideTranslation()) {
@@ -249,7 +257,7 @@ public class SessionOrchestrationService {
                         MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
                             sourceWord, primaryTranslation,
                             request.getSourceLanguage(), request.getTargetLanguage(),
-                            transliteration
+                            transliteration, request.getImageStyle()
                         );
 
                         wordData.put("mnemonic_keyword", mnemonicData.getMnemonicKeyword());
@@ -286,20 +294,43 @@ public class SessionOrchestrationService {
                     }
                 }
 
-                wordResults.add(wordData);
-
-                // Save word data to WordEntity for future reuse (only for new data, not reused)
-                if (!Boolean.TRUE.equals(wordData.get("reused"))) {
-                    try {
-                        sessionService.saveWordDataToEntity(wordData, request.getSourceLanguage(), request.getTargetLanguage());
-                    } catch (Exception e) {
-                        System.err.println("Failed to save word data to entity for: " + sourceWord + " - " + e.getMessage());
+                    // Save word data to WordEntity for future reuse (only for new data, not reused)
+                    if (!Boolean.TRUE.equals(wordData.get("reused"))) {
+                        try {
+                            sessionService.saveWordDataToEntity(wordData, request.getSourceLanguage(), request.getTargetLanguage());
+                        } catch (Exception e) {
+                            System.err.println("Failed to save word data to entity for: " + sourceWord + " - " + e.getMessage());
+                        }
                     }
-                }
 
-                // Update progress incrementally after each word
-                currentWordIndex++;
-                updateProgressData(sessionId, request, wordResults, currentWordIndex);
+                    return wordData;
+                });
+
+                wordFutures.add(wordFuture);
+
+                // Limit concurrent word processing to avoid overwhelming external APIs
+                if (wordFutures.size() >= concurrencyLevel || i == request.getSourceWords().size() - 1) {
+                    // Wait for current batch to complete before starting next batch
+                    CompletableFuture.allOf(wordFutures.toArray(new CompletableFuture[0])).join();
+
+                    // Collect results from completed futures
+                    for (CompletableFuture<Map<String, Object>> future : wordFutures) {
+                        try {
+                            Map<String, Object> wordData = future.get();
+                            wordResults.add(wordData);
+
+                            // Update progress incrementally after each word
+                            int currentCount = processedWordCount.incrementAndGet();
+                            updateProgressData(sessionId, request, wordResults, currentCount);
+                        } catch (Exception e) {
+                            System.err.println("Failed to get word processing result: " + e.getMessage());
+                            e.printStackTrace();
+                        }
+                    }
+
+                    // Clear futures for next batch
+                    wordFutures.clear();
+                }
             }
 
             // Step 6: Generate all audio files
@@ -373,6 +404,7 @@ public class SessionOrchestrationService {
             originalRequest.put("enable_translation", request.isEnableTranslation());
             originalRequest.put("enable_sentence_generation", request.isEnableSentenceGeneration());
             originalRequest.put("enable_image_generation", request.isEnableImageGeneration());
+            originalRequest.put("image_style", request.getImageStyle() != null ? request.getImageStyle().name() : null);
             sessionData.put("original_request", originalRequest);
 
             // Add process statuses
@@ -514,6 +546,14 @@ public class SessionOrchestrationService {
         Boolean overrideTranslation = (Boolean) originalRequest.get("override_translation");
         request.setOverrideTranslation(overrideTranslation != null ? overrideTranslation : false);
 
+        // Reconstruct image style (default to REALISTIC_CINEMATIC for backward compatibility)
+        String imageStyleValue = (String) originalRequest.get("image_style");
+        if (imageStyleValue != null) {
+            request.setImageStyle(ImageStyle.fromString(imageStyleValue));
+        } else {
+            request.setImageStyle(ImageStyle.REALISTIC_CINEMATIC);
+        }
+
         return request;
     }
 
@@ -543,5 +583,8 @@ public class SessionOrchestrationService {
         private boolean enableSentenceGeneration;
         private boolean enableImageGeneration;
         private boolean overrideTranslation; // Force new translation, skip cache
+
+        // Image configuration
+        private ImageStyle imageStyle; // Style for image generation (defaults to REALISTIC_CINEMATIC if null)
     }
 }

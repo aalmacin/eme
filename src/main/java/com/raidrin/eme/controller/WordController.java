@@ -1,9 +1,12 @@
 package com.raidrin.eme.controller;
 
 import com.raidrin.eme.image.ImageProvider;
+import com.raidrin.eme.image.ImageStyle;
 import com.raidrin.eme.image.OpenAiImageService;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService;
+import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.entity.WordEntity;
+import com.raidrin.eme.storage.service.CharacterGuideService;
 import com.raidrin.eme.storage.service.GcpStorageService;
 import com.raidrin.eme.storage.service.WordService;
 import com.raidrin.eme.util.FileNameSanitizer;
@@ -33,6 +36,7 @@ public class WordController {
     private final OpenAiImageService openAiImageService;
     private final GcpStorageService gcpStorageService;
     private final MnemonicGenerationService mnemonicGenerationService;
+    private final CharacterGuideService characterGuideService;
 
     @Value("${image.output.directory:./generated_images}")
     private String imageOutputDirectory;
@@ -71,6 +75,7 @@ public class WordController {
             String customPrompt = null;
             Boolean useSamePrompt = false;
             String model = "gpt-image-1-mini"; // Default model
+            ImageStyle imageStyle = ImageStyle.REALISTIC_CINEMATIC; // Default style
 
             if (request != null) {
                 if (request.containsKey("imagePrompt")) {
@@ -87,6 +92,10 @@ public class WordController {
                         response.put("error", "Invalid model. Must be gpt-image-1-mini or gpt-image-1");
                         return ResponseEntity.badRequest().body(response);
                     }
+                }
+                if (request.containsKey("imageStyle")) {
+                    String styleValue = request.get("imageStyle").toString();
+                    imageStyle = ImageStyle.fromString(styleValue);
                 }
             }
 
@@ -125,12 +134,15 @@ public class WordController {
                     return ResponseEntity.badRequest().body(response);
                 }
 
-                // Generate mnemonic and prompt
+                // Generate mnemonic and prompt with transliteration for character matching
+                String transliteration = word.getSourceTransliteration();
                 MnemonicGenerationService.MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
                         word.getWord(),
                         translation,
                         word.getSourceLanguage(),
-                        word.getTargetLanguage()
+                        word.getTargetLanguage(),
+                        transliteration,
+                        imageStyle
                 );
 
                 imagePrompt = mnemonicData.getImagePrompt();
@@ -179,6 +191,7 @@ public class WordController {
             response.put("imageFile", imageFileName);
             response.put("imageUrl", gcsUrl);
             response.put("model", model);
+            response.put("imageStyle", imageStyle.name());
             response.put("usedSamePrompt", useSamePrompt);
 
             if (revisedPrompt != null) {
@@ -241,6 +254,284 @@ public class WordController {
 
         return wordOpt.map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * Get all words
+     */
+    @GetMapping
+    public ResponseEntity<List<WordEntity>> getAllWords() {
+        List<WordEntity> words = wordService.getAllWords();
+        return ResponseEntity.ok(words);
+    }
+
+    /**
+     * Create a new word
+     */
+    @PostMapping
+    public ResponseEntity<Map<String, Object>> createWord(@RequestBody Map<String, Object> request) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            String word = (String) request.get("word");
+            String sourceLanguage = (String) request.get("sourceLanguage");
+            String targetLanguage = (String) request.get("targetLanguage");
+
+            if (word == null || word.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Word is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (sourceLanguage == null || sourceLanguage.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Source language is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            if (targetLanguage == null || targetLanguage.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Target language is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Check if word already exists
+            if (wordService.hasWord(word, sourceLanguage, targetLanguage)) {
+                response.put("success", false);
+                response.put("error", "Word already exists with this language pair");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            WordEntity wordEntity = wordService.saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+
+            // Update optional fields if provided
+            if (request.containsKey("translation")) {
+                String translationStr = (String) request.get("translation");
+                if (translationStr != null && !translationStr.trim().isEmpty()) {
+                    Set<String> translations = new HashSet<>(Arrays.asList(translationStr.split(",")));
+                    wordService.updateTranslation(word, sourceLanguage, targetLanguage, translations);
+                }
+            }
+
+            String transliteration = null;
+            if (request.containsKey("sourceTransliteration")) {
+                transliteration = (String) request.get("sourceTransliteration");
+                if (transliteration != null && !transliteration.trim().isEmpty()) {
+                    wordService.updateTransliteration(word, sourceLanguage, targetLanguage, transliteration);
+                }
+            }
+
+            // Attach character guide if transliteration is available
+            if (transliteration != null && !transliteration.trim().isEmpty()) {
+                Optional<CharacterGuideEntity> characterGuide = characterGuideService.findMatchingCharacterForWord(
+                        word, sourceLanguage, transliteration);
+                if (characterGuide.isPresent()) {
+                    wordService.updateCharacterGuide(word, sourceLanguage, targetLanguage,
+                            characterGuide.get().getId());
+                    System.out.println("Attached character guide: " + characterGuide.get().getCharacterName() +
+                            " to word: " + word);
+                }
+            }
+
+            // Set initial statuses
+            wordService.updateImageStatus(word, sourceLanguage, targetLanguage, "PENDING");
+            wordService.updateAudioStatus(word, sourceLanguage, targetLanguage, "PENDING");
+
+            response.put("success", true);
+            response.put("word", wordEntity);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Update an existing word
+     */
+    @PutMapping("/{wordId}")
+    public ResponseEntity<Map<String, Object>> updateWord(
+            @PathVariable Long wordId,
+            @RequestBody Map<String, Object> request) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+
+            // Update translation if provided
+            if (request.containsKey("translation")) {
+                String translationStr = (String) request.get("translation");
+                if (translationStr != null && !translationStr.trim().isEmpty()) {
+                    Set<String> translations = new HashSet<>(Arrays.asList(translationStr.split(",")));
+                    wordService.updateTranslation(word.getWord(), word.getSourceLanguage(),
+                            word.getTargetLanguage(), translations);
+                }
+            }
+
+            // Update transliteration if provided
+            if (request.containsKey("sourceTransliteration")) {
+                String transliteration = (String) request.get("sourceTransliteration");
+                wordService.updateTransliteration(word.getWord(), word.getSourceLanguage(),
+                        word.getTargetLanguage(), transliteration);
+            }
+
+            // Update mnemonic fields if provided
+            if (request.containsKey("mnemonicKeyword") || request.containsKey("mnemonicSentence")
+                    || request.containsKey("imagePrompt")) {
+                String mnemonicKeyword = (String) request.get("mnemonicKeyword");
+                String mnemonicSentence = (String) request.get("mnemonicSentence");
+                String imagePrompt = (String) request.get("imagePrompt");
+                wordService.updateMnemonic(word.getWord(), word.getSourceLanguage(),
+                        word.getTargetLanguage(), mnemonicKeyword, mnemonicSentence, imagePrompt);
+            }
+
+            response.put("success", true);
+            response.put("message", "Word updated successfully");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Update translation manually and regenerate mnemonic and image prompt
+     */
+    @PostMapping("/{wordId}/update-translation")
+    public ResponseEntity<Map<String, Object>> updateTranslationAndRegenerate(
+            @PathVariable Long wordId,
+            @RequestBody Map<String, Object> request) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+
+            // Get new translation
+            String translationStr = (String) request.get("translation");
+            if (translationStr == null || translationStr.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Translation is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Validate that we're using the correct target language for translation
+            // This ensures the translation matches the word's target language
+            System.out.println("Updating translation for word: " + word.getWord() +
+                    " from " + word.getSourceLanguage() + " to " + word.getTargetLanguage());
+
+            // Update translation
+            Set<String> translations = new HashSet<>(Arrays.asList(translationStr.split(",")));
+            wordService.updateTranslation(word.getWord(), word.getSourceLanguage(),
+                    word.getTargetLanguage(), translations);
+
+            // Get the first translation for mnemonic generation
+            String translation = translations.iterator().next();
+
+            // Get image style if provided
+            ImageStyle imageStyle = ImageStyle.REALISTIC_CINEMATIC; // Default style
+            if (request.containsKey("imageStyle")) {
+                String styleValue = request.get("imageStyle").toString();
+                imageStyle = ImageStyle.fromString(styleValue);
+            }
+
+            // Generate new mnemonic and image prompt with the new translation
+            String transliteration = word.getSourceTransliteration();
+            MnemonicGenerationService.MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
+                    word.getWord(),
+                    translation,
+                    word.getSourceLanguage(),
+                    word.getTargetLanguage(),
+                    transliteration,
+                    imageStyle
+            );
+
+            // Update mnemonic and image prompt
+            wordService.updateMnemonic(
+                    word.getWord(),
+                    word.getSourceLanguage(),
+                    word.getTargetLanguage(),
+                    mnemonicData.getMnemonicKeyword(),
+                    mnemonicData.getMnemonicSentence(),
+                    mnemonicData.getImagePrompt()
+            );
+
+            // Clear the old image since we have a new prompt
+            wordService.updateImagePromptAndClearImage(wordId, mnemonicData.getImagePrompt());
+
+            response.put("success", true);
+            response.put("message", "Translation updated and mnemonic regenerated");
+            response.put("mnemonicKeyword", mnemonicData.getMnemonicKeyword());
+            response.put("mnemonicSentence", mnemonicData.getMnemonicSentence());
+            response.put("imagePrompt", mnemonicData.getImagePrompt());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Delete a word
+     */
+    @DeleteMapping("/{wordId}")
+    public ResponseEntity<Map<String, Object>> deleteWord(@PathVariable Long wordId) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+            wordService.deleteWord(word.getWord(), word.getSourceLanguage(), word.getTargetLanguage());
+
+            response.put("success", true);
+            response.put("message", "Word deleted successfully");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     private Path downloadImageToLocal(String imageUrl, String fileName) throws IOException {

@@ -117,6 +117,36 @@ public class WordService {
         return wordRepository.save(entity);
     }
 
+    @Transactional
+    public WordEntity updateCharacterGuide(String word, String sourceLanguage, String targetLanguage,
+                                            Long characterGuideId) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setCharacterGuideId(characterGuideId);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity updateImageStatus(String word, String sourceLanguage, String targetLanguage,
+                                         String imageStatus) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setImageStatus(imageStatus);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity updateAudioStatus(String word, String sourceLanguage, String targetLanguage,
+                                         String audioStatus) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setAudioStatus(audioStatus);
+        return wordRepository.save(entity);
+    }
+
     public boolean hasWord(String word, String sourceLanguage, String targetLanguage) {
         validateParameters(word, sourceLanguage, targetLanguage);
         return wordRepository.existsByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);
