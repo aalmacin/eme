@@ -23,4 +23,13 @@ public interface TranslationService {
      * @return TranslationData with translations and transliteration
      */
     TranslationData translateText(String text, String sourceLanguage, String targetLanguage, boolean skipCache);
+
+    /**
+     * Get only the transliteration/romanization of a word
+     *
+     * @param text The text to transliterate
+     * @param sourceLanguage Source language code
+     * @return The transliteration/romanization of the word
+     */
+    String getTransliteration(String text, String sourceLanguage);
 }

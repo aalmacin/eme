@@ -8,6 +8,7 @@ import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.service.CharacterGuideService;
 import com.raidrin.eme.storage.service.TranslationSessionService;
 import com.raidrin.eme.storage.service.WordService;
+import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.util.ZipFileGenerator;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.FileSystemResource;
@@ -35,6 +36,7 @@ public class TranslationSessionController {
     private final AnkiNoteCreatorService ankiNoteCreatorService;
     private final SessionOrchestrationService sessionOrchestrationService;
     private final CharacterGuideService characterGuideService;
+    private final TranslationService translationService;
 
     @GetMapping
     public String listSessions(Model model,
@@ -54,9 +56,8 @@ public class TranslationSessionController {
             sessions = translationSessionService.findAll();
         }
 
-        // Enrich sessions with transliteration data and source words
+        // Enrich sessions with transliteration data
         Map<Long, String> transliterations = new HashMap<>();
-        Map<Long, String> sourceWordsMap = new HashMap<>();
         for (TranslationSessionEntity session : sessions) {
             Optional<WordEntity> wordEntity = wordService.findWord(
                     session.getWord(),
@@ -66,25 +67,10 @@ public class TranslationSessionController {
             if (wordEntity.isPresent() && wordEntity.get().getSourceTransliteration() != null) {
                 transliterations.put(session.getId(), wordEntity.get().getSourceTransliteration());
             }
-
-            // Extract source words from session data
-            Map<String, Object> sessionData = translationSessionService.getSessionData(session.getId());
-            if (sessionData != null && sessionData.containsKey("original_request")) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> originalRequest = (Map<String, Object>) sessionData.get("original_request");
-                if (originalRequest != null && originalRequest.containsKey("source_words")) {
-                    @SuppressWarnings("unchecked")
-                    List<String> sourceWords = (List<String>) originalRequest.get("source_words");
-                    if (sourceWords != null && !sourceWords.isEmpty()) {
-                        sourceWordsMap.put(session.getId(), String.join(", ", sourceWords));
-                    }
-                }
-            }
         }
 
         model.addAttribute("sessions", sessions);
         model.addAttribute("transliterations", transliterations);
-        model.addAttribute("sourceWordsMap", sourceWordsMap);
         return "sessions/list";
     }
 
@@ -121,13 +107,28 @@ public class TranslationSessionController {
                         }
 
                         // Add character guide information
-                        enrichWithCharacterGuideInfo(wordData, session.getSourceLanguage());
+                        enrichWithCharacterGuideInfo(wordData, session.getSourceLanguage(), session.getTargetLanguage());
+                    }
+                }
+            }
+
+            // Extract source words from session data for display
+            String sourceWordsText = "";
+            if (sessionData != null && sessionData.containsKey("original_request")) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> originalRequest = (Map<String, Object>) sessionData.get("original_request");
+                if (originalRequest != null && originalRequest.containsKey("source_words")) {
+                    @SuppressWarnings("unchecked")
+                    List<String> sourceWords = (List<String>) originalRequest.get("source_words");
+                    if (sourceWords != null && !sourceWords.isEmpty()) {
+                        sourceWordsText = String.join("\n", sourceWords);
                     }
                 }
             }
 
             model.addAttribute("translationSession", session);
             model.addAttribute("sessionData", sessionData);
+            model.addAttribute("sourceWordsText", sourceWordsText);
             return "sessions/view";
         } else {
             return "redirect:/sessions?error=not-found";
@@ -693,7 +694,7 @@ public class TranslationSessionController {
      * Enrich word data with character guide information
      * Adds information about whether the character is in the character guide DB
      */
-    private void enrichWithCharacterGuideInfo(Map<String, Object> wordData, String language) {
+    private void enrichWithCharacterGuideInfo(Map<String, Object> wordData, String sourceLanguage, String targetLanguage) {
         String sourceWord = (String) wordData.get("source_word");
         String mnemonicKeyword = (String) wordData.get("mnemonic_keyword");
         String transliteration = (String) wordData.get("source_transliteration");
@@ -703,16 +704,39 @@ public class TranslationSessionController {
         }
 
         // Transliteration should come from the translation process (OpenAI provides it)
+        // If not available, fetch it from OpenAI
         if (transliteration == null || transliteration.trim().isEmpty()) {
-            System.out.println("No transliteration available for character enrichment: " + sourceWord);
-            // Can't enrich without transliteration
-            return;
+            System.out.println("No transliteration available for character enrichment, fetching from OpenAI: " + sourceWord);
+
+            // Don't fetch for English words
+            if (!"en".equals(sourceLanguage)) {
+                try {
+                    transliteration = translationService.getTransliteration(sourceWord, sourceLanguage);
+                    if (transliteration != null && !transliteration.trim().isEmpty()) {
+                        // Update the word entity with the new transliteration
+                        wordService.updateTransliteration(sourceWord, sourceLanguage, targetLanguage, transliteration);
+                        // Update the wordData map so it's available for the rest of this method
+                        wordData.put("source_transliteration", transliteration);
+                        System.out.println("Fetched and saved transliteration for " + sourceWord + ": " + transliteration);
+                    } else {
+                        System.out.println("No transliteration returned from OpenAI for: " + sourceWord);
+                        return;
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to fetch transliteration from OpenAI for " + sourceWord + ": " + e.getMessage());
+                    // Can't enrich without transliteration
+                    return;
+                }
+            } else {
+                // For English, can't enrich without transliteration
+                return;
+            }
         }
 
         String normalizedWord = transliteration.toLowerCase().trim();
 
         // Check if there's a matching character guide entry
-        Optional<CharacterGuideEntity> characterMatch = characterGuideService.findMatchingCharacterForWord(sourceWord, language, transliteration);
+        Optional<CharacterGuideEntity> characterMatch = characterGuideService.findMatchingCharacterForWord(sourceWord, sourceLanguage, transliteration);
 
         if (characterMatch.isPresent()) {
             CharacterGuideEntity character = characterMatch.get();

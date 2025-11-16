@@ -62,6 +62,9 @@ public class WordEntity {
     @Column(name = "audio_status", length = 20)
     private String audioStatus; // PENDING, GENERATING, COMPLETED, FAILED
 
+    @Column(name = "translation_override_at")
+    private LocalDateTime translationOverrideAt; // Set when user manually overrides translation
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

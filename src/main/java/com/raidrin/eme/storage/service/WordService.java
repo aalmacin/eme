@@ -9,6 +9,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 @Service
@@ -45,6 +46,19 @@ public class WordService {
 
         WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
         entity.setTranslation(serializeTranslations(translations));
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity updateTranslationWithManualOverride(String word, String sourceLanguage, String targetLanguage, Set<String> translations) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+        if (translations == null || translations.isEmpty()) {
+            throw new IllegalArgumentException("Translations must be provided");
+        }
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setTranslation(serializeTranslations(translations));
+        entity.setTranslationOverrideAt(LocalDateTime.now());
         return wordRepository.save(entity);
     }
 

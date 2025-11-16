@@ -207,6 +207,68 @@ public class OpenAITranslationService implements TranslationService {
         return translations;
     }
 
+    @Override
+    public String getTransliteration(String text, String sourceLanguage) {
+        if (text == null || text.trim().isEmpty()) {
+            throw new IllegalArgumentException("Text must be provided");
+        }
+        if (sourceLanguage == null || sourceLanguage.trim().isEmpty()) {
+            throw new IllegalArgumentException("Source language must be provided");
+        }
+
+        // For English, no transliteration needed
+        if ("en".equals(sourceLanguage)) {
+            return text;
+        }
+
+        System.out.println("Getting transliteration from OpenAI for: " + text + " (" + sourceLanguage + ")");
+
+        String sourceLangName = getLanguageName(sourceLanguage);
+
+        String prompt = String.format(
+                "Provide ONLY the romanization/transliteration of the following %s text. " +
+                "Return ONLY the romanized text with no additional explanation or formatting.\n\n" +
+                "Text: %s",
+                sourceLangName, text
+        );
+
+        OpenAiRequest request = new OpenAiRequest();
+        request.setModel("gpt-4o-mini");
+        request.setMessages(List.of(
+                new OpenAiMessage("system", "You are a transliteration expert. Provide only the romanized version of the text, nothing else."),
+                new OpenAiMessage("user", prompt)
+        ));
+        request.setMaxTokens(100);
+        request.setTemperature(0.3);
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + openAiApiKey);
+            headers.set("Content-Type", "application/json");
+
+            HttpEntity<OpenAiRequest> entity = new HttpEntity<>(request, headers);
+
+            ResponseEntity<OpenAiResponse> response = restTemplate.exchange(
+                    "https://api.openai.com/v1/chat/completions",
+                    HttpMethod.POST,
+                    entity,
+                    OpenAiResponse.class
+            );
+
+            if (response.getBody() != null && !response.getBody().getChoices().isEmpty()) {
+                String transliteration = response.getBody().getChoices().get(0).getMessage().getContent().trim();
+                System.out.println("Transliteration from OpenAI: " + transliteration);
+                return transliteration;
+            } else {
+                throw new RuntimeException("OpenAI API returned empty response");
+            }
+        } catch (Exception e) {
+            System.err.println("Failed to get transliteration from OpenAI: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to get transliteration: " + e.getMessage(), e);
+        }
+    }
+
     private String getLanguageName(String lang) {
         switch (lang) {
             case "en" -> {
@@ -232,6 +294,9 @@ public class OpenAITranslationService implements TranslationService {
             }
             case "pa" -> {
                 return "Punjabi";
+            }
+            case "tl" -> {
+                return "Tagalog";
             }
             default -> {
                 return "English";

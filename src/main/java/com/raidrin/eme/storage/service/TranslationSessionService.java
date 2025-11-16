@@ -280,15 +280,21 @@ public class TranslationSessionService {
         }
 
         // Ensure word entity exists
-        wordService.saveOrUpdateWord(sourceWord, sourceLanguage, targetLanguage);
+        WordEntity wordEntity = wordService.saveOrUpdateWord(sourceWord, sourceLanguage, targetLanguage);
 
-        // Update translation if available
+        // Update translation if available and not manually overridden
         if (wordData.containsKey("translations") && "success".equals(wordData.get("translation_status"))) {
-            @SuppressWarnings("unchecked")
-            List<String> translationsList = (List<String>) wordData.get("translations");
-            if (translationsList != null && !translationsList.isEmpty()) {
-                Set<String> translations = new HashSet<>(translationsList);
-                wordService.updateTranslation(sourceWord, sourceLanguage, targetLanguage, translations);
+            // Check if translation has been manually overridden
+            if (wordEntity.getTranslationOverrideAt() == null) {
+                @SuppressWarnings("unchecked")
+                List<String> translationsList = (List<String>) wordData.get("translations");
+                if (translationsList != null && !translationsList.isEmpty()) {
+                    Set<String> translations = new HashSet<>(translationsList);
+                    wordService.updateTranslation(sourceWord, sourceLanguage, targetLanguage, translations);
+                }
+            } else {
+                System.out.println("Skipping automated translation update for manually overridden word: " + sourceWord +
+                        " (override at: " + wordEntity.getTranslationOverrideAt() + ")");
             }
         }
 

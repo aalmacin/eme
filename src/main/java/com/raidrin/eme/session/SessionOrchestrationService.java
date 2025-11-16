@@ -12,8 +12,10 @@ import com.raidrin.eme.sentence.SentenceData;
 import com.raidrin.eme.sentence.SentenceGenerationService;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity.SessionStatus;
+import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.service.GcpStorageService;
 import com.raidrin.eme.storage.service.TranslationSessionService;
+import com.raidrin.eme.storage.service.WordService;
 import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.util.FileNameSanitizer;
 import com.raidrin.eme.util.ZipFileGenerator;
@@ -52,6 +54,7 @@ public class SessionOrchestrationService {
     private final OpenAiImageService openAiImageService;
     private final GcpStorageService gcpStorageService;
     private final TranslationSessionService sessionService;
+    private final WordService wordService;
     private final ZipFileGenerator zipFileGenerator;
 
     @Value("${audio.output.directory:./generated_audio}")
@@ -134,40 +137,70 @@ public class SessionOrchestrationService {
                 // Step 1: Get translations
                 Set<String> translations = null;
                 String transliteration = null;
+                boolean useManuallyOverriddenTranslation = false;
+
                 if (request.isEnableTranslation()) {
-                    try {
-                        com.raidrin.eme.translator.TranslationData translationData = translationService.translateText(
-                            sourceWord,
-                            request.getSourceLanguageCode(),
-                            request.getTargetLanguageCode(),
-                            request.isOverrideTranslation()
-                        );
-                        translations = translationData.getTranslations();
+                    // First check if word has a manually overridden translation
+                    Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                        sourceWord,
+                        request.getSourceLanguage(),
+                        request.getTargetLanguage()
+                    );
+
+                    if (wordEntityOpt.isPresent() && wordEntityOpt.get().getTranslationOverrideAt() != null) {
+                        // Use existing manually overridden translation
+                        WordEntity wordEntity = wordEntityOpt.get();
+                        System.out.println("Found manually overridden translation for: " + sourceWord +
+                                " (override at: " + wordEntity.getTranslationOverrideAt() + ")");
+
+                        translations = wordService.deserializeTranslations(wordEntity.getTranslation());
                         wordData.put("translations", new ArrayList<>(translations));
                         wordData.put("translation_status", "success");
+                        wordData.put("translation_override", true);
+                        useManuallyOverriddenTranslation = true;
 
-                        // Get transliteration from translation response
-                        transliteration = translationData.getTransliteration();
-                        if (transliteration == null || transliteration.trim().isEmpty()) {
-                            // Check if existingWordData already has transliteration
-                            if (existingWordData != null && existingWordData.containsKey("source_transliteration")) {
-                                transliteration = (String) existingWordData.get("source_transliteration");
-                                System.out.println("Using stored transliteration from cache: " + transliteration);
-                            } else {
-                                System.out.println("No transliteration available for: " + sourceWord);
-                            }
-                        } else {
-                            System.out.println("Transliteration from translation service: " + transliteration);
-                        }
-                        if (transliteration != null && !transliteration.trim().isEmpty()) {
+                        // Get transliteration from word entity
+                        if (wordEntity.getSourceTransliteration() != null && !wordEntity.getSourceTransliteration().trim().isEmpty()) {
+                            transliteration = wordEntity.getSourceTransliteration();
                             wordData.put("source_transliteration", transliteration);
+                            System.out.println("Using stored transliteration: " + transliteration);
                         }
-                    } catch (Exception e) {
-                        String error = "Translation failed for '" + sourceWord + "': " + e.getMessage();
-                        translationErrors.add(error);
-                        wordData.put("translation_status", "failed");
-                        wordData.put("translation_error", e.getMessage());
-                        System.err.println(error);
+                    } else {
+                        // Fetch new translation
+                        try {
+                            com.raidrin.eme.translator.TranslationData translationData = translationService.translateText(
+                                sourceWord,
+                                request.getSourceLanguageCode(),
+                                request.getTargetLanguageCode(),
+                                request.isOverrideTranslation()
+                            );
+                            translations = translationData.getTranslations();
+                            wordData.put("translations", new ArrayList<>(translations));
+                            wordData.put("translation_status", "success");
+
+                            // Get transliteration from translation response
+                            transliteration = translationData.getTransliteration();
+                            if (transliteration == null || transliteration.trim().isEmpty()) {
+                                // Check if existingWordData already has transliteration
+                                if (existingWordData != null && existingWordData.containsKey("source_transliteration")) {
+                                    transliteration = (String) existingWordData.get("source_transliteration");
+                                    System.out.println("Using stored transliteration from cache: " + transliteration);
+                                } else {
+                                    System.out.println("No transliteration available for: " + sourceWord);
+                                }
+                            } else {
+                                System.out.println("Transliteration from translation service: " + transliteration);
+                            }
+                            if (transliteration != null && !transliteration.trim().isEmpty()) {
+                                wordData.put("source_transliteration", transliteration);
+                            }
+                        } catch (Exception e) {
+                            String error = "Translation failed for '" + sourceWord + "': " + e.getMessage();
+                            translationErrors.add(error);
+                            wordData.put("translation_status", "failed");
+                            wordData.put("translation_error", e.getMessage());
+                            System.err.println(error);
+                        }
                     }
                 }
 

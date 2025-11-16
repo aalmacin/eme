@@ -327,6 +327,13 @@
             <div class="info-label">Target Language:</div>
             <div class="info-value" th:text="${translationSession.targetLanguage}"></div>
         </div>
+        <div class="info-row" th:if="${sourceWordsText != null && !sourceWordsText.isEmpty()}">
+            <div class="info-label">Source Words:</div>
+            <div class="info-value">
+                <textarea readonly th:text="${sourceWordsText}"
+                          style="width: 100%; min-height: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
+            </div>
+        </div>
         <div class="info-row">
             <div class="info-label">Status:</div>
             <div class="info-value">

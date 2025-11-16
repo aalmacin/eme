@@ -67,6 +67,12 @@ public class GoogleTranslationService implements TranslationService {
         return data;
     }
 
+    @Override
+    public String getTransliteration(String text, String sourceLanguage) {
+        // Google Translate API doesn't provide transliteration
+        throw new UnsupportedOperationException("Google Translate does not support transliteration. Use OpenAI translation service instead.");
+    }
+
     private Set<String> performTranslation(String text, String sourceLanguage, String targetLanguage) {
         try {
             try (TranslationServiceClient client = TranslationServiceClient.create()) {

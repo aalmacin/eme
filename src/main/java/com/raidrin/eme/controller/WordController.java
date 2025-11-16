@@ -9,6 +9,7 @@ import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.service.CharacterGuideService;
 import com.raidrin.eme.storage.service.GcpStorageService;
 import com.raidrin.eme.storage.service.WordService;
+import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.util.FileNameSanitizer;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -37,6 +38,7 @@ public class WordController {
     private final GcpStorageService gcpStorageService;
     private final MnemonicGenerationService mnemonicGenerationService;
     private final CharacterGuideService characterGuideService;
+    private final TranslationService translationService;
 
     @Value("${image.output.directory:./generated_images}")
     private String imageOutputDirectory;
@@ -321,6 +323,21 @@ public class WordController {
                 }
             }
 
+            // If no transliteration provided, get it from OpenAI
+            if ((transliteration == null || transliteration.trim().isEmpty()) && !sourceLanguage.equals("en")) {
+                try {
+                    System.out.println("No transliteration provided, fetching from OpenAI for: " + word);
+                    transliteration = translationService.getTransliteration(word, sourceLanguage);
+                    if (transliteration != null && !transliteration.trim().isEmpty()) {
+                        wordService.updateTransliteration(word, sourceLanguage, targetLanguage, transliteration);
+                        System.out.println("Got transliteration from OpenAI: " + transliteration);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Failed to get transliteration from OpenAI: " + e.getMessage());
+                    // Continue without transliteration - it's not critical
+                }
+            }
+
             // Attach character guide if transliteration is available
             if (transliteration != null && !transliteration.trim().isEmpty()) {
                 Optional<CharacterGuideEntity> characterGuide = characterGuideService.findMatchingCharacterForWord(
@@ -372,12 +389,12 @@ public class WordController {
 
             WordEntity word = wordOpt.get();
 
-            // Update translation if provided
+            // Update translation if provided (with manual override flag since this is a direct user action)
             if (request.containsKey("translation")) {
                 String translationStr = (String) request.get("translation");
                 if (translationStr != null && !translationStr.trim().isEmpty()) {
                     Set<String> translations = new HashSet<>(Arrays.asList(translationStr.split(",")));
-                    wordService.updateTranslation(word.getWord(), word.getSourceLanguage(),
+                    wordService.updateTranslationWithManualOverride(word.getWord(), word.getSourceLanguage(),
                             word.getTargetLanguage(), translations);
                 }
             }
@@ -447,9 +464,9 @@ public class WordController {
             System.out.println("Updating translation for word: " + word.getWord() +
                     " from " + word.getSourceLanguage() + " to " + word.getTargetLanguage());
 
-            // Update translation
+            // Update translation with manual override flag
             Set<String> translations = new HashSet<>(Arrays.asList(translationStr.split(",")));
-            wordService.updateTranslation(word.getWord(), word.getSourceLanguage(),
+            wordService.updateTranslationWithManualOverride(word.getWord(), word.getSourceLanguage(),
                     word.getTargetLanguage(), translations);
 
             // Get the first translation for mnemonic generation
