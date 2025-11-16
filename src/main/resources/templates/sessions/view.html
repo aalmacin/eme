@@ -459,6 +459,22 @@
                     </span>
                 </div>
 
+                <!-- Mnemonic Display -->
+                <div th:if="${wordData.containsKey('mnemonic_sentence')}"
+                     style="margin: 12px 0; padding: 12px; background: #f8f9fa; border-left: 4px solid #17a2b8; border-radius: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <strong style="color: #17a2b8; font-size: 13px;">🔑 MNEMONIC KEYWORD:</strong>
+                        <span th:if="${wordData.containsKey('mnemonic_keyword')}"
+                              th:text="${wordData.get('mnemonic_keyword')}"
+                              style="font-size: 15px; font-weight: 600; color: #0056b3;"></span>
+                    </div>
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <strong style="color: #17a2b8; font-size: 13px; white-space: nowrap;">💭 SENTENCE:</strong>
+                        <span th:text="${wordData.get('mnemonic_sentence')}"
+                              style="font-size: 14px; color: #495057; line-height: 1.6;"></span>
+                    </div>
+                </div>
+
                 <!-- Translation Status -->
                 <div th:if="${wordData.containsKey('translation_status')}"
                      th:class="'process-item ' + (${wordData.get('translation_status')} == 'success' ? 'success' : 'failed')">
@@ -624,6 +640,22 @@
                           th:text="' → ' + ${wordData.get('translations')}"
                           style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
                     <span style="float: right; color: #28a745; font-size: 14px;">✓ Processed</span>
+                </div>
+
+                <!-- Mnemonic Display -->
+                <div th:if="${wordData.containsKey('mnemonic_sentence')}"
+                     style="margin: 12px 0; padding: 12px; background: #f8f9fa; border-left: 4px solid #17a2b8; border-radius: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <strong style="color: #17a2b8; font-size: 13px;">🔑 MNEMONIC KEYWORD:</strong>
+                        <span th:if="${wordData.containsKey('mnemonic_keyword')}"
+                              th:text="${wordData.get('mnemonic_keyword')}"
+                              style="font-size: 15px; font-weight: 600; color: #0056b3;"></span>
+                    </div>
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <strong style="color: #17a2b8; font-size: 13px; white-space: nowrap;">💭 SENTENCE:</strong>
+                        <span th:text="${wordData.get('mnemonic_sentence')}"
+                              style="font-size: 14px; color: #495057; line-height: 1.6;"></span>
+                    </div>
                 </div>
 
                 <!-- Translation Status -->
