@@ -327,7 +327,17 @@ public class TranslationSessionService {
         String imageFile = (String) wordData.get("image_file");
 
         if (mnemonicKeyword != null || mnemonicSentence != null || imagePrompt != null) {
-            wordService.updateMnemonic(sourceWord, sourceLanguage, targetLanguage, mnemonicKeyword, mnemonicSentence, imagePrompt);
+            // Check if mnemonic keyword has been manually updated
+            if (wordEntity.getMnemonicKeywordUpdatedAt() != null && mnemonicKeyword != null) {
+                // Skip updating mnemonic keyword if it was manually overridden
+                System.out.println("Skipping automated mnemonic keyword update for manually overridden word: " + sourceWord +
+                        " (updated at: " + wordEntity.getMnemonicKeywordUpdatedAt() + ")");
+                // Only update mnemonic sentence and image prompt, not the keyword
+                wordService.updateMnemonic(sourceWord, sourceLanguage, targetLanguage, null, mnemonicSentence, imagePrompt);
+            } else {
+                // No manual override, update everything normally
+                wordService.updateMnemonic(sourceWord, sourceLanguage, targetLanguage, mnemonicKeyword, mnemonicSentence, imagePrompt);
+            }
         }
 
         if (imageFile != null && "success".equals(wordData.get("image_status"))) {

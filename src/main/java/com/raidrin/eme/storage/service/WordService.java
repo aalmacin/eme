@@ -111,6 +111,25 @@ public class WordService {
     }
 
     @Transactional
+    public WordEntity updateMnemonicKeywordWithManualOverride(String word, String sourceLanguage, String targetLanguage,
+                                                               String mnemonicKeyword, String imagePrompt) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+        if (mnemonicKeyword == null || mnemonicKeyword.trim().isEmpty()) {
+            throw new IllegalArgumentException("Mnemonic keyword must be provided");
+        }
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setMnemonicKeyword(mnemonicKeyword);
+        entity.setMnemonicKeywordUpdatedAt(LocalDateTime.now());
+
+        if (imagePrompt != null) {
+            entity.setImagePrompt(imagePrompt);
+        }
+
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
     public WordEntity updateImagePromptAndClearImage(Long wordId, String newImagePrompt) {
         WordEntity entity = wordRepository.findById(wordId)
             .orElseThrow(() -> new IllegalArgumentException("Word not found with ID: " + wordId));
@@ -118,6 +137,34 @@ public class WordService {
         entity.setImagePrompt(newImagePrompt);
         // Clear the old image file since we're regenerating
         entity.setImageFile(null);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity updateMnemonicAndClearImage(String word, String sourceLanguage, String targetLanguage,
+                                                   String mnemonicKeyword, String mnemonicSentence, String imagePrompt) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+
+        // Update mnemonic keyword only if provided (null means preserve existing)
+        if (mnemonicKeyword != null) {
+            entity.setMnemonicKeyword(mnemonicKeyword);
+        }
+
+        // Update mnemonic sentence if provided
+        if (mnemonicSentence != null) {
+            entity.setMnemonicSentence(mnemonicSentence);
+        }
+
+        // Update image prompt if provided
+        if (imagePrompt != null) {
+            entity.setImagePrompt(imagePrompt);
+        }
+
+        // Clear the old image file since we're regenerating
+        entity.setImageFile(null);
+
         return wordRepository.save(entity);
     }
 

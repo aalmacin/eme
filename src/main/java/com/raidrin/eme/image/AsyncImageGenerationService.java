@@ -282,11 +282,14 @@ public class AsyncImageGenerationService {
      * @return Generated image info with URL
      */
     private GeneratedImageInfo generateImage(String prompt, int width, int height) {
+        // Sanitize the image prompt before sending to image generation API
+        String sanitizedPrompt = mnemonicService.sanitizeImagePrompt(prompt);
+
         // OpenAI gpt-image-1-mini supports: 1024x1024, 1024x1536, 1536x1024, auto
         // Choose closest match based on aspect ratio
         String size = (width > height) ? "1536x1024" : (width < height) ? "1024x1536" : "1024x1024";
         OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(
-                prompt, size, "medium", null);
+                sanitizedPrompt, size, "medium", null);
         return new GeneratedImageInfo(
                 openAiImage.getImageUrl(),
                 null,  // OpenAI doesn't have generation ID

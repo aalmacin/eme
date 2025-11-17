@@ -297,12 +297,15 @@ public class SessionOrchestrationService {
                         wordData.put("mnemonic_sentence", mnemonicData.getMnemonicSentence());
                         wordData.put("image_prompt", mnemonicData.getImagePrompt());
 
+                        // Sanitize the image prompt before sending to image generation API
+                        String sanitizedPrompt = mnemonicGenerationService.sanitizeImagePrompt(mnemonicData.getImagePrompt());
+
                         // Generate image using OpenAI
                         // Use 1536x1024 for landscape format (closest to 1152x768 ratio)
                         // gpt-image-1-mini supports: 1024x1024, 1024x1536, 1536x1024, auto
                         String size = "1536x1024";
                         OpenAiImageService.GeneratedImage generatedImage = openAiImageService.generateImage(
-                            mnemonicData.getImagePrompt(), size, "medium", null
+                            sanitizedPrompt, size, "medium", null
                         );
 
                         // Download image

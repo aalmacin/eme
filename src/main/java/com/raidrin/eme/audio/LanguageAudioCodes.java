@@ -9,7 +9,7 @@ public enum LanguageAudioCodes {
     Japanese("ja-JP"),
     Hindi("hi-IN"),
     Punjabi("pa-IN"),
-    Tagalog("tl-PH");
+    Tagalog("fil-PH");
 
     private final String code;
 

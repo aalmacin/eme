@@ -1,6 +1,10 @@
 package com.raidrin.eme.controller;
 
+import com.google.cloud.texttospeech.v1.SsmlVoiceGender;
 import com.raidrin.eme.anki.AnkiNoteCreatorService;
+import com.raidrin.eme.audio.AsyncAudioGenerationService;
+import com.raidrin.eme.audio.LanguageAudioCodes;
+import com.raidrin.eme.codec.Codec;
 import com.raidrin.eme.session.SessionOrchestrationService;
 import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
@@ -37,6 +41,7 @@ public class TranslationSessionController {
     private final SessionOrchestrationService sessionOrchestrationService;
     private final CharacterGuideService characterGuideService;
     private final TranslationService translationService;
+    private final AsyncAudioGenerationService audioGenerationService;
 
     @GetMapping
     public String listSessions(Model model,
@@ -110,6 +115,9 @@ public class TranslationSessionController {
                         enrichWithCharacterGuideInfo(wordData, session.getSourceLanguage(), session.getTargetLanguage());
                     }
                 }
+
+                // Update audio count in process_summary to reflect current state
+                updateAudioCountInProcessSummary(sessionData, words);
             }
 
             // Extract source words from session data for display
@@ -333,6 +341,322 @@ public class TranslationSessionController {
             System.err.println("Failed to retry session: " + e.getMessage());
             e.printStackTrace();
             return "redirect:/sessions/" + id + "?error=retry-failed";
+        }
+    }
+
+    @PostMapping("/{id}/regenerate-audio")
+    @SuppressWarnings("unchecked")
+    public String regenerateAudio(@PathVariable Long id, @RequestParam int wordIndex) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+        // Get words from session data
+        if (!sessionData.containsKey("words")) {
+            return "redirect:/sessions/" + id + "?error=no-words-in-session";
+        }
+
+        List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+        if (wordIndex < 0 || wordIndex >= words.size()) {
+            return "redirect:/sessions/" + id + "?error=invalid-word-index";
+        }
+
+        Map<String, Object> wordData = words.get(wordIndex);
+        String sourceWord = (String) wordData.get("source_word");
+
+        if (sourceWord == null || sourceWord.trim().isEmpty()) {
+            return "redirect:/sessions/" + id + "?error=invalid-source-word";
+        }
+
+        try {
+            // Get audio configuration from original request or use defaults
+            Map<String, Object> originalRequest = sessionData.containsKey("original_request")
+                    ? (Map<String, Object>) sessionData.get("original_request")
+                    : new HashMap<>();
+
+            boolean enableSourceAudio = (Boolean) originalRequest.getOrDefault("enable_source_audio", true);
+            boolean enableTargetAudio = (Boolean) originalRequest.getOrDefault("enable_target_audio", false);
+
+            List<AsyncAudioGenerationService.AudioRequest> audioRequests = new ArrayList<>();
+
+            // Get language audio configuration
+            LangAudioOption sourceLangAudio = getLangAudioOption(session.getSourceLanguage());
+            LangAudioOption targetLangAudio = getLangAudioOption(session.getTargetLanguage());
+
+            // Generate source audio
+            if (enableSourceAudio) {
+                String sourceAudioFileName = Codec.encodeForAudioFileName(sourceWord);
+                AsyncAudioGenerationService.AudioRequest sourceAudioRequest =
+                        new AsyncAudioGenerationService.AudioRequest(
+                                sourceWord,
+                                sourceLangAudio.languageCode,
+                                sourceLangAudio.voiceGender,
+                                sourceLangAudio.voiceName,
+                                sourceAudioFileName
+                        );
+                audioRequests.add(sourceAudioRequest);
+                wordData.put("source_audio_file", sourceAudioFileName + ".mp3");
+            }
+
+            // Generate target audio
+            if (enableTargetAudio && wordData.containsKey("translations")) {
+                List<String> translations = (List<String>) wordData.get("translations");
+                List<String> targetAudioFiles = new ArrayList<>();
+
+                for (String translation : translations) {
+                    String targetAudioFileName = Codec.encodeForAudioFileName(translation);
+                    AsyncAudioGenerationService.AudioRequest targetAudioRequest =
+                            new AsyncAudioGenerationService.AudioRequest(
+                                    translation,
+                                    targetLangAudio.languageCode,
+                                    targetLangAudio.voiceGender,
+                                    targetLangAudio.voiceName,
+                                    targetAudioFileName
+                            );
+                    audioRequests.add(targetAudioRequest);
+                    targetAudioFiles.add(targetAudioFileName + ".mp3");
+                }
+
+                wordData.put("target_audio_files", targetAudioFiles);
+            }
+
+            // Generate audio files
+            if (!audioRequests.isEmpty()) {
+                audioGenerationService.generateAudioFilesAsync(audioRequests).get();
+            }
+
+            // Update session data
+            words.set(wordIndex, wordData);
+            sessionData.put("words", words);
+
+            // Update audio count in process_summary
+            updateAudioCountInProcessSummary(sessionData, words);
+
+            translationSessionService.updateSessionData(id, sessionData);
+
+            System.out.println("Regenerated audio for word: " + sourceWord + " in session " + id);
+            return "redirect:/sessions/" + id + "?message=audio-regenerated";
+
+        } catch (Exception e) {
+            System.err.println("Failed to regenerate audio: " + e.getMessage());
+            e.printStackTrace();
+            return "redirect:/sessions/" + id + "?error=audio-regeneration-failed";
+        }
+    }
+
+    @PostMapping("/{id}/regenerate-all-audio")
+    @SuppressWarnings("unchecked")
+    public String regenerateAllAudio(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+        // Get words from session data
+        if (!sessionData.containsKey("words")) {
+            return "redirect:/sessions/" + id + "?error=no-words-in-session";
+        }
+
+        List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+        if (words.isEmpty()) {
+            return "redirect:/sessions/" + id + "?error=no-words-to-regenerate";
+        }
+
+        try {
+            // Get audio configuration from original request or use defaults
+            Map<String, Object> originalRequest = sessionData.containsKey("original_request")
+                    ? (Map<String, Object>) sessionData.get("original_request")
+                    : new HashMap<>();
+
+            boolean enableSourceAudio = (Boolean) originalRequest.getOrDefault("enable_source_audio", true);
+            boolean enableTargetAudio = (Boolean) originalRequest.getOrDefault("enable_target_audio", false);
+
+            List<AsyncAudioGenerationService.AudioRequest> audioRequests = new ArrayList<>();
+
+            // Get language audio configuration
+            LangAudioOption sourceLangAudio = getLangAudioOption(session.getSourceLanguage());
+            LangAudioOption targetLangAudio = getLangAudioOption(session.getTargetLanguage());
+
+            // Process all words
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+
+                if (sourceWord == null || sourceWord.trim().isEmpty()) {
+                    continue;
+                }
+
+                // Generate source audio
+                if (enableSourceAudio) {
+                    String sourceAudioFileName = Codec.encodeForAudioFileName(sourceWord);
+                    AsyncAudioGenerationService.AudioRequest sourceAudioRequest =
+                            new AsyncAudioGenerationService.AudioRequest(
+                                    sourceWord,
+                                    sourceLangAudio.languageCode,
+                                    sourceLangAudio.voiceGender,
+                                    sourceLangAudio.voiceName,
+                                    sourceAudioFileName
+                            );
+                    audioRequests.add(sourceAudioRequest);
+                    wordData.put("source_audio_file", sourceAudioFileName + ".mp3");
+                }
+
+                // Generate target audio
+                if (enableTargetAudio && wordData.containsKey("translations")) {
+                    List<String> translations = (List<String>) wordData.get("translations");
+                    List<String> targetAudioFiles = new ArrayList<>();
+
+                    for (String translation : translations) {
+                        String targetAudioFileName = Codec.encodeForAudioFileName(translation);
+                        AsyncAudioGenerationService.AudioRequest targetAudioRequest =
+                                new AsyncAudioGenerationService.AudioRequest(
+                                        translation,
+                                        targetLangAudio.languageCode,
+                                        targetLangAudio.voiceGender,
+                                        targetLangAudio.voiceName,
+                                        targetAudioFileName
+                                );
+                        audioRequests.add(targetAudioRequest);
+                        targetAudioFiles.add(targetAudioFileName + ".mp3");
+                    }
+
+                    wordData.put("target_audio_files", targetAudioFiles);
+                }
+            }
+
+            // Generate all audio files
+            if (!audioRequests.isEmpty()) {
+                audioGenerationService.generateAudioFilesAsync(audioRequests).get();
+            }
+
+            // Update session data
+            sessionData.put("words", words);
+
+            // Update audio count in process_summary
+            updateAudioCountInProcessSummary(sessionData, words);
+
+            translationSessionService.updateSessionData(id, sessionData);
+
+            System.out.println("Regenerated audio for " + words.size() + " words in session " + id);
+            return "redirect:/sessions/" + id + "?message=all-audio-regenerated";
+
+        } catch (Exception e) {
+            System.err.println("Failed to regenerate all audio: " + e.getMessage());
+            e.printStackTrace();
+            return "redirect:/sessions/" + id + "?error=audio-regeneration-failed";
+        }
+    }
+
+    /**
+     * Update audio count in process_summary based on word-level audio data
+     */
+    @SuppressWarnings("unchecked")
+    private void updateAudioCountInProcessSummary(Map<String, Object> sessionData, List<Map<String, Object>> words) {
+        int audioCount = 0;
+
+        // Count audio files from word data
+        for (Map<String, Object> wordData : words) {
+            // Count source audio
+            if (wordData.containsKey("source_audio_file") && wordData.get("source_audio_file") != null) {
+                audioCount++;
+            }
+
+            // Count target audio files
+            if (wordData.containsKey("target_audio_files") && wordData.get("target_audio_files") instanceof List) {
+                List<?> targetAudioFiles = (List<?>) wordData.get("target_audio_files");
+                audioCount += targetAudioFiles.size();
+            }
+        }
+
+        // Update process_summary
+        Map<String, Object> processSummary;
+        if (sessionData.containsKey("process_summary") && sessionData.get("process_summary") instanceof Map) {
+            processSummary = (Map<String, Object>) sessionData.get("process_summary");
+        } else {
+            processSummary = new HashMap<>();
+            sessionData.put("process_summary", processSummary);
+        }
+
+        processSummary.put("audio_success_count", audioCount);
+        processSummary.put("audio_failure_count", 0); // Reset failures after successful regeneration
+
+        System.out.println("Updated audio count in process_summary: " + audioCount + " audio files");
+    }
+
+    private static class LangAudioOption {
+        public LanguageAudioCodes languageCode;
+        public SsmlVoiceGender voiceGender;
+        public String voiceName;
+    }
+
+    private LangAudioOption getLangAudioOption(String lang) {
+        LangAudioOption langAudioOption = new LangAudioOption();
+        switch (lang) {
+            case "en" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.English;
+                langAudioOption.voiceGender = SsmlVoiceGender.MALE;
+                langAudioOption.voiceName = "en-US-Neural2-A";
+                return langAudioOption;
+            }
+            case "es" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Spanish;
+                langAudioOption.voiceGender = SsmlVoiceGender.MALE;
+                langAudioOption.voiceName = "es-US-Neural2-B";
+                return langAudioOption;
+            }
+            case "fr" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.French;
+                langAudioOption.voiceGender = SsmlVoiceGender.MALE;
+                langAudioOption.voiceName = "fr-FR-Neural2-B";
+                return langAudioOption;
+            }
+            case "cafr" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.CanadianFrench;
+                langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
+                langAudioOption.voiceName = "fr-CA-Neural2-A";
+                return langAudioOption;
+            }
+            case "kr" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Korean;
+                langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
+                langAudioOption.voiceName = "ko-KR-Standard-A";
+                return langAudioOption;
+            }
+            case "jp" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Japanese;
+                langAudioOption.voiceGender = SsmlVoiceGender.MALE;
+                langAudioOption.voiceName = "ja-JP-Neural2-C";
+                return langAudioOption;
+            }
+            case "hi" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Hindi;
+                langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
+                langAudioOption.voiceName = "hi-IN-Neural2-A";
+                return langAudioOption;
+            }
+            case "pa" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Punjabi;
+                langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
+                langAudioOption.voiceName = "pa-IN-Standard-A";
+                return langAudioOption;
+            }
+            case "tl" -> {
+                langAudioOption.languageCode = LanguageAudioCodes.Tagalog;
+                langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
+                langAudioOption.voiceName = "fil-PH-Standard-A";
+                return langAudioOption;
+            }
+            default -> throw new RuntimeException("Invalid language code");
         }
     }
 

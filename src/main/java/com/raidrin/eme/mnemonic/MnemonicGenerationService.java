@@ -70,7 +70,7 @@ public class MnemonicGenerationService {
         OpenAiRequest request = new OpenAiRequest();
         request.setModel("gpt-4o-mini");
         request.setMessages(List.of(
-                new OpenAiMessage("system", "You are a mnemonic memory expert who creates vivid, memorable associations for language learning. You MUST use REAL, WELL-KNOWN characters from actual shows, movies, sports, or public life - NEVER create fictional characters. Always specify the character's origin (e.g., 'from Naruto', 'the NBA player'). Always respond with valid JSON only."),
+                new OpenAiMessage("system", "You are a mnemonic memory expert who creates vivid, memorable associations for language learning. You MUST use REAL, WELL-KNOWN characters from actual shows, movies, sports, or public life - NEVER create fictional characters. Always specify the character's origin (e.g., 'from Naruto', 'the NBA player'). Always respond with valid JSON only.\n\nIMPORTANT SAFETY GUIDELINES for image prompts:\n- Keep all content family-friendly and appropriate for all ages\n- Avoid violence, weapons, blood, injuries, or dangerous situations\n- Avoid suggestive, romantic, or intimate scenarios\n- Avoid controversial political or religious imagery\n- Avoid copyrighted brand names or logos\n- Focus on positive, educational, and wholesome scenes\n- Use everyday activities, nature scenes, and safe interactions"),
                 new OpenAiMessage("user", prompt)
         ));
         request.setMaxTokens(500);
@@ -97,6 +97,10 @@ public class MnemonicGenerationService {
 
                 // Parse JSON response
                 MnemonicData mnemonicData = objectMapper.readValue(content, MnemonicData.class);
+
+                // Validate the generated mnemonic data
+                validateMnemonicData(mnemonicData, sourceWord, targetWord, sourceCharacter);
+
                 return mnemonicData;
             } else {
                 throw new RuntimeException("OpenAI API returned empty response");
@@ -142,6 +146,88 @@ public class MnemonicGenerationService {
     }
 
     /**
+     * Generate mnemonic sentence and image prompt from an existing keyword
+     * This is used when the keyword is manually set or when regenerating with the same keyword
+     *
+     * @param mnemonicKeyword The mnemonic keyword to base the generation on
+     * @param sourceWord Word in source language
+     * @param targetWord Word in target language (translation)
+     * @param sourceLanguage Source language code
+     * @param targetLanguage Target language code
+     * @param sourceTransliteration Transliteration of source word (for character matching)
+     * @param imageStyle Style for image generation
+     * @return MnemonicData containing the provided keyword, generated sentence, and image prompt
+     */
+    public MnemonicData generateMnemonicFromKeyword(String mnemonicKeyword, String sourceWord, String targetWord,
+                                                    String sourceLanguage, String targetLanguage,
+                                                    String sourceTransliteration, ImageStyle imageStyle) {
+
+        // Default to REALISTIC_CINEMATIC if no style provided
+        if (imageStyle == null) {
+            imageStyle = ImageStyle.REALISTIC_CINEMATIC;
+        }
+
+        // Find character association for source word if transliteration is available
+        Optional<CharacterGuideEntity> sourceCharacter = (sourceTransliteration != null && !sourceTransliteration.trim().isEmpty())
+                ? characterGuideService.findMatchingCharacterForWord(sourceWord, sourceLanguage, sourceTransliteration)
+                : Optional.empty();
+
+        // Build the prompt for generating sentence and image from keyword
+        String prompt = buildMnemonicFromKeywordPrompt(mnemonicKeyword, sourceWord, targetWord,
+                sourceLanguage, targetLanguage, sourceCharacter, sourceTransliteration, imageStyle);
+
+        System.out.println("Generating mnemonic from keyword '" + mnemonicKeyword + "' for: " + sourceWord + " -> " + targetWord);
+
+        // Call OpenAI API
+        OpenAiRequest request = new OpenAiRequest();
+        request.setModel("gpt-4o-mini");
+        request.setMessages(List.of(
+                new OpenAiMessage("system", "You are a mnemonic memory expert who creates vivid, memorable associations for language learning. You MUST use REAL, WELL-KNOWN characters from actual shows, movies, sports, or public life - NEVER create fictional characters. Always specify the character's origin. Always respond with valid JSON only.\n\nIMPORTANT SAFETY GUIDELINES for image prompts:\n- Keep all content family-friendly and appropriate for all ages\n- Avoid violence, weapons, blood, injuries, or dangerous situations\n- Avoid suggestive, romantic, or intimate scenarios\n- Avoid controversial political or religious imagery\n- Avoid copyrighted brand names or logos\n- Focus on positive, educational, and wholesome scenes\n- Use everyday activities, nature scenes, and safe interactions"),
+                new OpenAiMessage("user", prompt)
+        ));
+        request.setMaxTokens(500);
+        request.setTemperature(0.7);
+        request.setResponseFormat(new ResponseFormat("json_object"));
+
+        try {
+            HttpHeaders headers = new HttpHeaders();
+            headers.set("Authorization", "Bearer " + openAiApiKey);
+            headers.set("Content-Type", "application/json");
+
+            HttpEntity<OpenAiRequest> entity = new HttpEntity<>(request, headers);
+
+            ResponseEntity<OpenAiResponse> response = restTemplate.exchange(
+                    "https://api.openai.com/v1/chat/completions",
+                    HttpMethod.POST,
+                    entity,
+                    OpenAiResponse.class
+            );
+
+            if (response.getBody() != null && !response.getBody().getChoices().isEmpty()) {
+                String content = response.getBody().getChoices().get(0).getMessage().getContent();
+                System.out.println("Mnemonic from keyword response: " + content);
+
+                // Parse JSON response
+                MnemonicData mnemonicData = objectMapper.readValue(content, MnemonicData.class);
+
+                // Ensure the keyword matches the input (OpenAI should return it, but we enforce it)
+                mnemonicData.mnemonic_keyword = mnemonicKeyword;
+
+                // Validate the generated mnemonic data
+                validateMnemonicData(mnemonicData, sourceWord, targetWord, sourceCharacter);
+
+                return mnemonicData;
+            } else {
+                throw new RuntimeException("OpenAI API returned empty response");
+            }
+        } catch (Exception e) {
+            System.err.println("Mnemonic from keyword generation error: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to generate mnemonic from keyword: " + e.getMessage(), e);
+        }
+    }
+
+    /**
      * Generate multiple mnemonics for a list of translation pairs
      */
     public List<MnemonicData> generateMnemonics(List<TranslationPair> translations,
@@ -150,6 +236,92 @@ public class MnemonicGenerationService {
                 .map(pair -> generateMnemonic(pair.getSourceWord(), pair.getTargetWord(),
                         sourceLanguage, targetLanguage))
                 .toList();
+    }
+
+    private String buildMnemonicFromKeywordPrompt(String mnemonicKeyword, String sourceWord, String targetWord,
+                                                  String sourceLanguage, String targetLanguage,
+                                                  Optional<CharacterGuideEntity> sourceCharacter,
+                                                  String sourceTransliteration, ImageStyle imageStyle) {
+
+        StringBuilder prompt = new StringBuilder();
+        prompt.append("Create a mnemonic to remember that '").append(sourceWord).append("' (")
+                .append(getLanguageName(sourceLanguage)).append(") means '").append(targetWord)
+                .append("' (").append(getLanguageName(targetLanguage)).append(").\n\n");
+
+        prompt.append("MNEMONIC KEYWORD PROVIDED: '").append(mnemonicKeyword).append("'\n");
+        prompt.append("You MUST use this exact keyword - do NOT change it or create a new one!\n\n");
+
+        // Character assignment section - USE ONLY ONE CHARACTER
+        prompt.append("CHARACTER TO USE:\n");
+
+        // Add character information if available
+        if (sourceCharacter.isPresent()) {
+            CharacterGuideEntity sc = sourceCharacter.get();
+            prompt.append("- Use ONLY this character: ").append(sc.getCharacterName()).append(" from ").append(sc.getCharacterContext())
+                    .append(" (REQUIRED - DO NOT CHANGE THIS CHARACTER)\n");
+        } else {
+            // Include transliteration if available
+            if (sourceTransliteration != null && !sourceTransliteration.trim().isEmpty()) {
+                prompt.append("- The word '").append(sourceWord).append("' is romanized as: ").append(sourceTransliteration).append("\n");
+            }
+            prompt.append("- CRITICAL CHARACTER SELECTION RULE: You MUST choose EXACTLY ONE REAL, WELL-KNOWN character whose name starts with the FIRST 2-3 LETTERS of the source word's ROMANIZATION.\n");
+            prompt.append("  STEP 1: Determine the romanization (pronunciation in English letters) of '").append(sourceWord).append("'");
+            if (sourceTransliteration != null && !sourceTransliteration.trim().isEmpty()) {
+                prompt.append(" (provided above: ").append(sourceTransliteration).append(")");
+            }
+            prompt.append(".\n");
+            prompt.append("  STEP 2: Try to find a character whose name starts with the FIRST 3 LETTERS of the romanization.\n");
+            prompt.append("  STEP 3: If no 3-letter match exists, find a character whose name starts with the FIRST 2 LETTERS.\n");
+            prompt.append("  IMPORTANT: DO NOT use the mnemonic keyword for character selection! The mnemonic keyword is ONLY for scene objects.\n");
+            prompt.append("  NEVER choose a character with a different starting sound!\n");
+
+            prompt.append("\nCHARACTER SELECTION PRIORITIES:\n");
+            prompt.append("1. Anime Characters - MUST be from real shows\n");
+            prompt.append("2. Athletes - MUST be real\n");
+            prompt.append("3. Fictional Characters - MUST be from real media\n");
+            prompt.append("4. Filipino Celebrities - MUST be real\n");
+            prompt.append("5. Celebrities - MUST be real and well-known\n");
+            prompt.append("ALWAYS specify the character's origin. USE ONLY ONE CHARACTER TOTAL.\n");
+        }
+
+        prompt.append("\nUsing the provided mnemonic keyword '").append(mnemonicKeyword).append("', create:\n");
+        prompt.append("1. A 'mnemonic_keyword' field - you MUST return the EXACT keyword provided: '").append(mnemonicKeyword).append("'\n");
+        prompt.append("2. A 'mnemonic_sentence' - a vivid, memorable sentence that:\n");
+        prompt.append("   - Features the character specified above\n");
+        prompt.append("   - Incorporates the keyword '").append(mnemonicKeyword).append("' as a visual object or action\n");
+        prompt.append("   - Connects to the meaning '").append(targetWord).append("'\n");
+        prompt.append("   - Creates a memorable story linking sound ('").append(sourceWord).append("') -> keyword ('").append(mnemonicKeyword).append("') -> meaning ('").append(targetWord).append("')\n");
+        prompt.append("3. An 'image_prompt' - a detailed prompt for generating an image in ").append(imageStyle.getDisplayName().toUpperCase()).append(" style.\n\n");
+        prompt.append("   === MANDATORY REQUIREMENTS - ALL THREE ELEMENTS MUST BE PRESENT ===\n");
+        prompt.append("   The image MUST include ALL THREE of these elements:\n");
+        prompt.append("   1️⃣ CHARACTER: The specific character mentioned above (").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() + " from " + sourceCharacter.get().getCharacterContext() : "character matching the word's sound").append(")\n");
+        prompt.append("   2️⃣ MNEMONIC KEYWORD: '").append(mnemonicKeyword).append("' represented VISUALLY through objects, actions, or scenery\n");
+        prompt.append("      Example: If keyword is 'sail', show the character ON a sailboat with sails visible\n");
+        prompt.append("   3️⃣ TRANSLATION MEANING: '").append(targetWord).append("' represented VISUALLY through objects or context\n");
+        prompt.append("      Example: If meaning is 'year', show a calendar, seasonal elements, or birthday cake with candles\n");
+        prompt.append("   ================================================================\n\n");
+        prompt.append("   STYLE REQUIREMENT: The image MUST be described as '").append(imageStyle.getDisplayName()).append("' style\n");
+        prompt.append("   COMPOSITION:\n");
+        prompt.append("   - The character is the main focus, clearly visible and identifiable\n");
+        prompt.append("   - The character is actively interacting with BOTH the keyword object AND the meaning object\n");
+        prompt.append("   - Dynamic, vibrant atmosphere during golden hour\n");
+        prompt.append("   - NO additional people or characters beyond the one specified\n");
+        prompt.append("   CRITICAL: ABSOLUTELY NO text in the image prompt description - NO words, labels, signs, or captions\n");
+        prompt.append("   SAFETY REQUIREMENTS for image_prompt:\n");
+        prompt.append("   - Keep the scene family-friendly and appropriate for all ages\n");
+        prompt.append("   - NO violence, weapons, fighting, blood, or injuries\n");
+        prompt.append("   - NO suggestive poses, romantic scenarios, or intimate situations\n");
+        prompt.append("   - Focus on safe, positive, everyday activities and interactions\n");
+        prompt.append("   - Character should be engaged in wholesome, educational activities\n\n");
+
+        prompt.append("Respond with valid JSON in this format:\n");
+        prompt.append("{\n");
+        prompt.append("  \"mnemonic_keyword\": \"").append(mnemonicKeyword).append("\",\n");
+        prompt.append("  \"mnemonic_sentence\": \"...\",\n");
+        prompt.append("  \"image_prompt\": \"...\"\n");
+        prompt.append("}");
+
+        return prompt.toString();
     }
 
     private String buildMnemonicPrompt(String sourceWord, String targetWord,
@@ -213,15 +385,21 @@ public class MnemonicGenerationService {
         prompt.append("   - Examples of BAD keywords: verbs, adjectives, abstract concepts, the actual words being learned, or non-English words\n");
         prompt.append("2. A 'mnemonic_sentence' - a vivid, memorable sentence connecting the character")
                 .append(" with the meaning '").append(targetWord).append("'\n");
-        prompt.append("3. An 'image_prompt' - a detailed prompt for generating an image in ").append(imageStyle.getDisplayName().toUpperCase()).append(" style showing:\n");
+        prompt.append("3. An 'image_prompt' - a detailed prompt for generating an image in ").append(imageStyle.getDisplayName().toUpperCase()).append(" style.\n\n");
+        prompt.append("   === MANDATORY REQUIREMENTS - ALL THREE ELEMENTS MUST BE PRESENT ===\n");
+        prompt.append("   The image MUST include ALL THREE of these elements:\n");
+        prompt.append("   1️⃣ CHARACTER: The specific character mentioned above (").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() + " from " + sourceCharacter.get().getCharacterContext() : "character matching the word's sound").append(")\n");
+        prompt.append("   2️⃣ MNEMONIC KEYWORD: The keyword you create - represented VISUALLY through objects, actions, or scenery\n");
+        prompt.append("      Example: If keyword is 'sail', show the character ON a sailboat with sails visible\n");
+        prompt.append("   3️⃣ TRANSLATION MEANING: '").append(targetWord).append("' represented VISUALLY through objects or context\n");
+        prompt.append("      Example: If meaning is 'year', show a calendar, seasonal elements, or birthday cake with candles\n");
+        prompt.append("   ================================================================\n\n");
         prompt.append("   STYLE REQUIREMENT: The image MUST be described as '").append(imageStyle.getDisplayName()).append("' style\n");
-        prompt.append("   - ONLY ONE character (the one specified above) as the main focus\n");
-        prompt.append("   - The mnemonic keyword represented VISUALLY through objects, actions, or scenery (NOT as text)\n");
-        prompt.append("     Example: If keyword is 'sail', show the character sailing on a boat\n");
-        prompt.append("   - Visual objects that represent the meaning '").append(targetWord).append("'\n");
-        prompt.append("     Example: If meaning is 'year', show a calendar or clock\n");
-        prompt.append("   - The character interacting with both the keyword object and the meaning object\n");
+        prompt.append("   COMPOSITION:\n");
+        prompt.append("   - The character is the main focus, clearly visible and identifiable\n");
+        prompt.append("   - The character is actively interacting with BOTH the keyword object AND the meaning object\n");
         prompt.append("   - Dynamic, vibrant atmosphere during golden hour\n");
+        prompt.append("   - NO additional people or characters beyond the one specified\n");
         prompt.append("   CRITICAL: ABSOLUTELY NO text in the image prompt description:\n");
         prompt.append("   - NO book titles (e.g., NO 'book titled X', just 'book')\n");
         prompt.append("   - NO labels or signs with text\n");
@@ -229,7 +407,12 @@ public class MnemonicGenerationService {
         prompt.append("   - NO speech bubbles or written words of any kind\n");
         prompt.append("   - NO captions or subtitles\n");
         prompt.append("   - Describe objects WITHOUT mentioning any text that would appear on them\n");
-        prompt.append("   - NO additional people or characters beyond the one specified\n\n");
+        prompt.append("   SAFETY REQUIREMENTS for image_prompt:\n");
+        prompt.append("   - Keep the scene family-friendly and appropriate for all ages\n");
+        prompt.append("   - NO violence, weapons, fighting, blood, or injuries\n");
+        prompt.append("   - NO suggestive poses, romantic scenarios, or intimate situations\n");
+        prompt.append("   - Focus on safe, positive, everyday activities and interactions\n");
+        prompt.append("   - Character should be engaged in wholesome, educational activities\n\n");
 
         prompt.append("Respond with valid JSON in this format:\n");
         prompt.append("{\n");
@@ -239,6 +422,137 @@ public class MnemonicGenerationService {
         prompt.append("}");
 
         return prompt.toString();
+    }
+
+    /**
+     * Sanitize image prompt to ensure it's safe for image generation APIs
+     * This removes potentially problematic words and phrases that might trigger safety systems
+     */
+    public String sanitizeImagePrompt(String imagePrompt) {
+        if (imagePrompt == null || imagePrompt.trim().isEmpty()) {
+            return imagePrompt;
+        }
+
+        String sanitized = imagePrompt;
+
+        // List of potentially problematic words/phrases to filter out or replace
+        // Violence-related
+        sanitized = sanitized.replaceAll("(?i)\\b(weapon|gun|knife|sword|blade|blood|violence|fight|fighting|attack|kill|death|dead|murder|war|battle|combat|injury|hurt|wound|dangerous)\\b", "item");
+
+        // Inappropriate/suggestive content
+        sanitized = sanitized.replaceAll("(?i)\\b(sexy|sensual|seductive|romantic|intimate|kiss|embrace|hug|love|dating|flirt)\\b", "friendly");
+
+        // Political/controversial
+        sanitized = sanitized.replaceAll("(?i)\\b(political|politics|politician|election|vote|protest|rally|demonstration)\\b", "gathering");
+
+        // Religious (to avoid potential controversies)
+        sanitized = sanitized.replaceAll("(?i)\\b(religious|religion|worship|pray|prayer|sacred|holy|divine|god|goddess|deity)\\b", "peaceful");
+
+        // Alcohol/drugs
+        sanitized = sanitized.replaceAll("(?i)\\b(alcohol|beer|wine|liquor|drunk|drug|smoking|cigarette|cigar|tobacco)\\b", "beverage");
+
+        // Negative emotions/scenarios that might be problematic
+        sanitized = sanitized.replaceAll("(?i)\\b(scary|horror|terrifying|nightmare|fear|afraid|panic|scream|crying|sad|depressed)\\b", "surprised");
+
+        // Clean up any multiple spaces created by replacements
+        sanitized = sanitized.replaceAll("\\s+", " ").trim();
+
+        // Add safety prefix to guide the image generation model
+        String safetyPrefix = "Family-friendly educational image: ";
+        sanitized = safetyPrefix + sanitized;
+
+        // Log if changes were made
+        if (!sanitized.equals(imagePrompt)) {
+            System.out.println("Image prompt was sanitized:");
+            System.out.println("  Original: " + imagePrompt);
+            System.out.println("  Sanitized: " + sanitized);
+        }
+
+        return sanitized;
+    }
+
+    /**
+     * Validate that the generated mnemonic data contains all required elements
+     */
+    private void validateMnemonicData(MnemonicData mnemonicData, String sourceWord, String targetWord,
+                                      Optional<CharacterGuideEntity> sourceCharacter) {
+        StringBuilder validationIssues = new StringBuilder();
+
+        // Validate mnemonic keyword is present
+        if (mnemonicData.getMnemonicKeyword() == null || mnemonicData.getMnemonicKeyword().trim().isEmpty()) {
+            validationIssues.append("⚠️ WARNING: Mnemonic keyword is missing!\n");
+        } else {
+            System.out.println("✓ Mnemonic keyword present: " + mnemonicData.getMnemonicKeyword());
+        }
+
+        // Validate mnemonic sentence is present
+        if (mnemonicData.getMnemonicSentence() == null || mnemonicData.getMnemonicSentence().trim().isEmpty()) {
+            validationIssues.append("⚠️ WARNING: Mnemonic sentence is missing!\n");
+        } else {
+            System.out.println("✓ Mnemonic sentence present");
+        }
+
+        // Validate image prompt is present
+        if (mnemonicData.getImagePrompt() == null || mnemonicData.getImagePrompt().trim().isEmpty()) {
+            validationIssues.append("⚠️ WARNING: Image prompt is missing!\n");
+        } else {
+            String imagePrompt = mnemonicData.getImagePrompt().toLowerCase();
+
+            // Check if character is mentioned in image prompt
+            if (sourceCharacter.isPresent()) {
+                String characterName = sourceCharacter.get().getCharacterName().toLowerCase();
+                if (!imagePrompt.contains(characterName)) {
+                    validationIssues.append("⚠️ WARNING: Character '")
+                            .append(sourceCharacter.get().getCharacterName())
+                            .append("' from character guide is NOT mentioned in image prompt!\n");
+                    validationIssues.append("   Expected character: ")
+                            .append(sourceCharacter.get().getCharacterName())
+                            .append(" from ")
+                            .append(sourceCharacter.get().getCharacterContext())
+                            .append("\n");
+                } else {
+                    System.out.println("✓ Character from guide found in prompt: " + sourceCharacter.get().getCharacterName());
+                }
+            } else {
+                System.out.println("ℹ️ INFO: No character guide entry found, OpenAI will choose character based on transliteration");
+            }
+
+            // Check if mnemonic keyword is likely represented (keyword should influence the scene)
+            String keyword = mnemonicData.getMnemonicKeyword();
+            if (keyword != null && !keyword.trim().isEmpty()) {
+                // The keyword might not be directly mentioned (it's visual), but let's check
+                if (imagePrompt.contains(keyword.toLowerCase())) {
+                    System.out.println("✓ Mnemonic keyword found in prompt: " + keyword);
+                } else {
+                    System.out.println("ℹ️ INFO: Mnemonic keyword '" + keyword + "' not explicitly in prompt (might be represented visually)");
+                }
+            }
+
+            // Check if translation/meaning is likely represented
+            if (targetWord != null && !targetWord.trim().isEmpty()) {
+                if (imagePrompt.contains(targetWord.toLowerCase())) {
+                    System.out.println("✓ Translation/meaning found in prompt: " + targetWord);
+                } else {
+                    System.out.println("ℹ️ INFO: Translation '" + targetWord + "' not explicitly in prompt (might be represented visually)");
+                }
+            }
+
+            System.out.println("✓ Image prompt present: " + mnemonicData.getImagePrompt().substring(0, Math.min(100, mnemonicData.getImagePrompt().length())) + "...");
+        }
+
+        // Log any validation issues
+        if (validationIssues.length() > 0) {
+            System.err.println("\n========== MNEMONIC VALIDATION WARNINGS ==========");
+            System.err.println("Source word: " + sourceWord + " -> Translation: " + targetWord);
+            System.err.println(validationIssues.toString());
+            System.err.println("Full mnemonic data:");
+            System.err.println("  Keyword: " + mnemonicData.getMnemonicKeyword());
+            System.err.println("  Sentence: " + mnemonicData.getMnemonicSentence());
+            System.err.println("  Image prompt: " + mnemonicData.getImagePrompt());
+            System.err.println("==================================================\n");
+        } else {
+            System.out.println("✓ All mnemonic data validation passed for: " + sourceWord + " -> " + targetWord);
+        }
     }
 
     private String getLanguageName(String lang) {

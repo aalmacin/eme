@@ -136,34 +136,63 @@ public class WordController {
                     return ResponseEntity.badRequest().body(response);
                 }
 
-                // Generate mnemonic and prompt with transliteration for character matching
+                // Generate mnemonic based on whether keyword was manually set
                 String transliteration = word.getSourceTransliteration();
-                MnemonicGenerationService.MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
-                        word.getWord(),
-                        translation,
-                        word.getSourceLanguage(),
-                        word.getTargetLanguage(),
-                        transliteration,
-                        imageStyle
-                );
+                MnemonicGenerationService.MnemonicData mnemonicData;
+                String mnemonicKeywordToUse;
+
+                // Check if mnemonic keyword was manually updated
+                if (word.getMnemonicKeywordUpdatedAt() != null) {
+                    // Keyword was manually set - generate sentence and prompt FROM the manual keyword
+                    String manualKeyword = word.getMnemonicKeyword();
+                    System.out.println("Preserving manually updated mnemonic keyword and regenerating from it: " + manualKeyword +
+                            " (updated at: " + word.getMnemonicKeywordUpdatedAt() + ")");
+
+                    mnemonicData = mnemonicGenerationService.generateMnemonicFromKeyword(
+                            manualKeyword,
+                            word.getWord(),
+                            translation,
+                            word.getSourceLanguage(),
+                            word.getTargetLanguage(),
+                            transliteration,
+                            imageStyle
+                    );
+                    mnemonicKeywordToUse = manualKeyword;
+                } else {
+                    // No manual keyword - generate everything including a new keyword
+                    mnemonicData = mnemonicGenerationService.generateMnemonic(
+                            word.getWord(),
+                            translation,
+                            word.getSourceLanguage(),
+                            word.getTargetLanguage(),
+                            transliteration,
+                            imageStyle
+                    );
+                    mnemonicKeywordToUse = mnemonicData.getMnemonicKeyword();
+                }
 
                 imagePrompt = mnemonicData.getImagePrompt();
 
-                // Update mnemonic data
-                wordService.updateMnemonic(
+                // Update mnemonic data and clear old image in a single transaction
+                // (keyword will be null if manually set, preserving it)
+                wordService.updateMnemonicAndClearImage(
                         word.getWord(),
                         word.getSourceLanguage(),
                         word.getTargetLanguage(),
-                        mnemonicData.getMnemonicKeyword(),
+                        word.getMnemonicKeywordUpdatedAt() != null ? null : mnemonicKeywordToUse,
                         mnemonicData.getMnemonicSentence(),
                         imagePrompt
                 );
             }
 
-            // Update the prompt and clear old image (only if not using same prompt)
-            if (!useSamePrompt) {
+            // Clear the old image if we didn't already do it above (when using same prompt)
+            if (useSamePrompt) {
                 wordService.updateImagePromptAndClearImage(wordId, imagePrompt);
             }
+
+            // Sanitize the image prompt before sending to image generation API
+            String sanitizedPrompt = mnemonicGenerationService.sanitizeImagePrompt(imagePrompt);
+            System.out.println("Sanitized image prompt: " + sanitizedPrompt);
 
             // Generate new image using OpenAI with selected model
             String imageUrl;
@@ -171,7 +200,7 @@ public class WordController {
 
             System.out.println("Generating image with OpenAI model: " + model);
 
-            OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(imagePrompt, model);
+            OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(sanitizedPrompt, model);
             imageUrl = openAiImage.getImageUrl();
             revisedPrompt = openAiImage.getRevisedPrompt();
 
@@ -479,9 +508,125 @@ public class WordController {
                 imageStyle = ImageStyle.fromString(styleValue);
             }
 
-            // Generate new mnemonic and image prompt with the new translation
+            // Generate new mnemonic based on whether keyword was manually set
             String transliteration = word.getSourceTransliteration();
-            MnemonicGenerationService.MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
+            MnemonicGenerationService.MnemonicData mnemonicData;
+            String mnemonicKeywordToUse;
+
+            // Check if mnemonic keyword was manually updated
+            if (word.getMnemonicKeywordUpdatedAt() != null) {
+                // Keyword was manually set - generate sentence and prompt FROM the manual keyword
+                String manualKeyword = word.getMnemonicKeyword();
+                System.out.println("Preserving manually updated mnemonic keyword and regenerating from it: " + manualKeyword +
+                        " (updated at: " + word.getMnemonicKeywordUpdatedAt() + ")");
+
+                mnemonicData = mnemonicGenerationService.generateMnemonicFromKeyword(
+                        manualKeyword,
+                        word.getWord(),
+                        translation,
+                        word.getSourceLanguage(),
+                        word.getTargetLanguage(),
+                        transliteration,
+                        imageStyle
+                );
+                mnemonicKeywordToUse = manualKeyword;
+            } else {
+                // No manual keyword - generate everything including a new keyword
+                mnemonicData = mnemonicGenerationService.generateMnemonic(
+                        word.getWord(),
+                        translation,
+                        word.getSourceLanguage(),
+                        word.getTargetLanguage(),
+                        transliteration,
+                        imageStyle
+                );
+                mnemonicKeywordToUse = mnemonicData.getMnemonicKeyword();
+            }
+
+            // Update mnemonic, image prompt, and clear old image in a single transaction
+            // (keyword will be null if manually set, preserving it)
+            wordService.updateMnemonicAndClearImage(
+                    word.getWord(),
+                    word.getSourceLanguage(),
+                    word.getTargetLanguage(),
+                    word.getMnemonicKeywordUpdatedAt() != null ? null : mnemonicKeywordToUse,
+                    mnemonicData.getMnemonicSentence(),
+                    mnemonicData.getImagePrompt()
+            );
+
+            response.put("success", true);
+            response.put("message", "Translation updated and mnemonic regenerated");
+            response.put("mnemonicKeyword", mnemonicKeywordToUse);
+            response.put("mnemonicSentence", mnemonicData.getMnemonicSentence());
+            response.put("imagePrompt", mnemonicData.getImagePrompt());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Update mnemonic keyword manually and regenerate image prompt
+     */
+    @PostMapping("/{wordId}/update-mnemonic-keyword")
+    public ResponseEntity<Map<String, Object>> updateMnemonicKeyword(
+            @PathVariable Long wordId,
+            @RequestBody Map<String, Object> request) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+
+            // Get new mnemonic keyword
+            String newMnemonicKeyword = (String) request.get("mnemonicKeyword");
+            if (newMnemonicKeyword == null || newMnemonicKeyword.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Mnemonic keyword is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            System.out.println("Updating mnemonic keyword for word: " + word.getWord() +
+                    " from '" + word.getMnemonicKeyword() + "' to '" + newMnemonicKeyword + "'");
+
+            // Get translation for image prompt generation
+            Set<String> translations = wordService.deserializeTranslations(word.getTranslation());
+            String translation = translations != null && !translations.isEmpty()
+                    ? translations.iterator().next()
+                    : null;
+
+            if (translation == null) {
+                response.put("success", false);
+                response.put("error", "No translation found for this word");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Get image style if provided
+            ImageStyle imageStyle = ImageStyle.REALISTIC_CINEMATIC; // Default style
+            if (request.containsKey("imageStyle")) {
+                String styleValue = request.get("imageStyle").toString();
+                imageStyle = ImageStyle.fromString(styleValue);
+            }
+
+            // Generate new mnemonic sentence and image prompt FROM the user's keyword
+            // This ensures the sentence and prompt are derived from the keyword and character guide
+            String transliteration = word.getSourceTransliteration();
+            MnemonicGenerationService.MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonicFromKeyword(
+                    newMnemonicKeyword,
                     word.getWord(),
                     translation,
                     word.getSourceLanguage(),
@@ -490,22 +635,32 @@ public class WordController {
                     imageStyle
             );
 
-            // Update mnemonic and image prompt
+            // Update mnemonic keyword with manual override flag, new sentence, and new image prompt
+            // All three are now derived from the user's keyword
+            wordService.updateMnemonicKeywordWithManualOverride(
+                    word.getWord(),
+                    word.getSourceLanguage(),
+                    word.getTargetLanguage(),
+                    newMnemonicKeyword,
+                    mnemonicData.getImagePrompt()
+            );
+
+            // Update mnemonic sentence
             wordService.updateMnemonic(
                     word.getWord(),
                     word.getSourceLanguage(),
                     word.getTargetLanguage(),
-                    mnemonicData.getMnemonicKeyword(),
+                    null, // Don't update keyword again
                     mnemonicData.getMnemonicSentence(),
-                    mnemonicData.getImagePrompt()
+                    null // Don't update image prompt again
             );
 
             // Clear the old image since we have a new prompt
             wordService.updateImagePromptAndClearImage(wordId, mnemonicData.getImagePrompt());
 
             response.put("success", true);
-            response.put("message", "Translation updated and mnemonic regenerated");
-            response.put("mnemonicKeyword", mnemonicData.getMnemonicKeyword());
+            response.put("message", "Mnemonic keyword updated and sentence/image prompt regenerated from keyword");
+            response.put("mnemonicKeyword", newMnemonicKeyword);
             response.put("mnemonicSentence", mnemonicData.getMnemonicSentence());
             response.put("imagePrompt", mnemonicData.getImagePrompt());
             return ResponseEntity.ok(response);

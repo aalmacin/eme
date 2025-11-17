@@ -9,8 +9,12 @@ import com.raidrin.eme.audio.TextToAudioGenerator;
 import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.sentence.SentenceGenerationService;
 import com.raidrin.eme.sentence.SentenceData;
+import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
+import com.raidrin.eme.storage.entity.WordEntity;
+import com.raidrin.eme.storage.service.CharacterGuideService;
 import com.raidrin.eme.storage.service.TranslationSessionService;
+import com.raidrin.eme.storage.service.WordService;
 import com.raidrin.eme.image.AsyncImageGenerationService;
 import com.raidrin.eme.image.ImageStyle;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService;
@@ -21,6 +25,7 @@ import com.raidrin.eme.audio.LanguageAudioCodes;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -28,6 +33,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.*;
+import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -42,6 +48,8 @@ public class ConvertController {
     private final AsyncImageGenerationService asyncImageGenerationService;
     private final MnemonicGenerationService mnemonicGenerationService;
     private final SessionOrchestrationService sessionOrchestrationService;
+    private final WordService wordService;
+    private final CharacterGuideService characterGuideService;
 
     @GetMapping("/")
     public String index() {
@@ -125,6 +133,283 @@ public class ConvertController {
         request.setEnableTargetAudio(targetAudio);
 
         LangAudioOption sourceLangAudio = getLangAudioOption(lang != null ? lang : "en");
+        request.setSourceAudioLanguageCode(sourceLangAudio.languageCode);
+        request.setSourceVoiceGender(sourceLangAudio.voiceGender);
+        request.setSourceVoiceName(sourceLangAudio.voiceName);
+
+        if (translation) {
+            LangAudioOption targetLangAudio = getLangAudioOption(targetLang != null ? targetLang : "en");
+            request.setTargetAudioLanguageCode(targetLangAudio.languageCode);
+            request.setTargetVoiceGender(targetLangAudio.voiceGender);
+            request.setTargetVoiceName(targetLangAudio.voiceName);
+        }
+
+        // Feature flags
+        request.setEnableTranslation(translation);
+        request.setEnableSentenceGeneration(sentenceGeneration);
+        request.setEnableImageGeneration(imageGeneration);
+        request.setOverrideTranslation(overrideTranslation);
+
+        // Image style configuration
+        ImageStyle imageStyleEnum = ImageStyle.fromString(imageStyle);
+        request.setImageStyle(imageStyleEnum);
+
+        // Start async processing
+        sessionOrchestrationService.processTranslationBatchAsync(session.getId(), request);
+
+        // Return immediately with redirect to session view
+        System.out.println("Started async processing for session " + session.getId());
+        return "redirect:/sessions/" + session.getId() + "?message=processing-started";
+    }
+
+    @PostMapping("/generate/review")
+    public String generateReview(
+            @RequestParam(name = "text", required = false) String userInput,
+            @RequestParam(required = false) String lang,
+            @RequestParam(required = false) String front,
+            @RequestParam(required = false) String back,
+            @RequestParam(required = false) String deck,
+            @RequestParam(required = false) Boolean translation,
+            @RequestParam(name = "override-translation", required = false) Boolean overrideTranslation,
+            @RequestParam(name = "source-audio", required = false) Boolean sourceAudio,
+            @RequestParam(name = "target-audio", required = false) Boolean targetAudio,
+            @RequestParam(name = "target-lang", required = false) String targetLang,
+            @RequestParam(required = false) Boolean anki,
+            @RequestParam(name = "sentence-generation", required = false) Boolean sentenceGeneration,
+            @RequestParam(name = "image-generation", required = false) Boolean imageGeneration,
+            @RequestParam(name = "image-style", required = false) String imageStyle,
+            Model model
+    ) {
+        translation = translation != null && translation;
+        overrideTranslation = overrideTranslation != null && overrideTranslation;
+        sourceAudio = sourceAudio != null && sourceAudio;
+        targetAudio = targetAudio != null && targetAudio;
+        anki = anki != null && anki;
+        sentenceGeneration = sentenceGeneration != null && sentenceGeneration;
+        imageGeneration = imageGeneration != null && imageGeneration;
+
+        // Parse source words
+        List<String> sourceWords = Arrays.stream(userInput.split("\n"))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .distinct()
+                .toList();
+
+        if (sourceWords.isEmpty()) {
+            return "redirect:/?error=no-words";
+        }
+
+        // Fetch existing word data from database
+        String sourceLang = lang != null ? lang : "en";
+        String targetLanguage = targetLang != null ? targetLang : "en";
+
+        List<ReviewWordData> reviewWords = sourceWords.stream().map(word -> {
+            ReviewWordData reviewWord = new ReviewWordData();
+            reviewWord.setWord(word);
+            reviewWord.setSourceLanguage(sourceLang);
+            reviewWord.setTargetLanguage(targetLanguage);
+
+            String transliteration = null;
+
+            // Try to fetch existing data from database
+            Optional<WordEntity> existingWord = wordService.findWord(word, sourceLang, targetLanguage);
+            if (existingWord.isPresent()) {
+                WordEntity wordEntity = existingWord.get();
+                reviewWord.setMnemonicKeyword(wordEntity.getMnemonicKeyword());
+
+                // Deserialize translations if they exist
+                if (wordEntity.getTranslation() != null && !wordEntity.getTranslation().isEmpty()) {
+                    Set<String> translations = wordService.deserializeTranslations(wordEntity.getTranslation());
+                    reviewWord.setTranslation(String.join(", ", translations));
+                }
+
+                // Get transliteration
+                transliteration = wordEntity.getSourceTransliteration();
+            }
+
+            // If no transliteration from database, try to get it from translation service
+            if (transliteration == null || transliteration.trim().isEmpty()) {
+                try {
+                    transliteration = translationService.getTransliteration(word, sourceLang);
+                } catch (Exception e) {
+                    System.err.println("Could not fetch transliteration for " + word + ": " + e.getMessage());
+                }
+            }
+
+            reviewWord.setTransliteration(transliteration);
+
+            // Look up character from character guide using transliteration
+            if (transliteration != null && !transliteration.trim().isEmpty()) {
+                Optional<CharacterGuideEntity> character = characterGuideService.findMatchingCharacterForWord(
+                        word, sourceLang, transliteration
+                );
+                if (character.isPresent()) {
+                    reviewWord.setCharacterName(character.get().getCharacterName());
+                    reviewWord.setCharacterContext(character.get().getCharacterContext());
+                    System.out.println("Found character for '" + word + "': " + character.get().getCharacterName() +
+                            " from " + character.get().getCharacterContext());
+                } else {
+                    System.out.println("No character found for '" + word + "' with transliteration: " + transliteration);
+                }
+            }
+
+            return reviewWord;
+        }).collect(Collectors.toList());
+
+        // Add data to model for the review page
+        model.addAttribute("reviewWords", reviewWords);
+        model.addAttribute("sourceLang", sourceLang);
+        model.addAttribute("sourceLanguageName", getLanguageName(sourceLang));
+        model.addAttribute("targetLang", targetLanguage);
+        model.addAttribute("targetLanguageName", getLanguageName(targetLanguage));
+
+        // Pass through all the form parameters so they can be submitted in the confirm step
+        model.addAttribute("front", front);
+        model.addAttribute("back", back);
+        model.addAttribute("deck", deck);
+        model.addAttribute("translation", translation);
+        model.addAttribute("overrideTranslation", overrideTranslation);
+        model.addAttribute("sourceAudio", sourceAudio);
+        model.addAttribute("targetAudio", targetAudio);
+        model.addAttribute("anki", anki);
+        model.addAttribute("sentenceGeneration", sentenceGeneration);
+        model.addAttribute("imageGeneration", imageGeneration);
+        model.addAttribute("imageStyle", imageStyle != null ? imageStyle : "REALISTIC_CINEMATIC");
+
+        return "review";
+    }
+
+    @PostMapping("/generate/confirm")
+    public String generateConfirm(
+            @RequestParam(name = "words", required = false) List<String> words,
+            @RequestParam(name = "mnemonicKeywords", required = false) List<String> mnemonicKeywords,
+            @RequestParam(name = "translations", required = false) List<String> translations,
+            @RequestParam(name = "sourceLanguages", required = false) List<String> sourceLanguages,
+            @RequestParam(required = false) String targetLang,
+            @RequestParam(required = false) String front,
+            @RequestParam(required = false) String back,
+            @RequestParam(required = false) String deck,
+            @RequestParam(required = false) Boolean translation,
+            @RequestParam(name = "override-translation", required = false) Boolean overrideTranslation,
+            @RequestParam(name = "source-audio", required = false) Boolean sourceAudio,
+            @RequestParam(name = "target-audio", required = false) Boolean targetAudio,
+            @RequestParam(required = false) Boolean anki,
+            @RequestParam(name = "sentence-generation", required = false) Boolean sentenceGeneration,
+            @RequestParam(name = "image-generation", required = false) Boolean imageGeneration,
+            @RequestParam(name = "image-style", required = false) String imageStyle
+    ) {
+        translation = translation != null && translation;
+        overrideTranslation = overrideTranslation != null && overrideTranslation;
+        sourceAudio = sourceAudio != null && sourceAudio;
+        targetAudio = targetAudio != null && targetAudio;
+        anki = anki != null && anki;
+        sentenceGeneration = sentenceGeneration != null && sentenceGeneration;
+        imageGeneration = imageGeneration != null && imageGeneration;
+
+        if (words == null || words.isEmpty()) {
+            return "redirect:/?error=no-words";
+        }
+
+        // Update word data in database based on user edits
+        for (int i = 0; i < words.size(); i++) {
+            String word = words.get(i);
+            String sourceLang = sourceLanguages != null && i < sourceLanguages.size() ? sourceLanguages.get(i) : "en";
+            String targetLanguage = targetLang != null ? targetLang : "en";
+            String mnemonicKeyword = mnemonicKeywords != null && i < mnemonicKeywords.size() ? mnemonicKeywords.get(i) : null;
+            String translationStr = translations != null && i < translations.size() ? translations.get(i) : null;
+
+            // Fetch existing word to check if data was modified
+            Optional<WordEntity> existingWordOpt = wordService.findWord(word, sourceLang, targetLanguage);
+
+            boolean mnemonicChanged = false;
+            boolean translationChanged = false;
+
+            if (existingWordOpt.isPresent()) {
+                WordEntity existingWord = existingWordOpt.get();
+
+                // Check if mnemonic keyword was modified
+                if (mnemonicKeyword != null && !mnemonicKeyword.trim().isEmpty()) {
+                    String existingMnemonic = existingWord.getMnemonicKeyword();
+                    if (!mnemonicKeyword.equals(existingMnemonic)) {
+                        mnemonicChanged = true;
+                    }
+                }
+
+                // Check if translation was modified
+                if (translationStr != null && !translationStr.trim().isEmpty()) {
+                    String existingTranslation = existingWord.getTranslation();
+                    if (existingTranslation != null) {
+                        Set<String> existingTranslations = wordService.deserializeTranslations(existingTranslation);
+                        Set<String> newTranslations = Arrays.stream(translationStr.split(","))
+                                .map(String::trim)
+                                .filter(s -> !s.isEmpty())
+                                .collect(Collectors.toSet());
+                        if (!existingTranslations.equals(newTranslations)) {
+                            translationChanged = true;
+                        }
+                    } else {
+                        translationChanged = true;
+                    }
+                }
+            } else {
+                // New word - any provided data counts as manual entry
+                mnemonicChanged = mnemonicKeyword != null && !mnemonicKeyword.trim().isEmpty();
+                translationChanged = translationStr != null && !translationStr.trim().isEmpty();
+            }
+
+            // Update word in database with appropriate timestamp updates
+            if (mnemonicChanged && mnemonicKeyword != null && !mnemonicKeyword.trim().isEmpty()) {
+                wordService.updateMnemonicKeywordWithManualOverride(word, sourceLang, targetLanguage, mnemonicKeyword, null);
+            }
+
+            if (translationChanged && translationStr != null && !translationStr.trim().isEmpty()) {
+                Set<String> translationSet = Arrays.stream(translationStr.split(","))
+                        .map(String::trim)
+                        .filter(s -> !s.isEmpty())
+                        .collect(Collectors.toSet());
+                if (!translationSet.isEmpty()) {
+                    wordService.updateTranslationWithManualOverride(word, sourceLang, targetLanguage, translationSet);
+                }
+            }
+        }
+
+        // Now proceed with the original /generate logic
+        String sessionWord = words.size() == 1 ? words.get(0) : words.size() + " words";
+
+        // Use the first source language (they should all be the same from the review page)
+        String lang = sourceLanguages != null && !sourceLanguages.isEmpty() ? sourceLanguages.get(0) : "en";
+
+        TranslationSessionEntity session = translationSessionService.createSession(
+                sessionWord,
+                lang,
+                targetLang != null ? targetLang : "en",
+                imageGeneration,
+                (sourceAudio || targetAudio),
+                sentenceGeneration,
+                anki,
+                overrideTranslation,
+                deck,
+                front,
+                back
+        );
+
+        System.out.println("Created session " + session.getId() + " for " + words.size() + " words");
+
+        // Build processing request
+        SessionOrchestrationService.BatchProcessingRequest request =
+                new SessionOrchestrationService.BatchProcessingRequest();
+
+        request.setSourceWords(words);
+        request.setSourceLanguage(lang);
+        request.setTargetLanguage(targetLang != null ? targetLang : "en");
+        request.setSourceLanguageCode(getTranslationCode(lang).getCode());
+        request.setTargetLanguageCode(getTranslationCode(targetLang != null ? targetLang : "en").getCode());
+
+        // Audio configuration
+        request.setEnableSourceAudio(sourceAudio);
+        request.setEnableTargetAudio(targetAudio);
+
+        LangAudioOption sourceLangAudio = getLangAudioOption(lang);
         request.setSourceAudioLanguageCode(sourceLangAudio.languageCode);
         request.setSourceVoiceGender(sourceLangAudio.voiceGender);
         request.setSourceVoiceName(sourceLangAudio.voiceName);
@@ -515,6 +800,81 @@ public class ConvertController {
         public String voiceName;
     }
 
+    public static class ReviewWordData {
+        private String word;
+        private String sourceLanguage;
+        private String targetLanguage;
+        private String mnemonicKeyword;
+        private String translation;
+        private String transliteration;
+        private String characterName;
+        private String characterContext;
+
+        public String getWord() {
+            return word;
+        }
+
+        public void setWord(String word) {
+            this.word = word;
+        }
+
+        public String getSourceLanguage() {
+            return sourceLanguage;
+        }
+
+        public void setSourceLanguage(String sourceLanguage) {
+            this.sourceLanguage = sourceLanguage;
+        }
+
+        public String getTargetLanguage() {
+            return targetLanguage;
+        }
+
+        public void setTargetLanguage(String targetLanguage) {
+            this.targetLanguage = targetLanguage;
+        }
+
+        public String getMnemonicKeyword() {
+            return mnemonicKeyword;
+        }
+
+        public void setMnemonicKeyword(String mnemonicKeyword) {
+            this.mnemonicKeyword = mnemonicKeyword;
+        }
+
+        public String getTranslation() {
+            return translation;
+        }
+
+        public void setTranslation(String translation) {
+            this.translation = translation;
+        }
+
+        public String getTransliteration() {
+            return transliteration;
+        }
+
+        public void setTransliteration(String transliteration) {
+            this.transliteration = transliteration;
+        }
+
+        public String getCharacterName() {
+            return characterName;
+        }
+
+        public void setCharacterName(String characterName) {
+            this.characterName = characterName;
+        }
+
+        public String getCharacterContext() {
+            return characterContext;
+        }
+
+        public void setCharacterContext(String characterContext) {
+            this.characterContext = characterContext;
+        }
+    }
+
     private LangAudioOption getLangAudioOption(String lang) {
         LangAudioOption langAudioOption = new LangAudioOption();
         switch (lang) {
@@ -569,7 +929,7 @@ public class ConvertController {
             case "tl" -> {
                 langAudioOption.languageCode = LanguageAudioCodes.Tagalog;
                 langAudioOption.voiceGender = SsmlVoiceGender.FEMALE;
-                langAudioOption.voiceName = "tl-PH-Standard-A";
+                langAudioOption.voiceName = "fil-PH-Standard-A";
                 return langAudioOption;
             }
             default -> throw new RuntimeException("Invalid language code");
