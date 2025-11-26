@@ -199,6 +199,31 @@ public class ConvertController {
             return "redirect:/?error=no-words";
         }
 
+        // Skip review page if image generation is not requested
+        if (!imageGeneration) {
+            String sourceLang = lang != null ? lang : "en";
+
+            // Directly call generateConfirm with the source words
+            return generateConfirm(
+                    sourceWords,
+                    null, // mnemonicKeywords - not needed when no image generation
+                    null, // translations - will be auto-generated
+                    sourceWords.stream().map(w -> sourceLang).collect(Collectors.toList()), // sourceLanguages - all same
+                    targetLang,
+                    front,
+                    back,
+                    deck,
+                    translation,
+                    overrideTranslation,
+                    sourceAudio,
+                    targetAudio,
+                    anki,
+                    sentenceGeneration,
+                    imageGeneration,
+                    imageStyle
+            );
+        }
+
         // Fetch existing word data from database
         String sourceLang = lang != null ? lang : "en";
         String targetLanguage = targetLang != null ? targetLang : "en";

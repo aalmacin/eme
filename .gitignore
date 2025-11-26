@@ -41,3 +41,4 @@ cache-data
 generated_images/
 generated_audio/
 session_zips/
+.DS_Store

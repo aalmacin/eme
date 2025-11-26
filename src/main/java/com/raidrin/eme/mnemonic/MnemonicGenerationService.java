@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.text.Normalizer;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,8 +57,15 @@ public class MnemonicGenerationService {
                 ? characterGuideService.findMatchingCharacterForWord(sourceWord, sourceLanguage, sourceTransliteration)
                 : Optional.empty();
 
-        if (sourceCharacter.isEmpty() && (sourceTransliteration == null || sourceTransliteration.trim().isEmpty())) {
-            System.out.println("No transliteration provided for mnemonic generation, skipping character matching: " + sourceWord);
+        // FAIL if no character guide found
+        if (sourceCharacter.isEmpty()) {
+            if (sourceTransliteration == null || sourceTransliteration.trim().isEmpty()) {
+                throw new RuntimeException("No transliteration provided for mnemonic generation: " + sourceWord);
+            }
+            // Determine what was searched (3, 2, or 1 chars)
+            String strippedTransliteration = stripAccents(sourceTransliteration.toLowerCase().trim());
+            String searchedPrefix = strippedTransliteration.length() >= 1 ? strippedTransliteration.substring(0, 1) : strippedTransliteration;
+            throw new RuntimeException("No character guide found for '" + searchedPrefix + "' (from word: " + sourceWord + ", transliteration: " + sourceTransliteration + "). Please add a character guide for this sound.");
         }
 
         // Build the prompt
@@ -171,6 +179,17 @@ public class MnemonicGenerationService {
         Optional<CharacterGuideEntity> sourceCharacter = (sourceTransliteration != null && !sourceTransliteration.trim().isEmpty())
                 ? characterGuideService.findMatchingCharacterForWord(sourceWord, sourceLanguage, sourceTransliteration)
                 : Optional.empty();
+
+        // FAIL if no character guide found
+        if (sourceCharacter.isEmpty()) {
+            if (sourceTransliteration == null || sourceTransliteration.trim().isEmpty()) {
+                throw new RuntimeException("No transliteration provided for mnemonic generation: " + sourceWord);
+            }
+            // Determine what was searched (3, 2, or 1 chars)
+            String strippedTransliteration = stripAccents(sourceTransliteration.toLowerCase().trim());
+            String searchedPrefix = strippedTransliteration.length() >= 1 ? strippedTransliteration.substring(0, 1) : strippedTransliteration;
+            throw new RuntimeException("No character guide found for '" + searchedPrefix + "' (from word: " + sourceWord + ", transliteration: " + sourceTransliteration + "). Please add a character guide for this sound.");
+        }
 
         // Build the prompt for generating sentence and image from keyword
         String prompt = buildMnemonicFromKeywordPrompt(mnemonicKeyword, sourceWord, targetWord,
@@ -286,27 +305,42 @@ public class MnemonicGenerationService {
 
         prompt.append("\nUsing the provided mnemonic keyword '").append(mnemonicKeyword).append("', create:\n");
         prompt.append("1. A 'mnemonic_keyword' field - you MUST return the EXACT keyword provided: '").append(mnemonicKeyword).append("'\n");
-        prompt.append("2. A 'mnemonic_sentence' - a vivid, memorable sentence that:\n");
-        prompt.append("   - Features the character specified above\n");
-        prompt.append("   - Incorporates the keyword '").append(mnemonicKeyword).append("' as a visual object or action\n");
-        prompt.append("   - Connects to the meaning '").append(targetWord).append("'\n");
-        prompt.append("   - Creates a memorable story linking sound ('").append(sourceWord).append("') -> keyword ('").append(mnemonicKeyword).append("') -> meaning ('").append(targetWord).append("')\n");
+        prompt.append("2. A 'mnemonic_sentence' - A SIMPLE, MEMORABLE sentence that can be easily remembered and visualized\n");
+        prompt.append("   REQUIRED STRUCTURE:\n");
+        prompt.append("   - Character from character guide + their context (e.g., '").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() : "the character").append("')\n");
+        prompt.append("   - Mnemonic keyword '").append(mnemonicKeyword).append("' incorporated as object/action\n");
+        prompt.append("   - 2-10 additional items/characters/actions that sound like OR start with same letter as first syllable/letter of EITHER source OR translation\n");
+        prompt.append("   - Setting that sounds like source or translation\n");
+        prompt.append("   - MUST include facial and body expressions (e.g., 'put their index finger horizontally under her nostrils to cover smell')\n");
+        prompt.append("   - Keep it SIMPLE and MEMORABLE (one sentence that connects all elements)\n");
+        prompt.append("   - Creates memorable link: sound ('").append(sourceWord).append("') -> keyword ('").append(mnemonicKeyword).append("') -> meaning ('").append(targetWord).append("')\n");
         prompt.append("3. An 'image_prompt' - a detailed prompt for generating an image in ").append(imageStyle.getDisplayName().toUpperCase()).append(" style.\n\n");
-        prompt.append("   === MANDATORY REQUIREMENTS - ALL THREE ELEMENTS MUST BE PRESENT ===\n");
-        prompt.append("   The image MUST include ALL THREE of these elements:\n");
-        prompt.append("   1️⃣ CHARACTER: The specific character mentioned above (").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() + " from " + sourceCharacter.get().getCharacterContext() : "character matching the word's sound").append(")\n");
-        prompt.append("   2️⃣ MNEMONIC KEYWORD: '").append(mnemonicKeyword).append("' represented VISUALLY through objects, actions, or scenery\n");
-        prompt.append("      Example: If keyword is 'sail', show the character ON a sailboat with sails visible\n");
-        prompt.append("   3️⃣ TRANSLATION MEANING: '").append(targetWord).append("' represented VISUALLY through objects or context\n");
-        prompt.append("      Example: If meaning is 'year', show a calendar, seasonal elements, or birthday cake with candles\n");
+        prompt.append("   === IMAGE FOCUS: TRANSLATION MEANING ===\n");
+        prompt.append("   The image MUST FOCUS on the TRANSLATION '").append(targetWord).append("' meaning.\n");
+        prompt.append("   The character should be performing an action or in a scene that demonstrates the translation meaning.\n");
+        prompt.append("   Example: For 'to become', show ").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() : "the character").append(" becoming something (e.g., becoming a leader, transformation)\n\n");
+        prompt.append("   === MANDATORY REQUIREMENTS - ALL ELEMENTS MUST BE PRESENT ===\n");
+        prompt.append("   The image MUST include:\n");
+        prompt.append("   1️⃣ CHARACTER: ").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() + " from " + sourceCharacter.get().getCharacterContext() : "character matching the word's sound").append("\n");
+        prompt.append("   2️⃣ MNEMONIC KEYWORD: '").append(mnemonicKeyword).append("' represented VISUALLY through objects in the scene\n");
+        prompt.append("      Example: If keyword is 'leaf', include leaves or leafy elements in the scene\n");
+        prompt.append("   3️⃣ ADDITIONAL ITEMS: 2-10 items that match the phonetic sound or starting letter of source OR translation\n");
+        prompt.append("      Example: For 'liye' → 'for', include 'foreman', 'ford', '4', etc.\n");
+        prompt.append("   4️⃣ SETTING: Environment that sounds like source or translation\n");
+        prompt.append("   5️⃣ FACIAL & BODY EXPRESSIONS: Show clear emotions and body language\n");
+        prompt.append("      Example: 'smiling while holding', 'index finger under nostrils', 'hopeful gesture with hands together'\n");
         prompt.append("   ================================================================\n\n");
         prompt.append("   STYLE REQUIREMENT: The image MUST be described as '").append(imageStyle.getDisplayName()).append("' style\n");
         prompt.append("   COMPOSITION:\n");
-        prompt.append("   - The character is the main focus, clearly visible and identifiable\n");
-        prompt.append("   - The character is actively interacting with BOTH the keyword object AND the meaning object\n");
-        prompt.append("   - Dynamic, vibrant atmosphere during golden hour\n");
+        prompt.append("   - The character is the main focus performing the translation action/meaning\n");
+        prompt.append("   - Include mnemonic keyword '").append(mnemonicKeyword).append("' object visible in the scene\n");
+        prompt.append("   - Include 2-10 additional items for memory anchoring\n");
+        prompt.append("   - Dynamic, vibrant atmosphere\n");
         prompt.append("   - NO additional people or characters beyond the one specified\n");
-        prompt.append("   CRITICAL: ABSOLUTELY NO text in the image prompt description - NO words, labels, signs, or captions\n");
+        prompt.append("   CRITICAL: ABSOLUTELY NO text in the image:\n");
+        prompt.append("   - NO words, labels, signs, or captions anywhere\n");
+        prompt.append("   - Source word '").append(sourceWord).append("' MUST NEVER appear in the image\n");
+        prompt.append("   - NO speech bubbles or written words of any kind\n");
         prompt.append("   SAFETY REQUIREMENTS for image_prompt:\n");
         prompt.append("   - Keep the scene family-friendly and appropriate for all ages\n");
         prompt.append("   - NO violence, weapons, fighting, blood, or injuries\n");
@@ -374,38 +408,57 @@ public class MnemonicGenerationService {
         }
 
         prompt.append("\nCreate:\n");
-        prompt.append("1. A 'mnemonic_keyword' - a VISUALIZABLE ENGLISH NOUN that sounds like '").append(sourceWord)
-                .append("' but is easier to remember\n");
+        prompt.append("1. A 'mnemonic_keyword' - a VISUALIZABLE object/action that sounds like '").append(sourceWord)
+                .append("' (based on '").append(sourceTransliteration != null ? sourceTransliteration : sourceWord).append("')\n");
+        prompt.append("   PHONETIC MATCHING PRIORITY (in order):\n");
+        prompt.append("   a) Match first syllable SOUND of source (e.g., 'liye' → 'leaf', 'li' sound)\n");
+        prompt.append("   b) Match first syllable TEXT characters (e.g., 'ma' → 'mat')\n");
+        prompt.append("   c) Match first LETTER (e.g., 'm' → 'moon')\n");
         prompt.append("   CRITICAL REQUIREMENTS for mnemonic_keyword:\n");
-        prompt.append("   - MUST be an ENGLISH word (not in any other language)\n");
-        prompt.append("   - MUST be a concrete, visualizable NOUN (something you can see/touch)\n");
+        prompt.append("   - MUST be phonetically similar to SOURCE word (not translation!)\n");
+        prompt.append("   - MUST be a concrete, VISUALIZABLE object (noun) or VISUALIZABLE/GESTURABLE action (verb/adjective)\n");
+        prompt.append("   - CANNOT be abstract concepts (e.g., 'hoping' is OK if visualized as hopeful gesture, but 'hope' alone is too abstract)\n");
         prompt.append("   - MUST NOT be the word '").append(sourceWord).append("' itself\n");
         prompt.append("   - MUST NOT be the word '").append(targetWord).append("' itself\n");
-        prompt.append("   - Examples of GOOD keywords: 'apple', 'boat', 'crown', 'dragon', 'tree'\n");
-        prompt.append("   - Examples of BAD keywords: verbs, adjectives, abstract concepts, the actual words being learned, or non-English words\n");
-        prompt.append("2. A 'mnemonic_sentence' - a vivid, memorable sentence connecting the character")
-                .append(" with the meaning '").append(targetWord).append("'\n");
+        prompt.append("   - Examples of GOOD keywords: 'leaf' (concrete object), 'hoping' (visualizable gesture), 'mat' (object), 'mall' (place)\n");
+        prompt.append("   - Examples of BAD keywords: abstract nouns, non-visualizable concepts, words that don't match source phonetically\n");
+        prompt.append("2. A 'mnemonic_sentence' - A SIMPLE, MEMORABLE sentence that can be easily remembered and visualized\n");
+        prompt.append("   REQUIRED STRUCTURE:\n");
+        prompt.append("   - Character from character guide + their context (e.g., 'Lisa Soberano')\n");
+        prompt.append("   - Mnemonic keyword object/action (e.g., '4 leaf clover')\n");
+        prompt.append("   - 2-10 additional items/characters/actions that sound like OR start with same letter as first syllable/letter of EITHER source OR translation\n");
+        prompt.append("   - Setting that sounds like source or translation (e.g., 'leafy forest' for 'liye')\n");
+        prompt.append("   - MUST include facial and body expressions (e.g., 'put their index finger horizontally under her nostrils to cover smell')\n");
+        prompt.append("   - Keep it SIMPLE and MEMORABLE (one sentence that connects all elements)\n");
+        prompt.append("   Example for 'liye' → 'for': 'Lisa Soberano gave 4 leaf clover for the foreman who has a ford, in a leafy forest.'\n");
         prompt.append("3. An 'image_prompt' - a detailed prompt for generating an image in ").append(imageStyle.getDisplayName().toUpperCase()).append(" style.\n\n");
-        prompt.append("   === MANDATORY REQUIREMENTS - ALL THREE ELEMENTS MUST BE PRESENT ===\n");
-        prompt.append("   The image MUST include ALL THREE of these elements:\n");
-        prompt.append("   1️⃣ CHARACTER: The specific character mentioned above (").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() + " from " + sourceCharacter.get().getCharacterContext() : "character matching the word's sound").append(")\n");
-        prompt.append("   2️⃣ MNEMONIC KEYWORD: The keyword you create - represented VISUALLY through objects, actions, or scenery\n");
-        prompt.append("      Example: If keyword is 'sail', show the character ON a sailboat with sails visible\n");
-        prompt.append("   3️⃣ TRANSLATION MEANING: '").append(targetWord).append("' represented VISUALLY through objects or context\n");
-        prompt.append("      Example: If meaning is 'year', show a calendar, seasonal elements, or birthday cake with candles\n");
+        prompt.append("   === IMAGE FOCUS: TRANSLATION MEANING ===\n");
+        prompt.append("   The image MUST FOCUS on the TRANSLATION '").append(targetWord).append("' meaning.\n");
+        prompt.append("   The character should be performing an action or in a scene that demonstrates the translation meaning.\n");
+        prompt.append("   Example: For 'to become', show ").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() : "the character").append(" becoming something (e.g., becoming a leader, transformation)\n\n");
+        prompt.append("   === MANDATORY REQUIREMENTS - ALL ELEMENTS MUST BE PRESENT ===\n");
+        prompt.append("   The image MUST include:\n");
+        prompt.append("   1️⃣ CHARACTER: ").append(sourceCharacter.isPresent() ? sourceCharacter.get().getCharacterName() + " from " + sourceCharacter.get().getCharacterContext() : "character matching the word's sound").append("\n");
+        prompt.append("   2️⃣ MNEMONIC KEYWORD: The keyword represented VISUALLY through objects in the scene\n");
+        prompt.append("      Example: If keyword is 'leaf', include leaves or leafy elements in the scene\n");
+        prompt.append("   3️⃣ ADDITIONAL ITEMS: 2-10 items that match the phonetic sound or starting letter of source OR translation\n");
+        prompt.append("      Example: For 'liye' → 'for', include 'foreman', 'ford', '4', etc.\n");
+        prompt.append("   4️⃣ SETTING: Environment that sounds like source or translation\n");
+        prompt.append("      Example: 'leafy forest' for 'liye'\n");
+        prompt.append("   5️⃣ FACIAL & BODY EXPRESSIONS: Show clear emotions and body language\n");
+        prompt.append("      Example: 'smiling while holding', 'index finger under nostrils', 'hopeful gesture with hands together'\n");
         prompt.append("   ================================================================\n\n");
         prompt.append("   STYLE REQUIREMENT: The image MUST be described as '").append(imageStyle.getDisplayName()).append("' style\n");
         prompt.append("   COMPOSITION:\n");
-        prompt.append("   - The character is the main focus, clearly visible and identifiable\n");
-        prompt.append("   - The character is actively interacting with BOTH the keyword object AND the meaning object\n");
-        prompt.append("   - Dynamic, vibrant atmosphere during golden hour\n");
+        prompt.append("   - The character is the main focus performing the translation action/meaning\n");
+        prompt.append("   - Include mnemonic keyword object visible in the scene\n");
+        prompt.append("   - Include 2-10 additional items for memory anchoring\n");
+        prompt.append("   - Dynamic, vibrant atmosphere\n");
         prompt.append("   - NO additional people or characters beyond the one specified\n");
-        prompt.append("   CRITICAL: ABSOLUTELY NO text in the image prompt description:\n");
-        prompt.append("   - NO book titles (e.g., NO 'book titled X', just 'book')\n");
-        prompt.append("   - NO labels or signs with text\n");
-        prompt.append("   - NO words in parentheses (e.g., NO '(").append(sourceWord).append(")')\n");
+        prompt.append("   CRITICAL: ABSOLUTELY NO text in the image:\n");
+        prompt.append("   - NO words, labels, signs, or captions anywhere\n");
+        prompt.append("   - Source word '").append(sourceWord).append("' MUST NEVER appear in the image\n");
         prompt.append("   - NO speech bubbles or written words of any kind\n");
-        prompt.append("   - NO captions or subtitles\n");
         prompt.append("   - Describe objects WITHOUT mentioning any text that would appear on them\n");
         prompt.append("   SAFETY REQUIREMENTS for image_prompt:\n");
         prompt.append("   - Keep the scene family-friendly and appropriate for all ages\n");
@@ -566,6 +619,22 @@ public class MnemonicGenerationService {
             case "hi" -> "Hindi";
             default -> "English";
         };
+    }
+
+    /**
+     * Strip accents from text (e.g., mā -> ma, é -> e, ñ -> n)
+     */
+    private String stripAccents(String text) {
+        if (text == null) {
+            return null;
+        }
+
+        // Normalize to NFD (decomposed form) and remove diacritical marks
+        String normalized = Normalizer.normalize(text, Normalizer.Form.NFD);
+        // Remove all combining diacritical marks (accents)
+        String stripped = normalized.replaceAll("\\p{M}", "");
+
+        return stripped;
     }
 
     @Data
