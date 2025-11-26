@@ -430,6 +430,17 @@
                     <span th:if="${wordData.containsKey('source_transliteration')}"
                           th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
                           style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
+                    <button type="button"
+                            th:if="${wordData.containsKey('word_id')}"
+                            th:data-word-id="${wordData.get('word_id')}"
+                            th:data-source-word="${wordData.get('source_word')}"
+                            th:data-current-transliteration="${wordData.containsKey('source_transliteration') ? wordData.get('source_transliteration') : ''}"
+                            onclick="showUpdateTransliterationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTransliteration)"
+                            class="btn btn-sm btn-outline-info"
+                            style="padding: 2px 8px; font-size: 12px;"
+                            title="Edit Transliteration">
+                        ✏️ Translit
+                    </button>
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${wordData.get('translations')}"
                           style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
@@ -662,6 +673,17 @@
                     <span th:if="${wordData.containsKey('source_transliteration')}"
                           th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
                           style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
+                    <button type="button"
+                            th:if="${wordData.containsKey('word_id')}"
+                            th:data-word-id="${wordData.get('word_id')}"
+                            th:data-source-word="${wordData.get('source_word')}"
+                            th:data-current-transliteration="${wordData.containsKey('source_transliteration') ? wordData.get('source_transliteration') : ''}"
+                            onclick="showUpdateTransliterationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTransliteration)"
+                            class="btn btn-sm btn-outline-info"
+                            style="padding: 2px 8px; font-size: 12px;"
+                            title="Edit Transliteration">
+                        ✏️ Translit
+                    </button>
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${wordData.get('translations')}"
                           style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
@@ -1061,6 +1083,29 @@
                 <div>
                     <button onclick="closeUpdateMnemonicKeywordModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="updateMnemonicKeyword()" class="btn btn-primary" id="updateMnemonicKeywordBtn">✏️ Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Transliteration Modal -->
+    <div id="updateTransliterationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Update Transliteration for <span id="transliterationModalWordTitle"></span></h3>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Transliteration (Romanization):</label>
+                <input type="text" id="newTransliterationInput"
+                       placeholder="Enter new transliteration (e.g., marna for Hindi)..."
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This is the romanized pronunciation of the word. It's used to find matching character guides for mnemonic generation.</p>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="updateTransliterationStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeUpdateTransliterationModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="updateTransliteration()" class="btn btn-info" id="updateTransliterationBtn">✏️ Update</button>
                 </div>
             </div>
         </div>
@@ -1838,6 +1883,75 @@
             }
         }
 
+        // Transliteration update functions
+        let currentTransliterationWordId = null;
+
+        function showUpdateTransliterationModal(wordId, sourceWord, currentTransliteration) {
+            currentTransliterationWordId = wordId;
+            document.getElementById('transliterationModalWordTitle').textContent = sourceWord;
+            document.getElementById('newTransliterationInput').value = currentTransliteration || '';
+            document.getElementById('updateTransliterationModal').style.display = 'flex';
+            document.getElementById('updateTransliterationStatus').textContent = '';
+        }
+
+        function closeUpdateTransliterationModal() {
+            document.getElementById('updateTransliterationModal').style.display = 'none';
+            currentTransliterationWordId = null;
+        }
+
+        async function updateTransliteration() {
+            if (!currentTransliterationWordId) return;
+
+            const newTransliteration = document.getElementById('newTransliterationInput').value.trim();
+            const statusEl = document.getElementById('updateTransliterationStatus');
+            const btnEl = document.getElementById('updateTransliterationBtn');
+
+            if (!newTransliteration) {
+                statusEl.textContent = 'Please enter a transliteration';
+                statusEl.style.color = '#dc3545';
+                return;
+            }
+
+            statusEl.textContent = 'Updating transliteration...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const response = await fetch(`/api/words/${currentTransliterationWordId}/update-transliteration`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sourceTransliteration: newTransliteration
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    let message = 'Transliteration updated!';
+                    if (result.characterGuide) {
+                        message += ' Character guide: ' + result.characterGuide;
+                    }
+                    message += ' Reloading page...';
+                    statusEl.textContent = message;
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
         // Close translation modal on background click
         document.getElementById('updateTranslationModal')?.addEventListener('click', function(e) {
             if (e.target === this) {
@@ -1849,6 +1963,13 @@
         document.getElementById('updateMnemonicKeywordModal')?.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeUpdateMnemonicKeywordModal();
+            }
+        });
+
+        // Close transliteration modal on background click
+        document.getElementById('updateTransliterationModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUpdateTransliterationModal();
             }
         });
 
@@ -1986,17 +2107,76 @@
             const overviewDiv = document.createElement('div');
             overviewDiv.style.cssText = 'background: #e7f3ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #007bff;';
             overviewDiv.innerHTML = `
-                <h3 style="margin-top: 0; color: #007bff;">Card Format Preview</h3>
-                <p style="margin-bottom: 15px; color: #495057;">This format will be applied to all ${data.cards.length} cards.</p>
-
-                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Front Template:</div>
-                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].frontTemplate)}</div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #007bff;">Card Format Preview</h3>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="toggleFormatEdit()" id="toggleFormatEditBtn">
+                        ✏️ Edit Format
+                    </button>
                 </div>
 
+                <!-- Deck Name Input -->
                 <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Back Template:</div>
-                    <div style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].backTemplate)}</div>
+                    <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Anki Deck Name:</label>
+                    <input type="text" class="form-control" id="deckNameInput" value="${escapeHtml(data.deck || '')}" placeholder="Enter deck name">
+                </div>
+
+                <p style="margin-bottom: 15px; color: #495057;">This format will be applied to all ${data.cards.length} cards.</p>
+
+                <!-- View Mode -->
+                <div id="formatViewMode">
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Front Template:</div>
+                        <div id="frontTemplateDisplay" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].frontTemplate)}</div>
+                    </div>
+
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Back Template:</div>
+                        <div id="backTemplateDisplay" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].backTemplate)}</div>
+                    </div>
+                </div>
+
+                <!-- Edit Mode (hidden by default) -->
+                <div id="formatEditMode" style="display: none;">
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
+                        <textarea class="form-control" id="frontTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].frontTemplate)}</textarea>
+                        <div class="placeholder-buttons" style="margin-top: 10px;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source-text]')">source-text</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source_transliteration]')">source_transliteration</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[target-text]')">target-text</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source-audio]')">source-audio</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[target-audio]')">target-audio</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[image]')">image</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[mnemonic_keyword]')">mnemonic_keyword</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[mnemonic_sentence]')">mnemonic_sentence</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '<br>')">line break</button>
+                        </div>
+                    </div>
+
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Back Template:</label>
+                        <textarea class="form-control" id="backTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].backTemplate)}</textarea>
+                        <div class="placeholder-buttons" style="margin-top: 10px;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source-text]')">source-text</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source_transliteration]')">source_transliteration</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[target-text]')">target-text</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source-audio]')">source-audio</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[target-audio]')">target-audio</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[image]')">image</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[mnemonic_keyword]')">mnemonic_keyword</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[mnemonic_sentence]')">mnemonic_sentence</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '<br>')">line break</button>
+                        </div>
+                    </div>
+
+                    <div style="text-align: center; margin-bottom: 15px;">
+                        <button type="button" class="btn btn-success" onclick="applyFormatToAllCards()" style="margin-right: 10px;">
+                            ✓ Apply to All Cards
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="updateFormatPreview()">
+                            👁️ Preview Changes
+                        </button>
+                    </div>
                 </div>
 
                 <div style="background: white; padding: 15px; border-radius: 8px;">
@@ -2012,7 +2192,7 @@
                 </div>
 
                 <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
-                    <strong>Note:</strong> If you need to edit individual cards, click "Show All Cards" below.
+                    <strong>Tip:</strong> Set your deck name and edit the card format template. Click "Preview Changes" to see how it looks, then "Apply to All Cards" to regenerate all ${data.cards.length} cards with your new format.
                 </div>
             `;
             cardListEl.appendChild(overviewDiv);
@@ -2024,130 +2204,30 @@
                 if (frontPreviewEl) frontPreviewEl.textContent = data.cards[0].frontPreview;
                 if (backPreviewEl) backPreviewEl.textContent = data.cards[0].backPreview;
             }, 0);
-
-            // Add toggle button
-            const toggleDiv = document.createElement('div');
-            toggleDiv.style.cssText = 'text-align: center; margin-bottom: 20px;';
-            toggleDiv.innerHTML = `
-                <button type="button" class="btn btn-secondary" onclick="toggleAllCardsView()" id="toggleAllCardsBtn">
-                    📋 Show All ${data.cards.length} Cards
-                </button>
-            `;
-            cardListEl.appendChild(toggleDiv);
-
-            // Add individual cards section (hidden by default)
-            const allCardsDiv = document.createElement('div');
-            allCardsDiv.id = 'allCardsSection';
-            allCardsDiv.style.display = 'none';
-
-            data.cards.forEach((card, index) => {
-                const cardDiv = document.createElement('div');
-                cardDiv.className = 'anki-card-item';
-                cardDiv.innerHTML = `
-                    <div class="card-header-row">
-                        <h4>${index + 1}. ${card.sourceWord}</h4>
-                        <div class="card-actions">
-                            <button type="button" class="btn btn-sm btn-secondary" onclick="toggleCardEdit(${index})">
-                                ✏️ Edit
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Edit Mode (hidden by default) -->
-                    <div class="card-edit-section" id="cardEdit${index}" style="display: none;">
-                        <div class="mb-3">
-                            <label class="form-label"><strong>Front Template:</strong></label>
-                            <textarea class="form-control card-front-edit" id="cardFront${index}" rows="4">${escapeHtml(card.frontTemplate)}</textarea>
-                            <div class="placeholder-buttons">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[source-text]')">source-text</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[source_transliteration]')">source_transliteration</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[target-text]')">target-text</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[source-audio]')">source-audio</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[target-audio]')">target-audio</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[image]')">image</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[mnemonic_keyword]')">mnemonic_keyword</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '[mnemonic_sentence]')">mnemonic_sentence</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'front', '<br>')">line break</button>
-                            </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label"><strong>Back Template:</strong></label>
-                            <textarea class="form-control card-back-edit" id="cardBack${index}" rows="4">${escapeHtml(card.backTemplate)}</textarea>
-                            <div class="placeholder-buttons">
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[source-text]')">source-text</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[source_transliteration]')">source_transliteration</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[target-text]')">target-text</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[source-audio]')">source-audio</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[target-audio]')">target-audio</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[image]')">image</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[mnemonic_keyword]')">mnemonic_keyword</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '[mnemonic_sentence]')">mnemonic_sentence</button>
-                                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertPlaceholder(${index}, 'back', '<br>')">line break</button>
-                            </div>
-                        </div>
-                        <button type="button" class="btn btn-primary btn-sm" onclick="updateCardPreview(${index})">Update Preview</button>
-                    </div>
-
-                    <!-- Preview Mode -->
-                    <div class="card-preview-section" id="cardPreview${index}">
-                        <div class="preview-card">
-                            <div class="preview-label">Front:</div>
-                            <div class="preview-content" id="frontPreview${index}"></div>
-                        </div>
-                        <div class="preview-card">
-                            <div class="preview-label">Back:</div>
-                            <div class="preview-content" id="backPreview${index}"></div>
-                        </div>
-                    </div>
-                `;
-                allCardsDiv.appendChild(cardDiv);
-
-                // Safely set preview content using textContent
-                setTimeout(() => {
-                    const frontEl = document.getElementById(`frontPreview${index}`);
-                    const backEl = document.getElementById(`backPreview${index}`);
-                    if (frontEl) frontEl.textContent = card.frontPreview;
-                    if (backEl) backEl.textContent = card.backPreview;
-                }, 0);
-            });
-
-            cardListEl.appendChild(allCardsDiv);
         }
 
-        function toggleAllCardsView() {
-            const section = document.getElementById('allCardsSection');
-            const btn = document.getElementById('toggleAllCardsBtn');
+        function toggleFormatEdit() {
+            const viewMode = document.getElementById('formatViewMode');
+            const editMode = document.getElementById('formatEditMode');
+            const btn = document.getElementById('toggleFormatEditBtn');
 
-            if (section.style.display === 'none') {
-                section.style.display = 'block';
-                btn.textContent = '📋 Hide All Cards';
+            if (editMode.style.display === 'none') {
+                editMode.style.display = 'block';
+                viewMode.style.display = 'none';
+                btn.textContent = '👁️ View Format';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
             } else {
-                section.style.display = 'none';
-                btn.textContent = '📋 Show All ' + ankiCardData.cards.length + ' Cards';
+                editMode.style.display = 'none';
+                viewMode.style.display = 'block';
+                btn.textContent = '✏️ Edit Format';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-primary');
             }
         }
 
-        function escapeHtml(text) {
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
-        }
-
-        function toggleCardEdit(index) {
-            const editSection = document.getElementById(`cardEdit${index}`);
-            const previewSection = document.getElementById(`cardPreview${index}`);
-
-            if (editSection.style.display === 'none') {
-                editSection.style.display = 'block';
-                previewSection.style.display = 'none';
-            } else {
-                editSection.style.display = 'none';
-                previewSection.style.display = 'block';
-            }
-        }
-
-        function insertPlaceholder(cardIndex, field, placeholder) {
-            const textareaId = field === 'front' ? `cardFront${cardIndex}` : `cardBack${cardIndex}`;
+        function insertFormatPlaceholder(field, placeholder) {
+            const textareaId = field === 'front' ? 'frontTemplateEdit' : 'backTemplateEdit';
             const textarea = document.getElementById(textareaId);
             const start = textarea.selectionStart;
             const end = textarea.selectionEnd;
@@ -2157,26 +2237,52 @@
             textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
         }
 
-        function updateCardPreview(index) {
-            const frontTemplate = document.getElementById(`cardFront${index}`).value;
-            const backTemplate = document.getElementById(`cardBack${index}`).value;
-            const wordData = ankiCardData.cards[index].wordData;
-
-            // Update templates in data
-            ankiCardData.cards[index].frontTemplate = frontTemplate;
-            ankiCardData.cards[index].backTemplate = backTemplate;
+        function updateFormatPreview() {
+            const frontTemplate = document.getElementById('frontTemplateEdit').value;
+            const backTemplate = document.getElementById('backTemplateEdit').value;
+            const wordData = ankiCardData.cards[0].wordData;
 
             // Generate previews by replacing placeholders
             const frontPreview = replacePlaceholders(frontTemplate, wordData);
             const backPreview = replacePlaceholders(backTemplate, wordData);
 
-            // Update preview display using textContent to avoid HTML parsing
-            document.getElementById(`frontPreview${index}`).textContent = frontPreview;
-            document.getElementById(`backPreview${index}`).textContent = backPreview;
+            // Update preview display using textContent
+            document.getElementById('sampleFrontPreview').textContent = frontPreview;
+            document.getElementById('sampleBackPreview').textContent = backPreview;
 
-            // Update stored preview
-            ankiCardData.cards[index].frontPreview = frontPreview;
-            ankiCardData.cards[index].backPreview = backPreview;
+            // Also update the view mode displays
+            document.getElementById('frontTemplateDisplay').textContent = frontTemplate;
+            document.getElementById('backTemplateDisplay').textContent = backTemplate;
+        }
+
+        function applyFormatToAllCards() {
+            const frontTemplate = document.getElementById('frontTemplateEdit').value;
+            const backTemplate = document.getElementById('backTemplateEdit').value;
+
+            if (!confirm(`This will apply the new format to all ${ankiCardData.cards.length} cards. Continue?`)) {
+                return;
+            }
+
+            // Update all cards with the new templates
+            ankiCardData.cards.forEach((card) => {
+                card.frontTemplate = frontTemplate;
+                card.backTemplate = backTemplate;
+
+                // Regenerate previews for each card
+                card.frontPreview = replacePlaceholders(frontTemplate, card.wordData);
+                card.backPreview = replacePlaceholders(backTemplate, card.wordData);
+            });
+
+            // Update the format preview display
+            updateFormatPreview();
+
+            alert(`Format applied successfully to all ${ankiCardData.cards.length} cards!`);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
         }
 
         function replacePlaceholders(template, wordData) {
@@ -2227,12 +2333,23 @@
                     back: card.backPreview
                 }));
 
+                const deckName = document.getElementById('deckNameInput').value.trim();
+                if (!deckName) {
+                    statusEl.textContent = 'Error: Deck name is required';
+                    statusEl.style.color = '#dc3545';
+                    createBtn.disabled = false;
+                    return;
+                }
+
                 const response = await fetch(`/sessions/${currentSessionId}/create-anki-cards-with-edits`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ cards: cards })
+                    body: JSON.stringify({
+                        cards: cards,
+                        deckName: deckName
+                    })
                 });
 
                 const result = await response.json();

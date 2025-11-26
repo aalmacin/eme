@@ -570,6 +570,74 @@ public class WordController {
     }
 
     /**
+     * Update transliteration manually and re-attach character guide
+     */
+    @PostMapping("/{wordId}/update-transliteration")
+    public ResponseEntity<Map<String, Object>> updateTransliteration(
+            @PathVariable Long wordId,
+            @RequestBody Map<String, Object> request) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+
+            // Get new transliteration
+            String newTransliteration = (String) request.get("sourceTransliteration");
+            if (newTransliteration == null || newTransliteration.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Transliteration is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            System.out.println("Updating transliteration for word: " + word.getWord() +
+                    " from '" + word.getSourceTransliteration() + "' to '" + newTransliteration + "'");
+
+            // Update transliteration
+            wordService.updateTransliteration(word.getWord(), word.getSourceLanguage(),
+                    word.getTargetLanguage(), newTransliteration);
+
+            // Re-attach character guide based on new transliteration
+            Optional<CharacterGuideEntity> characterGuide = characterGuideService.findMatchingCharacterForWord(
+                    word.getWord(), word.getSourceLanguage(), newTransliteration);
+            if (characterGuide.isPresent()) {
+                wordService.updateCharacterGuide(word.getWord(), word.getSourceLanguage(),
+                        word.getTargetLanguage(), characterGuide.get().getId());
+                System.out.println("Re-attached character guide: " + characterGuide.get().getCharacterName() +
+                        " to word: " + word.getWord());
+                response.put("characterGuide", characterGuide.get().getCharacterName());
+            } else {
+                // Clear character guide if no match found
+                wordService.updateCharacterGuide(word.getWord(), word.getSourceLanguage(),
+                        word.getTargetLanguage(), null);
+                System.out.println("No character guide found for new transliteration: " + newTransliteration);
+                response.put("characterGuide", null);
+            }
+
+            response.put("success", true);
+            response.put("message", "Transliteration updated successfully");
+            response.put("sourceTransliteration", newTransliteration);
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
      * Update mnemonic keyword manually and regenerate image prompt
      */
     @PostMapping("/{wordId}/update-mnemonic-keyword")

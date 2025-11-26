@@ -771,13 +771,16 @@ public class TranslationSessionController {
             @SuppressWarnings("unchecked")
             List<Map<String, String>> cards = (List<Map<String, String>>) request.get("cards");
 
+            // Get deck name from request, fall back to session's deck name
+            String deckName = request.containsKey("deckName") ? (String) request.get("deckName") : session.getAnkiDeck();
+
             int cardsCreated = 0;
             for (Map<String, String> card : cards) {
                 String front = card.get("front");
                 String back = card.get("back");
 
                 // Create Anki card with edited content
-                ankiNoteCreatorService.addNote(session.getAnkiDeck(), front, back);
+                ankiNoteCreatorService.addNote(deckName, front, back);
                 cardsCreated++;
             }
 
