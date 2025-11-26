@@ -2346,16 +2346,16 @@
                     <div class="dnd-mode-toggle">
                         <strong>Edit Mode:</strong>
                         <div class="btn-group" role="group">
-                            <input type="radio" class="btn-check" name="editMode" id="textMode" autocomplete="off" checked>
+                            <input type="radio" class="btn-check" name="editMode" id="textMode" autocomplete="off">
                             <label class="btn btn-outline-primary btn-sm" for="textMode" onclick="switchEditMode('text')">📝 Text</label>
 
-                            <input type="radio" class="btn-check" name="editMode" id="dndMode" autocomplete="off">
+                            <input type="radio" class="btn-check" name="editMode" id="dndMode" autocomplete="off" checked>
                             <label class="btn btn-outline-primary btn-sm" for="dndMode" onclick="switchEditMode('dnd')">🎯 Drag & Drop</label>
                         </div>
                     </div>
 
                     <!-- Text Mode -->
-                    <div id="textEditMode">
+                    <div id="textEditMode" style="display: none;">
                         <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
                             <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
                             <textarea class="form-control" id="frontTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].frontTemplate)}</textarea>
@@ -2398,18 +2398,10 @@
                         </div>
                     </div>
 
-                        <div style="text-align: center; margin-bottom: 15px;">
-                            <button type="button" class="btn btn-success" onclick="applyFormatToAllCards()" style="margin-right: 10px;">
-                                ✓ Apply to All Cards
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="updateFormatPreview()">
-                                👁️ Preview Changes
-                            </button>
-                        </div>
                     </div>
 
                     <!-- Drag and Drop Mode -->
-                    <div id="dndEditMode" style="display: none;">
+                    <div id="dndEditMode">
                         <!-- Available Blocks Palette -->
                         <div class="dnd-blocks-palette">
                             <h5 style="margin-top: 0; color: #495057;">Available Blocks</h5>
@@ -2446,12 +2438,6 @@
                         </div>
 
                         <div style="text-align: center; margin-bottom: 15px;">
-                            <button type="button" class="btn btn-success" onclick="applyDndFormat()" style="margin-right: 10px;">
-                                ✓ Apply to All Cards
-                            </button>
-                            <button type="button" class="btn btn-secondary" onclick="updateDndPreview()">
-                                👁️ Preview Changes
-                            </button>
                             <button type="button" class="btn btn-outline-danger" onclick="clearDndZones()">
                                 🗑️ Clear All
                             </button>
@@ -2463,26 +2449,24 @@
                     <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Sample Preview (First Card: ${escapeHtml(data.cards[0].sourceWord)}):</div>
                     <div style="margin-bottom: 10px;">
                         <div style="font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 4px;">FRONT:</div>
-                        <div id="sampleFrontPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745; white-space: pre-wrap; word-break: break-word;"></div>
+                        <div id="sampleFrontPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745; word-break: break-word;"></div>
                     </div>
                     <div>
                         <div style="font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 4px;">BACK:</div>
-                        <div id="sampleBackPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #dc3545; white-space: pre-wrap; word-break: break-word;"></div>
+                        <div id="sampleBackPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #dc3545; word-break: break-word;"></div>
                     </div>
                 </div>
 
                 <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
-                    <strong>Tip:</strong> Set your deck name and edit the card format template. Click "Preview Changes" to see how it looks, then "Apply to All Cards" to regenerate all ${data.cards.length} cards with your new format.
+                    <strong>Tip:</strong> Set your deck name and edit the card format template. The preview updates automatically as you edit. You can review all ${data.cards.length} cards below before creating them.
                 </div>
             `;
             cardListEl.appendChild(overviewDiv);
 
-            // Safely set preview content using textContent to avoid HTML parsing issues
+            // Generate preview using JavaScript to ensure toggles render properly
             setTimeout(() => {
-                const frontPreviewEl = document.getElementById('sampleFrontPreview');
-                const backPreviewEl = document.getElementById('sampleBackPreview');
-                if (frontPreviewEl) frontPreviewEl.textContent = data.cards[0].frontPreview;
-                if (backPreviewEl) backPreviewEl.textContent = data.cards[0].backPreview;
+                updateFormatPreview();
+                updateAllCardsFromTemplates();
             }, 0);
         }
 
@@ -2498,8 +2482,9 @@
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-secondary');
 
-                // Initialize with text mode and setup listeners
-                setupTextModeListeners();
+                // Initialize with drag and drop mode
+                syncTextToDnd();
+                initializeDragAndDrop();
 
                 // Show initial preview
                 updateFormatPreview();
@@ -2535,20 +2520,25 @@
             const frontPreview = replacePlaceholders(frontTemplate, wordData);
             const backPreview = replacePlaceholders(backTemplate, wordData);
 
-            // Update preview display using innerHTML to show HTML (like toggles)
+            // Update preview display using innerHTML to render HTML/CSS (including toggles)
             const frontEl = document.getElementById('sampleFrontPreview');
             const backEl = document.getElementById('sampleBackPreview');
 
-            // Escape HTML tags except for our special ones
-            const frontHtml = frontPreview.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-            const backHtml = backPreview.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
-
-            frontEl.innerHTML = frontHtml;
-            backEl.innerHTML = backHtml;
+            // Wrap preview in <code> tags to show the HTML structure
+            frontEl.innerHTML = '<code style="display: block; white-space: pre-wrap; word-break: break-word;">' + escapeHtmlForDisplay(frontPreview) + '</code>';
+            backEl.innerHTML = '<code style="display: block; white-space: pre-wrap; word-break: break-word;">' + escapeHtmlForDisplay(backPreview) + '</code>';
 
             // Also update the view mode displays
             document.getElementById('frontTemplateDisplay').textContent = frontTemplate;
             document.getElementById('backTemplateDisplay').textContent = backTemplate;
+        }
+
+        function escapeHtmlForDisplay(html) {
+            return html.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
         }
 
         function applyFormatToAllCards() {
@@ -2584,6 +2574,57 @@
         function replacePlaceholders(template, wordData) {
             let result = template;
 
+            // IMPORTANT: Process toggle placeholders FIRST before other replacements
+            // This prevents [toggle][sentence-source] from becoming [toggle]chutti
+            result = result.replace(/\[toggle\]\[([^\]]+)\]/g, function(match, placeholder) {
+                // Find what the placeholder resolves to by directly accessing wordData
+                let placeholderValue = '';
+                if (placeholder === 'source-text') {
+                    placeholderValue = wordData.source_word || '';
+                } else if (placeholder === 'source_transliteration') {
+                    placeholderValue = wordData.source_transliteration || '';
+                } else if (placeholder === 'target-text') {
+                    placeholderValue = wordData.translations ? wordData.translations.join(', ') : '';
+                } else if (placeholder === 'sentence-source' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.source_language_sentence || '';
+                } else if (placeholder === 'sentence-target' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.target_language_sentence || '';
+                } else if (placeholder === 'sentence-latin' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.target_language_latin || '';
+                } else if (placeholder === 'sentence-transliteration' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.target_language_transliteration || '';
+                } else if (placeholder === 'sentence-structure' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.source_language_structure || '';
+                } else if (placeholder === 'mnemonic_keyword') {
+                    placeholderValue = wordData.mnemonic_keyword || '';
+                } else if (placeholder === 'mnemonic_sentence') {
+                    placeholderValue = wordData.mnemonic_sentence || '';
+                }
+
+                // Create readable label from placeholder name
+                const label = placeholder.replace(/[-_]/g, ' ').split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+
+                // Generate unique ID for this toggle
+                const uniqueId = 'toggle-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+                // Create the toggle HTML with inline CSS (matching Java implementation)
+                return '<div style="margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">' +
+                    '<button onclick="var el = document.getElementById(\'' + uniqueId + '\'); ' +
+                        'if(el.style.display === \'none\') { el.style.display = \'block\'; this.textContent = \'Hide ' + label + '\'; } ' +
+                        'else { el.style.display = \'none\'; this.textContent = \'Show ' + label + '\'; }" ' +
+                        'style="background: #4CAF50; color: white; border: none; padding: 8px 16px; ' +
+                        'cursor: pointer; border-radius: 4px; font-size: 14px; margin-bottom: 5px;">' +
+                        'Show ' + label +
+                    '</button>' +
+                    '<div id="' + uniqueId + '" style="display: none; padding: 10px; background: #f9f9f9; border-radius: 4px; margin-top: 5px;">' +
+                        placeholderValue +
+                    '</div>' +
+                '</div>';
+            });
+
+            // Now replace all regular placeholders (after toggle processing)
             result = result.replace(/\[source-text\]/g, wordData.source_word || '');
             result = result.replace(/\[source_transliteration\]/g, wordData.source_transliteration || '');
 
@@ -2624,24 +2665,6 @@
             } else {
                 result = result.replace(/\[image\]/g, '');
             }
-
-            // Handle toggle placeholders - process them to show the HTML structure
-            // Look for [toggle][placeholder] patterns and replace with toggle HTML preview
-            result = result.replace(/\[toggle\]\[([^\]]+)\]/g, function(match, placeholder) {
-                // Extract just the placeholder value we already replaced
-                const placeholderPattern = new RegExp('\\[' + placeholder + '\\]', 'g');
-                let placeholderValue = '(value)';
-
-                // Try to find what this placeholder was replaced with
-                const testTemplate = '[' + placeholder + ']';
-                const testReplaced = replacePlaceholders(testTemplate, wordData);
-                if (testReplaced !== testTemplate) {
-                    placeholderValue = testReplaced;
-                }
-
-                const label = placeholder.replace(/-/g, ' ').replace(/_/g, ' ');
-                return `[Toggle: ${label} = ${placeholderValue}]`;
-            });
 
             return result;
         }
@@ -2725,7 +2748,22 @@
             }
             previewUpdateTimer = setTimeout(() => {
                 updateFormatPreview();
+                // Also update all cards with the new templates
+                updateAllCardsFromTemplates();
             }, 300); // 300ms debounce
+        }
+
+        function updateAllCardsFromTemplates() {
+            const frontTemplate = document.getElementById('frontTemplateEdit').value;
+            const backTemplate = document.getElementById('backTemplateEdit').value;
+
+            // Update all cards with the new templates
+            ankiCardData.cards.forEach((card) => {
+                card.frontTemplate = frontTemplate;
+                card.backTemplate = backTemplate;
+                card.frontPreview = replacePlaceholders(frontTemplate, card.wordData);
+                card.backPreview = replacePlaceholders(backTemplate, card.wordData);
+            });
         }
 
         function switchEditMode(mode) {
