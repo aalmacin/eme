@@ -543,18 +543,56 @@
                 <!-- Sentence Status -->
                 <div th:if="${wordData.containsKey('sentence_status')}"
                      th:class="'process-item ' + (${wordData.get('sentence_status')} == 'success' ? 'success' : 'failed')">
-                    <div>
+                    <div style="flex: 1;">
                         <span class="process-name">Sentence:</span>
                         <span th:if="${wordData.get('sentence_status')} == 'success'" style="color: #28a745;">✓ Success</span>
                         <span th:if="${wordData.get('sentence_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
                         <small th:if="${wordData.containsKey('sentence_error')}"
                                th:text="' - ' + ${wordData.get('sentence_error')}"
                                style="color: #721c24; display: block; margin-top: 4px;"></small>
+
+                        <!-- Display sentence data if successful -->
+                        <div th:if="${wordData.get('sentence_status') == 'success' and wordData.containsKey('sentence_data')}"
+                             style="margin-top: 12px; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
+                            <div th:with="sentenceData=${wordData.get('sentence_data')}">
+                                <!-- Source language sentence -->
+                                <div style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Example Sentence:</strong>
+                                    <div th:text="${sentenceData.get('source_language_sentence')}" style="font-size: 14px; color: #212529; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Transliteration -->
+                                <div th:if="${sentenceData.containsKey('target_language_transliteration') and sentenceData.get('target_language_transliteration') != null}"
+                                     style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Transliteration:</strong>
+                                    <div th:text="${sentenceData.get('target_language_transliteration')}" style="font-size: 13px; color: #6c757d; font-style: italic; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Target language translation -->
+                                <div style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Translation:</strong>
+                                    <div th:text="${sentenceData.get('target_language_sentence')}" style="font-size: 13px; color: #6c757d; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Word structure -->
+                                <div th:if="${sentenceData.containsKey('source_language_structure') and sentenceData.get('source_language_structure') != null}"
+                                     style="margin-bottom: 0;">
+                                    <strong style="color: #495057; font-size: 12px;">Structure:</strong>
+                                    <div th:text="${sentenceData.get('source_language_structure')}" style="font-size: 12px; color: #6c757d; margin-top: 4px; white-space: pre-wrap; font-family: monospace;"></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="process-actions" th:if="${wordData.get('sentence_status')} == 'failed'">
-                        <form th:action="@{/sessions/{id}/retry-word-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <div class="process-actions">
+                        <form th:if="${wordData.get('sentence_status')} == 'failed'"
+                              th:action="@{/sessions/{id}/retry-word-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
                             <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
                             <button type="submit" class="btn btn-danger btn-sm">Retry</button>
+                        </form>
+                        <form th:if="${wordData.get('sentence_status')} == 'success'"
+                              th:action="@{/sessions/{id}/regenerate-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Regenerate sentence for this word?');">🔄 Regenerate Sentence</button>
                         </form>
                     </div>
                 </div>
@@ -753,10 +791,49 @@
                 <!-- Sentence Status -->
                 <div th:if="${wordData.containsKey('sentence_status')}"
                      th:class="'process-item ' + (${wordData.get('sentence_status')} == 'success' ? 'success' : 'failed')">
-                    <div>
+                    <div style="flex: 1;">
                         <span class="process-name">Sentence:</span>
                         <span th:if="${wordData.get('sentence_status')} == 'success'" style="color: #28a745;">✓ Success</span>
                         <span th:if="${wordData.get('sentence_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+
+                        <!-- Display sentence data if successful -->
+                        <div th:if="${wordData.get('sentence_status') == 'success' and wordData.containsKey('sentence_data')}"
+                             style="margin-top: 12px; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
+                            <div th:with="sentenceData=${wordData.get('sentence_data')}">
+                                <!-- Source language sentence -->
+                                <div style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Example Sentence:</strong>
+                                    <div th:text="${sentenceData.get('source_language_sentence')}" style="font-size: 14px; color: #212529; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Transliteration -->
+                                <div th:if="${sentenceData.containsKey('target_language_transliteration') and sentenceData.get('target_language_transliteration') != null}"
+                                     style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Transliteration:</strong>
+                                    <div th:text="${sentenceData.get('target_language_transliteration')}" style="font-size: 13px; color: #6c757d; font-style: italic; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Target language translation -->
+                                <div style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Translation:</strong>
+                                    <div th:text="${sentenceData.get('target_language_sentence')}" style="font-size: 13px; color: #6c757d; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Word structure -->
+                                <div th:if="${sentenceData.containsKey('source_language_structure') and sentenceData.get('source_language_structure') != null}"
+                                     style="margin-bottom: 0;">
+                                    <strong style="color: #495057; font-size: 12px;">Structure:</strong>
+                                    <div th:text="${sentenceData.get('source_language_structure')}" style="font-size: 12px; color: #6c757d; margin-top: 4px; white-space: pre-wrap; font-family: monospace;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="process-actions">
+                        <form th:if="${wordData.get('sentence_status')} == 'success'"
+                              th:action="@{/sessions/{id}/regenerate-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Regenerate sentence for this word?');">🔄 Regenerate Sentence</button>
+                        </form>
                     </div>
                 </div>
 
@@ -909,18 +986,33 @@
             <div th:if="${translationSession.ankiEnabled}" style="display: inline-block; margin-left: 10px;">
                 <button type="button" class="btn btn-primary" onclick="showAnkiCardPreview()">Create Anki Cards</button>
             </div>
-
-            <!-- Regenerate All Audio Button -->
-            <div th:if="${translationSession.audioGenerationEnabled && translationSession.status.name() == 'COMPLETED'}" style="display: inline-block; margin-left: 10px;">
-                <form th:action="@{/sessions/{id}/regenerate-all-audio(id=${translationSession.id})}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-warning" onclick="return confirm('This will regenerate audio for all words in this session. Continue?');">🔄 Regenerate All Audio</button>
-                </form>
-            </div>
         </div>
 
         <div class="data-section" th:if="${sessionData.containsKey('image_prompt')}">
             <h4>Image Prompt Used:</h4>
             <pre th:text="${sessionData.get('image_prompt')}"></pre>
+        </div>
+    </div>
+
+    <!-- Regeneration Actions -->
+    <div class="info-card" th:if="${translationSession.status.name() == 'COMPLETED'}">
+        <h2>Regeneration Actions</h2>
+        <p style="color: #856404; margin-bottom: 15px;">Regenerate content for all words in this session.</p>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <!-- Regenerate All Sentences Button -->
+            <div th:if="${translationSession.sentenceGenerationEnabled}">
+                <form th:action="@{/sessions/{id}/regenerate-all-sentences(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('This will regenerate sentences for all words in this session. This may take a while. Continue?');">🔄 Regenerate All Sentences</button>
+                </form>
+            </div>
+
+            <!-- Regenerate All Audio Button -->
+            <div th:if="${translationSession.audioGenerationEnabled}">
+                <form th:action="@{/sessions/{id}/regenerate-all-audio(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('This will regenerate audio for all words in this session. Continue?');">🔄 Regenerate All Audio</button>
+                </form>
+            </div>
         </div>
     </div>
 

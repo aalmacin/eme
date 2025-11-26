@@ -10,8 +10,11 @@ import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
 import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.service.CharacterGuideService;
+import com.raidrin.eme.storage.service.SentenceStorageService;
 import com.raidrin.eme.storage.service.TranslationSessionService;
 import com.raidrin.eme.storage.service.WordService;
+import com.raidrin.eme.sentence.SentenceData;
+import com.raidrin.eme.sentence.SentenceGenerationService;
 import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.util.ZipFileGenerator;
 import lombok.RequiredArgsConstructor;
@@ -42,6 +45,8 @@ public class TranslationSessionController {
     private final CharacterGuideService characterGuideService;
     private final TranslationService translationService;
     private final AsyncAudioGenerationService audioGenerationService;
+    private final SentenceStorageService sentenceStorageService;
+    private final SentenceGenerationService sentenceGenerationService;
 
     @GetMapping
     public String listSessions(Model model,
@@ -220,9 +225,169 @@ public class TranslationSessionController {
     }
 
     @PostMapping("/{id}/retry-word-sentence")
+    @SuppressWarnings("unchecked")
     public String retryWordSentence(@PathVariable Long id, @RequestParam int wordIndex) {
-        // TODO: Implement individual word sentence retry
-        return "redirect:/sessions/" + id + "?message=word-sentence-retry-not-implemented";
+        return regenerateSentenceForWord(id, wordIndex);
+    }
+
+    @PostMapping("/{id}/regenerate-sentence")
+    @SuppressWarnings("unchecked")
+    public String regenerateSentence(@PathVariable Long id, @RequestParam int wordIndex) {
+        return regenerateSentenceForWord(id, wordIndex);
+    }
+
+    private String regenerateSentenceForWord(Long id, int wordIndex) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+        // Get words from session data
+        if (!sessionData.containsKey("words")) {
+            return "redirect:/sessions/" + id + "?error=no-words-in-session";
+        }
+
+        List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+        if (wordIndex < 0 || wordIndex >= words.size()) {
+            return "redirect:/sessions/" + id + "?error=invalid-word-index";
+        }
+
+        Map<String, Object> wordData = words.get(wordIndex);
+        String sourceWord = (String) wordData.get("source_word");
+
+        if (sourceWord == null || sourceWord.trim().isEmpty()) {
+            return "redirect:/sessions/" + id + "?error=invalid-source-word";
+        }
+
+        try {
+            // Regenerate sentence using the service
+            SentenceData sentenceData = sentenceGenerationService.regenerateSentence(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+            );
+
+            // Convert sentence data to map format
+            Map<String, String> sentenceMap = new HashMap<>();
+            sentenceMap.put("source_language_sentence", sentenceData.getSourceLanguageSentence());
+            sentenceMap.put("source_language_structure", sentenceData.getSourceLanguageStructure());
+            sentenceMap.put("target_language_sentence", sentenceData.getTargetLanguageSentence());
+            sentenceMap.put("target_language_latin", sentenceData.getTargetLanguageLatinCharacters());
+            sentenceMap.put("target_language_transliteration", sentenceData.getTargetLanguageTransliteration());
+
+            // Update word data with new sentence
+            wordData.put("sentence_data", sentenceMap);
+            wordData.put("sentence_status", "success");
+            wordData.remove("sentence_error"); // Clear any previous error
+
+            // Update session data
+            words.set(wordIndex, wordData);
+            sessionData.put("words", words);
+            translationSessionService.updateSessionData(id, sessionData);
+
+            System.out.println("Regenerated sentence for word: " + sourceWord + " in session " + id);
+            return "redirect:/sessions/" + id + "?message=sentence-regenerated";
+
+        } catch (Exception e) {
+            System.err.println("Failed to regenerate sentence: " + e.getMessage());
+            e.printStackTrace();
+
+            // Update word data with error
+            wordData.put("sentence_status", "failed");
+            wordData.put("sentence_error", e.getMessage());
+
+            // Update session data
+            words.set(wordIndex, wordData);
+            sessionData.put("words", words);
+            translationSessionService.updateSessionData(id, sessionData);
+
+            return "redirect:/sessions/" + id + "?error=sentence-regeneration-failed";
+        }
+    }
+
+    @PostMapping("/{id}/regenerate-all-sentences")
+    @SuppressWarnings("unchecked")
+    public String regenerateAllSentences(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+        // Get words from session data
+        if (!sessionData.containsKey("words")) {
+            return "redirect:/sessions/" + id + "?error=no-words-in-session";
+        }
+
+        List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+        if (words.isEmpty()) {
+            return "redirect:/sessions/" + id + "?error=no-words-to-regenerate";
+        }
+
+        int successCount = 0;
+        int failureCount = 0;
+
+        // Process all words
+        for (Map<String, Object> wordData : words) {
+            String sourceWord = (String) wordData.get("source_word");
+
+            if (sourceWord == null || sourceWord.trim().isEmpty()) {
+                continue;
+            }
+
+            try {
+                // Regenerate sentence using the service
+                SentenceData sentenceData = sentenceGenerationService.regenerateSentence(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage()
+                );
+
+                // Convert sentence data to map format
+                Map<String, String> sentenceMap = new HashMap<>();
+                sentenceMap.put("source_language_sentence", sentenceData.getSourceLanguageSentence());
+                sentenceMap.put("source_language_structure", sentenceData.getSourceLanguageStructure());
+                sentenceMap.put("target_language_sentence", sentenceData.getTargetLanguageSentence());
+                sentenceMap.put("target_language_latin", sentenceData.getTargetLanguageLatinCharacters());
+                sentenceMap.put("target_language_transliteration", sentenceData.getTargetLanguageTransliteration());
+
+                // Update word data with new sentence
+                wordData.put("sentence_data", sentenceMap);
+                wordData.put("sentence_status", "success");
+                wordData.remove("sentence_error");
+
+                successCount++;
+                System.out.println("Regenerated sentence for word: " + sourceWord);
+
+            } catch (Exception e) {
+                System.err.println("Failed to regenerate sentence for word '" + sourceWord + "': " + e.getMessage());
+                wordData.put("sentence_status", "failed");
+                wordData.put("sentence_error", e.getMessage());
+                failureCount++;
+            }
+        }
+
+        // Update session data
+        sessionData.put("words", words);
+        translationSessionService.updateSessionData(id, sessionData);
+
+        System.out.println("Regenerated sentences for session " + id +
+                " - Success: " + successCount + ", Failed: " + failureCount);
+
+        if (failureCount > 0) {
+            return "redirect:/sessions/" + id + "?message=sentences-regenerated-with-errors&success=" + successCount + "&failed=" + failureCount;
+        } else {
+            return "redirect:/sessions/" + id + "?message=all-sentences-regenerated&count=" + successCount;
+        }
     }
 
     @PostMapping("/{id}/retry-word-image")
@@ -1018,6 +1183,21 @@ public class TranslationSessionController {
         if (wordEntity.getImageFile() != null) {
             mergedData.put("image_file", wordEntity.getImageFile());
             mergedData.put("image_status", "success");
+        }
+
+        // Update with latest sentence data from SentenceEntity
+        Optional<SentenceData> sentenceDataOpt = sentenceStorageService.findSentence(
+                sourceWord, sourceLanguage, targetLanguage);
+        if (sentenceDataOpt.isPresent()) {
+            SentenceData sentenceData = sentenceDataOpt.get();
+            Map<String, String> sentenceMap = new HashMap<>();
+            sentenceMap.put("source_language_sentence", sentenceData.getSourceLanguageSentence());
+            sentenceMap.put("source_language_structure", sentenceData.getSourceLanguageStructure());
+            sentenceMap.put("target_language_sentence", sentenceData.getTargetLanguageSentence());
+            sentenceMap.put("target_language_latin", sentenceData.getTargetLanguageLatinCharacters());
+            sentenceMap.put("target_language_transliteration", sentenceData.getTargetLanguageTransliteration());
+            mergedData.put("sentence_data", sentenceMap);
+            mergedData.put("sentence_status", "success");
         }
 
         return mergedData;
