@@ -1395,6 +1395,119 @@
             font-size: 16px;
             line-height: 1.6;
         }
+
+        /* Drag and Drop Styles */
+        .dnd-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 6px;
+        }
+        .dnd-blocks-palette {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+            margin-bottom: 15px;
+        }
+        .dnd-block {
+            display: inline-block;
+            background: #fff;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 4px;
+            cursor: grab;
+            font-size: 13px;
+            font-weight: 500;
+            color: #007bff;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .dnd-block:hover {
+            background: #e7f3ff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+        }
+        .dnd-block.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .dnd-block.toggle-block {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .dnd-block.toggle-block:hover {
+            background: #ffe8a1;
+        }
+        .dnd-drop-zone {
+            min-height: 100px;
+            background: #f8f9fa;
+            border: 2px dashed #6c757d;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .dnd-drop-zone.drag-over {
+            background: #e7f3ff;
+            border-color: #007bff;
+            border-style: solid;
+        }
+        .dnd-drop-zone.empty::before {
+            content: 'Drag blocks here to build your card';
+            display: block;
+            text-align: center;
+            color: #6c757d;
+            padding: 30px;
+            font-style: italic;
+        }
+        .dnd-dropped-block {
+            display: inline-flex;
+            align-items: center;
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #007bff;
+            cursor: move;
+            position: relative;
+        }
+        .dnd-dropped-block.toggle-wrapper {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+            padding: 4px;
+        }
+        .dnd-dropped-block .remove-btn {
+            margin-left: 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .dnd-dropped-block .remove-btn:hover {
+            background: #c82333;
+        }
+        .dnd-dropped-block.line-break {
+            display: block;
+            background: #e9ecef;
+            border-color: #6c757d;
+            color: #495057;
+            width: 100%;
+            text-align: center;
+            margin: 8px 0;
+        }
     </style>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
@@ -2229,9 +2342,23 @@
 
                 <!-- Edit Mode (hidden by default) -->
                 <div id="formatEditMode" style="display: none;">
-                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
-                        <textarea class="form-control" id="frontTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].frontTemplate)}</textarea>
+                    <!-- Mode Toggle -->
+                    <div class="dnd-mode-toggle">
+                        <strong>Edit Mode:</strong>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="editMode" id="textMode" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary btn-sm" for="textMode" onclick="switchEditMode('text')">📝 Text</label>
+
+                            <input type="radio" class="btn-check" name="editMode" id="dndMode" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm" for="dndMode" onclick="switchEditMode('dnd')">🎯 Drag & Drop</label>
+                        </div>
+                    </div>
+
+                    <!-- Text Mode -->
+                    <div id="textEditMode">
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
+                            <textarea class="form-control" id="frontTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].frontTemplate)}</textarea>
                         <div class="placeholder-buttons" style="margin-top: 10px;">
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source-text]')">source-text</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source_transliteration]')">source_transliteration</button>
@@ -2241,6 +2368,11 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[image]')">image</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[mnemonic_keyword]')">mnemonic_keyword</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[mnemonic_sentence]')">mnemonic_sentence</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[sentence-source]')">sentence-source</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[sentence-target]')">sentence-target</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[sentence-transliteration]')">sentence-transliteration</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[sentence-structure]')">sentence-structure</button>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="insertFormatPlaceholder('front', '[toggle]')"><strong>toggle</strong></button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '<br>')">line break</button>
                         </div>
                     </div>
@@ -2257,17 +2389,73 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[image]')">image</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[mnemonic_keyword]')">mnemonic_keyword</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[mnemonic_sentence]')">mnemonic_sentence</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[sentence-source]')">sentence-source</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[sentence-target]')">sentence-target</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[sentence-transliteration]')">sentence-transliteration</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[sentence-structure]')">sentence-structure</button>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="insertFormatPlaceholder('back', '[toggle]')"><strong>toggle</strong></button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '<br>')">line break</button>
                         </div>
                     </div>
 
-                    <div style="text-align: center; margin-bottom: 15px;">
-                        <button type="button" class="btn btn-success" onclick="applyFormatToAllCards()" style="margin-right: 10px;">
-                            ✓ Apply to All Cards
-                        </button>
-                        <button type="button" class="btn btn-secondary" onclick="updateFormatPreview()">
-                            👁️ Preview Changes
-                        </button>
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <button type="button" class="btn btn-success" onclick="applyFormatToAllCards()" style="margin-right: 10px;">
+                                ✓ Apply to All Cards
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="updateFormatPreview()">
+                                👁️ Preview Changes
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Drag and Drop Mode -->
+                    <div id="dndEditMode" style="display: none;">
+                        <!-- Available Blocks Palette -->
+                        <div class="dnd-blocks-palette">
+                            <h5 style="margin-top: 0; color: #495057;">Available Blocks</h5>
+                            <p style="font-size: 13px; color: #6c757d; margin-bottom: 12px;">Drag blocks below to build your card templates</p>
+
+                            <div id="dndBlocksPalette">
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[source-text]">source-text</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[source_transliteration]">source_transliteration</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[target-text]">target-text</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[source-audio]">source-audio</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[target-audio]">target-audio</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[image]">image</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[mnemonic_keyword]">mnemonic_keyword</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[mnemonic_sentence]">mnemonic_sentence</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[sentence-source]">sentence-source</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[sentence-target]">sentence-target</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[sentence-transliteration]">sentence-transliteration</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[sentence-structure]">sentence-structure</div>
+                                <div class="dnd-block toggle-block" draggable="true" data-type="toggle">🔽 Toggle (wrap next block)</div>
+                                <div class="dnd-block" draggable="true" data-type="linebreak" data-value="<br>">line break</div>
+                            </div>
+                        </div>
+
+                        <!-- Front Template Drop Zone -->
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
+                            <div id="frontDropZone" class="dnd-drop-zone empty" data-target="front"></div>
+                        </div>
+
+                        <!-- Back Template Drop Zone -->
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Back Template:</label>
+                            <div id="backDropZone" class="dnd-drop-zone empty" data-target="back"></div>
+                        </div>
+
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <button type="button" class="btn btn-success" onclick="applyDndFormat()" style="margin-right: 10px;">
+                                ✓ Apply to All Cards
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="updateDndPreview()">
+                                👁️ Preview Changes
+                            </button>
+                            <button type="button" class="btn btn-outline-danger" onclick="clearDndZones()">
+                                🗑️ Clear All
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -2309,6 +2497,12 @@
                 btn.textContent = '👁️ View Format';
                 btn.classList.remove('btn-primary');
                 btn.classList.add('btn-secondary');
+
+                // Initialize with text mode and setup listeners
+                setupTextModeListeners();
+
+                // Show initial preview
+                updateFormatPreview();
             } else {
                 editMode.style.display = 'none';
                 viewMode.style.display = 'block';
@@ -2327,6 +2521,9 @@
             textarea.value = text.substring(0, start) + placeholder + text.substring(end);
             textarea.focus();
             textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
+
+            // Auto-update preview after inserting placeholder
+            autoUpdatePreview();
         }
 
         function updateFormatPreview() {
@@ -2338,9 +2535,16 @@
             const frontPreview = replacePlaceholders(frontTemplate, wordData);
             const backPreview = replacePlaceholders(backTemplate, wordData);
 
-            // Update preview display using textContent
-            document.getElementById('sampleFrontPreview').textContent = frontPreview;
-            document.getElementById('sampleBackPreview').textContent = backPreview;
+            // Update preview display using innerHTML to show HTML (like toggles)
+            const frontEl = document.getElementById('sampleFrontPreview');
+            const backEl = document.getElementById('sampleBackPreview');
+
+            // Escape HTML tags except for our special ones
+            const frontHtml = frontPreview.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+            const backHtml = backPreview.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>');
+
+            frontEl.innerHTML = frontHtml;
+            backEl.innerHTML = backHtml;
 
             // Also update the view mode displays
             document.getElementById('frontTemplateDisplay').textContent = frontTemplate;
@@ -2398,11 +2602,46 @@
             result = result.replace(/\[mnemonic_keyword\]/g, wordData.mnemonic_keyword || '');
             result = result.replace(/\[mnemonic_sentence\]/g, wordData.mnemonic_sentence || '');
 
+            // Handle sentence data
+            if (wordData.sentence_data) {
+                const sentenceData = wordData.sentence_data;
+                result = result.replace(/\[sentence-source\]/g, sentenceData.source_language_sentence || '');
+                result = result.replace(/\[sentence-target\]/g, sentenceData.target_language_sentence || '');
+                result = result.replace(/\[sentence-latin\]/g, sentenceData.target_language_latin || '');
+                result = result.replace(/\[sentence-transliteration\]/g, sentenceData.target_language_transliteration || '');
+                result = result.replace(/\[sentence-structure\]/g, sentenceData.source_language_structure || '');
+            } else {
+                // If no sentence data, remove placeholders
+                result = result.replace(/\[sentence-source\]/g, '(no sentence data)');
+                result = result.replace(/\[sentence-target\]/g, '(no sentence data)');
+                result = result.replace(/\[sentence-latin\]/g, '(no sentence data)');
+                result = result.replace(/\[sentence-transliteration\]/g, '(no sentence data)');
+                result = result.replace(/\[sentence-structure\]/g, '(no sentence data)');
+            }
+
             if (wordData.image_file) {
                 result = result.replace(/\[image\]/g, '<img src="' + wordData.image_file + '">');
             } else {
                 result = result.replace(/\[image\]/g, '');
             }
+
+            // Handle toggle placeholders - process them to show the HTML structure
+            // Look for [toggle][placeholder] patterns and replace with toggle HTML preview
+            result = result.replace(/\[toggle\]\[([^\]]+)\]/g, function(match, placeholder) {
+                // Extract just the placeholder value we already replaced
+                const placeholderPattern = new RegExp('\\[' + placeholder + '\\]', 'g');
+                let placeholderValue = '(value)';
+
+                // Try to find what this placeholder was replaced with
+                const testTemplate = '[' + placeholder + ']';
+                const testReplaced = replacePlaceholders(testTemplate, wordData);
+                if (testReplaced !== testTemplate) {
+                    placeholderValue = testReplaced;
+                }
+
+                const label = placeholder.replace(/-/g, ' ').replace(/_/g, ' ');
+                return `[Toggle: ${label} = ${placeholderValue}]`;
+            });
 
             return result;
         }
@@ -2472,6 +2711,404 @@
                 closeAnkiCardPreview();
             }
         });
+
+        // ===== Drag and Drop Functionality =====
+        let draggedBlock = null;
+        let draggedFromZone = null; // Track if dragging from a drop zone (for reordering)
+        let pendingToggle = false; // Track if next block should be wrapped in toggle
+        let previewUpdateTimer = null; // Debounce timer for auto-preview
+
+        function autoUpdatePreview() {
+            // Debounce preview updates to avoid too many refreshes
+            if (previewUpdateTimer) {
+                clearTimeout(previewUpdateTimer);
+            }
+            previewUpdateTimer = setTimeout(() => {
+                updateFormatPreview();
+            }, 300); // 300ms debounce
+        }
+
+        function switchEditMode(mode) {
+            const textMode = document.getElementById('textEditMode');
+            const dndMode = document.getElementById('dndEditMode');
+
+            if (mode === 'text') {
+                textMode.style.display = 'block';
+                dndMode.style.display = 'none';
+                // Sync from DnD to text if needed
+                syncDndToText();
+                // Add text input listeners for auto-preview
+                setupTextModeListeners();
+            } else {
+                textMode.style.display = 'none';
+                dndMode.style.display = 'block';
+                // Sync from text to DnD
+                syncTextToDnd();
+                initializeDragAndDrop();
+            }
+        }
+
+        function setupTextModeListeners() {
+            const frontTextarea = document.getElementById('frontTemplateEdit');
+            const backTextarea = document.getElementById('backTemplateEdit');
+
+            // Remove old listeners to avoid duplicates
+            frontTextarea.removeEventListener('input', autoUpdatePreview);
+            backTextarea.removeEventListener('input', autoUpdatePreview);
+
+            // Add new listeners
+            frontTextarea.addEventListener('input', autoUpdatePreview);
+            backTextarea.addEventListener('input', autoUpdatePreview);
+        }
+
+        function initializeDragAndDrop() {
+            // Add drag event listeners to palette blocks
+            document.querySelectorAll('.dnd-block').forEach(block => {
+                block.addEventListener('dragstart', handlePaletteDragStart);
+                block.addEventListener('dragend', handleDragEnd);
+            });
+
+            // Add drop zone event listeners
+            document.querySelectorAll('.dnd-drop-zone').forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handlePaletteDragStart(e) {
+            draggedBlock = e.target;
+            draggedFromZone = null; // Coming from palette
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('text/html', e.target.innerHTML);
+        }
+
+        function handleDroppedBlockDragStart(e) {
+            draggedBlock = e.target;
+            draggedFromZone = e.target.parentElement; // Track source zone
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.innerHTML);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedBlock = null;
+            draggedFromZone = null;
+        }
+
+        function makeBlockDraggable(block) {
+            // Ensure block is draggable and has proper event listeners
+            block.draggable = true;
+            // Remove old listeners to avoid duplicates
+            block.removeEventListener('dragstart', handleDroppedBlockDragStart);
+            block.removeEventListener('dragend', handleDragEnd);
+            // Add new listeners
+            block.addEventListener('dragstart', handleDroppedBlockDragStart);
+            block.addEventListener('dragend', handleDragEnd);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+
+            const dropZone = e.currentTarget;
+
+            // If dragging from a zone, check if we should show insert position
+            if (draggedFromZone) {
+                e.dataTransfer.dropEffect = 'move';
+
+                // Find which block we're hovering over
+                const afterElement = getDragAfterElement(dropZone, e.clientY);
+
+                // Remove any existing insertion indicators
+                dropZone.querySelectorAll('.dnd-dropped-block').forEach(b => {
+                    b.style.borderTop = '';
+                    b.style.borderBottom = '';
+                });
+
+                if (afterElement == null) {
+                    // Dragging after all elements
+                    const lastChild = dropZone.lastElementChild;
+                    if (lastChild && lastChild !== draggedBlock) {
+                        lastChild.style.borderBottom = '3px solid #007bff';
+                    }
+                } else if (afterElement !== draggedBlock) {
+                    afterElement.style.borderTop = '3px solid #007bff';
+                }
+            } else {
+                e.dataTransfer.dropEffect = 'copy';
+            }
+
+            dropZone.classList.add('drag-over');
+            return false;
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.dnd-dropped-block:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function handleDragLeave(e) {
+            if (e.currentTarget === e.target) {
+                e.currentTarget.classList.remove('drag-over');
+                // Clean up insertion indicators
+                e.currentTarget.querySelectorAll('.dnd-dropped-block').forEach(b => {
+                    b.style.borderTop = '';
+                    b.style.borderBottom = '';
+                });
+            }
+        }
+
+        function handleDrop(e) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            const dropZone = e.currentTarget;
+            dropZone.classList.remove('drag-over');
+
+            // Clean up insertion indicators
+            dropZone.querySelectorAll('.dnd-dropped-block').forEach(b => {
+                b.style.borderTop = '';
+                b.style.borderBottom = '';
+            });
+
+            if (!draggedBlock) return;
+
+            // Check if we're reordering within a zone
+            if (draggedFromZone) {
+                // Reordering existing block
+                const afterElement = getDragAfterElement(dropZone, e.clientY);
+
+                if (afterElement == null) {
+                    // Insert at end
+                    dropZone.appendChild(draggedBlock);
+                } else {
+                    // Insert before afterElement
+                    dropZone.insertBefore(draggedBlock, afterElement);
+                }
+
+                dropZone.classList.remove('empty');
+
+                // Auto-update preview after reordering
+                syncDndToText();
+                autoUpdatePreview();
+                return;
+            }
+
+            // Adding new block from palette
+            dropZone.classList.remove('empty');
+
+            const blockType = draggedBlock.getAttribute('data-type');
+            const blockValue = draggedBlock.getAttribute('data-value');
+            const blockText = draggedBlock.textContent;
+
+            // Create dropped block element
+            const droppedBlock = document.createElement('div');
+            droppedBlock.className = 'dnd-dropped-block';
+
+            if (blockType === 'toggle') {
+                // Set pending toggle flag
+                pendingToggle = true;
+                droppedBlock.classList.add('toggle-wrapper');
+                droppedBlock.setAttribute('data-type', 'toggle');
+                droppedBlock.innerHTML = `🔽 Toggle <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+            } else if (blockType === 'linebreak') {
+                droppedBlock.classList.add('line-break');
+                droppedBlock.setAttribute('data-type', 'linebreak');
+                droppedBlock.setAttribute('data-value', blockValue);
+                droppedBlock.innerHTML = `── line break ── <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+            } else {
+                // Regular field block
+                if (pendingToggle) {
+                    // Wrap this block in a toggle wrapper
+                    const toggleWrapper = document.createElement('div');
+                    toggleWrapper.className = 'dnd-dropped-block toggle-wrapper';
+                    toggleWrapper.setAttribute('data-type', 'toggle-group');
+
+                    const innerBlock = document.createElement('span');
+                    innerBlock.style.cssText = 'background: #fff; padding: 4px 8px; border-radius: 4px; margin: 2px;';
+                    innerBlock.textContent = blockText;
+                    innerBlock.setAttribute('data-value', blockValue);
+
+                    toggleWrapper.innerHTML = `🔽 `;
+                    toggleWrapper.appendChild(innerBlock);
+                    toggleWrapper.innerHTML += ` <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+
+                    // Make wrapper draggable
+                    makeBlockDraggable(toggleWrapper);
+
+                    dropZone.appendChild(toggleWrapper);
+                    pendingToggle = false;
+
+                    // Auto-update preview after adding toggle wrapper
+                    syncDndToText();
+                    autoUpdatePreview();
+                    return;
+                } else {
+                    droppedBlock.setAttribute('data-type', 'field');
+                    droppedBlock.setAttribute('data-value', blockValue);
+                    droppedBlock.innerHTML = `${blockText} <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+                }
+            }
+
+            // Make block draggable for reordering
+            makeBlockDraggable(droppedBlock);
+
+            dropZone.appendChild(droppedBlock);
+
+            // Auto-update preview after adding block
+            syncDndToText();
+            autoUpdatePreview();
+        }
+
+        function removeDndBlock(btn) {
+            const block = btn.parentElement;
+            const dropZone = block.parentElement;
+            block.remove();
+
+            // Check if zone is now empty
+            if (dropZone.children.length === 0) {
+                dropZone.classList.add('empty');
+            }
+
+            // Auto-update preview after removing block
+            syncDndToText();
+            autoUpdatePreview();
+        }
+
+        function clearDndZones() {
+            if (!confirm('Clear all blocks from both templates?')) return;
+
+            document.getElementById('frontDropZone').innerHTML = '';
+            document.getElementById('backDropZone').innerHTML = '';
+            document.getElementById('frontDropZone').classList.add('empty');
+            document.getElementById('backDropZone').classList.add('empty');
+            pendingToggle = false;
+
+            // Auto-update preview after clearing
+            syncDndToText();
+            autoUpdatePreview();
+        }
+
+        function dndZoneToTemplate(zoneId) {
+            const zone = document.getElementById(zoneId);
+            const blocks = zone.querySelectorAll('.dnd-dropped-block');
+            let template = '';
+
+            blocks.forEach(block => {
+                const type = block.getAttribute('data-type');
+
+                if (type === 'toggle-group') {
+                    // Extract the inner value
+                    const innerSpan = block.querySelector('span[data-value]');
+                    if (innerSpan) {
+                        template += '[toggle]' + innerSpan.getAttribute('data-value') + '\n';
+                    }
+                } else if (type === 'linebreak') {
+                    template += block.getAttribute('data-value') + '\n';
+                } else if (type === 'field') {
+                    template += block.getAttribute('data-value') + '\n';
+                }
+                // Skip standalone toggle markers
+            });
+
+            return template.trim();
+        }
+
+        function syncDndToText() {
+            // Convert DnD blocks to text templates
+            const frontTemplate = dndZoneToTemplate('frontDropZone');
+            const backTemplate = dndZoneToTemplate('backDropZone');
+
+            document.getElementById('frontTemplateEdit').value = frontTemplate;
+            document.getElementById('backTemplateEdit').value = backTemplate;
+        }
+
+        function syncTextToDnd() {
+            // Convert text templates to DnD blocks
+            const frontTemplate = document.getElementById('frontTemplateEdit').value;
+            const backTemplate = document.getElementById('backTemplateEdit').value;
+
+            populateDndZone('frontDropZone', frontTemplate);
+            populateDndZone('backDropZone', backTemplate);
+        }
+
+        function populateDndZone(zoneId, template) {
+            const zone = document.getElementById(zoneId);
+            zone.innerHTML = '';
+
+            if (!template || template.trim() === '') {
+                zone.classList.add('empty');
+                return;
+            }
+
+            zone.classList.remove('empty');
+            const lines = template.split('\n');
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+
+                const droppedBlock = document.createElement('div');
+                droppedBlock.className = 'dnd-dropped-block';
+
+                if (line.startsWith('[toggle]')) {
+                    // Toggle block
+                    const value = line.substring(8); // Remove '[toggle]'
+                    const label = value.replace(/[\[\]]/g, '').replace(/-/g, ' ').replace(/_/g, ' ');
+
+                    droppedBlock.classList.add('toggle-wrapper');
+                    droppedBlock.setAttribute('data-type', 'toggle-group');
+
+                    const innerSpan = document.createElement('span');
+                    innerSpan.style.cssText = 'background: #fff; padding: 4px 8px; border-radius: 4px; margin: 2px;';
+                    innerSpan.textContent = label;
+                    innerSpan.setAttribute('data-value', value);
+
+                    droppedBlock.innerHTML = `🔽 `;
+                    droppedBlock.appendChild(innerSpan);
+                    droppedBlock.innerHTML += ` <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+                } else if (line === '<br>') {
+                    // Line break
+                    droppedBlock.classList.add('line-break');
+                    droppedBlock.setAttribute('data-type', 'linebreak');
+                    droppedBlock.setAttribute('data-value', '<br>');
+                    droppedBlock.innerHTML = `── line break ── <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+                } else if (line.startsWith('[') && line.endsWith(']')) {
+                    // Regular field
+                    const label = line.substring(1, line.length - 1).replace(/-/g, ' ').replace(/_/g, ' ');
+                    droppedBlock.setAttribute('data-type', 'field');
+                    droppedBlock.setAttribute('data-value', line);
+                    droppedBlock.innerHTML = `${label} <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+                }
+
+                // Make block draggable for reordering
+                makeBlockDraggable(droppedBlock);
+
+                zone.appendChild(droppedBlock);
+            });
+        }
+
+        function applyDndFormat() {
+            syncDndToText(); // Convert DnD to text first
+            applyFormatToAllCards(); // Use existing function
+        }
+
+        function updateDndPreview() {
+            syncDndToText(); // Convert DnD to text first
+            updateFormatPreview(); // Use existing function
+        }
     </script>
 </body>
 </html>
