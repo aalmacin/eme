@@ -2307,9 +2307,9 @@
             result = result.replace(/\[mnemonic_sentence\]/g, wordData.mnemonic_sentence || '');
 
             if (wordData.image_file) {
-                result = result.replace(/\[image\]/g, '[Image: ' + wordData.image_file + ']');
+                result = result.replace(/\[image\]/g, '<img src="' + wordData.image_file + '">');
             } else {
-                result = result.replace(/\[image\]/g, '[No image]');
+                result = result.replace(/\[image\]/g, '');
             }
 
             return result;

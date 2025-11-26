@@ -940,9 +940,15 @@ public class TranslationSessionController {
         result = result.replace("[mnemonic_keyword]", mnemonicKeyword != null ? mnemonicKeyword.toString() : "");
         result = result.replace("[mnemonic_sentence]", mnemonicSentence != null ? mnemonicSentence.toString() : "");
 
-        if (wordData.containsKey("image_file")) {
+        if (wordData.containsKey("image_file") && wordData.get("image_file") != null) {
             String imageFile = wordData.get("image_file").toString();
-            result = result.replace("[image]", "<img src=\"" + imageFile + "\" />");
+            if (!imageFile.isEmpty()) {
+                result = result.replace("[image]", "<img src=\"" + imageFile + "\" />");
+            } else {
+                result = result.replace("[image]", "");
+            }
+        } else {
+            result = result.replace("[image]", "");
         }
 
         return result;
