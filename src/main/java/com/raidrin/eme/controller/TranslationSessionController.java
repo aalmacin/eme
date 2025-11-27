@@ -272,6 +272,55 @@ public class TranslationSessionController {
                     session.getTargetLanguage()
             );
 
+            // Generate audio for the sentence
+            if (sentenceData.getSourceLanguageSentence() != null) {
+                String sentenceAudioFileName = Codec.encodeForAudioFileName(sentenceData.getSourceLanguageSentence());
+                String sentenceAudioFileNameWithExt = sentenceAudioFileName + ".mp3";
+
+                // Get audio settings from session's original request
+                Map<String, Object> originalRequest = sessionData.containsKey("original_request")
+                    ? (Map<String, Object>) sessionData.get("original_request")
+                    : new HashMap<>();
+
+                String audioLangCodeStr = (String) originalRequest.get("source_audio_language_code");
+                String voiceGenderStr = (String) originalRequest.get("source_voice_gender");
+                String voiceName = (String) originalRequest.get("source_voice_name");
+
+                LanguageAudioCodes audioLangCode = audioLangCodeStr != null
+                    ? LanguageAudioCodes.valueOf(audioLangCodeStr)
+                    : getDefaultAudioCode(session.getSourceLanguage());
+
+                SsmlVoiceGender voiceGender = voiceGenderStr != null
+                    ? SsmlVoiceGender.valueOf(voiceGenderStr)
+                    : SsmlVoiceGender.FEMALE;
+
+                // Generate audio file
+                AsyncAudioGenerationService.AudioRequest audioRequest =
+                    new AsyncAudioGenerationService.AudioRequest(
+                        sentenceData.getSourceLanguageSentence(),
+                        audioLangCode,
+                        voiceGender,
+                        voiceName,
+                        sentenceAudioFileName
+                    );
+
+                try {
+                    audioGenerationService.generateAudioFileAsync(audioRequest).get();
+                    sentenceData.setAudioFile(sentenceAudioFileNameWithExt);
+
+                    // Save updated sentence data with audio file to database
+                    sentenceStorageService.saveSentence(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        sentenceData
+                    );
+                } catch (Exception audioEx) {
+                    System.err.println("Failed to generate audio for sentence: " + audioEx.getMessage());
+                    // Continue even if audio generation fails
+                }
+            }
+
             // Convert sentence data to map format
             Map<String, String> sentenceMap = new HashMap<>();
             sentenceMap.put("source_language_sentence", sentenceData.getSourceLanguageSentence());
@@ -283,6 +332,9 @@ public class TranslationSessionController {
             // Update word data with new sentence
             wordData.put("sentence_data", sentenceMap);
             wordData.put("sentence_status", "success");
+            if (sentenceData.getAudioFile() != null) {
+                wordData.put("sentence_audio_file", sentenceData.getAudioFile());
+            }
             wordData.remove("sentence_error"); // Clear any previous error
 
             // Update session data
@@ -333,8 +385,27 @@ public class TranslationSessionController {
             return "redirect:/sessions/" + id + "?error=no-words-to-regenerate";
         }
 
+        // Get audio settings from session's original request
+        Map<String, Object> originalRequest = sessionData.containsKey("original_request")
+            ? (Map<String, Object>) sessionData.get("original_request")
+            : new HashMap<>();
+
+        String audioLangCodeStr = (String) originalRequest.get("source_audio_language_code");
+        String voiceGenderStr = (String) originalRequest.get("source_voice_gender");
+        String voiceName = (String) originalRequest.get("source_voice_name");
+
+        LanguageAudioCodes audioLangCode = audioLangCodeStr != null
+            ? LanguageAudioCodes.valueOf(audioLangCodeStr)
+            : getDefaultAudioCode(session.getSourceLanguage());
+
+        SsmlVoiceGender voiceGender = voiceGenderStr != null
+            ? SsmlVoiceGender.valueOf(voiceGenderStr)
+            : SsmlVoiceGender.FEMALE;
+
         int successCount = 0;
         int failureCount = 0;
+        List<AsyncAudioGenerationService.AudioRequest> audioRequests = new ArrayList<>();
+        Set<String> processedAudioFiles = new HashSet<>();
 
         // Process all words
         for (Map<String, Object> wordData : words) {
@@ -351,6 +422,36 @@ public class TranslationSessionController {
                         session.getSourceLanguage(),
                         session.getTargetLanguage()
                 );
+
+                // Prepare audio generation for the sentence
+                if (sentenceData.getSourceLanguageSentence() != null) {
+                    String sentenceAudioFileName = Codec.encodeForAudioFileName(sentenceData.getSourceLanguageSentence());
+                    String sentenceAudioFileNameWithExt = sentenceAudioFileName + ".mp3";
+
+                    sentenceData.setAudioFile(sentenceAudioFileNameWithExt);
+
+                    // Save updated sentence data with audio file to database
+                    sentenceStorageService.saveSentence(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        sentenceData
+                    );
+
+                    // Add to batch audio generation if not already processed
+                    if (!processedAudioFiles.contains(sentenceAudioFileName)) {
+                        audioRequests.add(new AsyncAudioGenerationService.AudioRequest(
+                            sentenceData.getSourceLanguageSentence(),
+                            audioLangCode,
+                            voiceGender,
+                            voiceName,
+                            sentenceAudioFileName
+                        ));
+                        processedAudioFiles.add(sentenceAudioFileName);
+                    }
+
+                    wordData.put("sentence_audio_file", sentenceAudioFileNameWithExt);
+                }
 
                 // Convert sentence data to map format
                 Map<String, String> sentenceMap = new HashMap<>();
@@ -373,6 +474,18 @@ public class TranslationSessionController {
                 wordData.put("sentence_status", "failed");
                 wordData.put("sentence_error", e.getMessage());
                 failureCount++;
+            }
+        }
+
+        // Generate all audio files in batch
+        if (!audioRequests.isEmpty()) {
+            try {
+                System.out.println("Generating audio for " + audioRequests.size() + " sentences...");
+                audioGenerationService.generateAudioFilesAsync(audioRequests).get();
+                System.out.println("Audio generation completed for all sentences");
+            } catch (Exception audioEx) {
+                System.err.println("Failed to generate audio files: " + audioEx.getMessage());
+                // Continue even if audio generation fails
             }
         }
 
@@ -1373,5 +1486,22 @@ public class TranslationSessionController {
             return "From mnemonic: " + characterName;
         }
         return characterName;
+    }
+
+    /**
+     * Get default audio code for a language
+     */
+    private LanguageAudioCodes getDefaultAudioCode(String languageCode) {
+        return switch (languageCode.toLowerCase()) {
+            case "hi" -> LanguageAudioCodes.Hindi;
+            case "pa" -> LanguageAudioCodes.Punjabi;
+            case "tl", "fil" -> LanguageAudioCodes.Tagalog;
+            case "es" -> LanguageAudioCodes.Spanish;
+            case "fr" -> LanguageAudioCodes.French;
+            case "cafr" -> LanguageAudioCodes.CanadianFrench;
+            case "ko", "kr" -> LanguageAudioCodes.Korean;
+            case "ja", "jp" -> LanguageAudioCodes.Japanese;
+            default -> LanguageAudioCodes.English;
+        };
     }
 }

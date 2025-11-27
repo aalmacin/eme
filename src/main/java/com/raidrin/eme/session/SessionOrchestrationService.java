@@ -14,6 +14,7 @@ import com.raidrin.eme.storage.entity.TranslationSessionEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity.SessionStatus;
 import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.service.GcpStorageService;
+import com.raidrin.eme.storage.service.SentenceStorageService;
 import com.raidrin.eme.storage.service.TranslationSessionService;
 import com.raidrin.eme.storage.service.WordService;
 import com.raidrin.eme.translator.TranslationService;
@@ -53,6 +54,7 @@ public class SessionOrchestrationService {
     private final AsyncAudioGenerationService audioGenerationService;
     private final OpenAiImageService openAiImageService;
     private final GcpStorageService gcpStorageService;
+    private final SentenceStorageService sentenceStorageService;
     private final TranslationSessionService sessionService;
     private final WordService wordService;
     private final ZipFileGenerator zipFileGenerator;
@@ -258,7 +260,17 @@ public class SessionOrchestrationService {
                             // Generate sentence audio
                             if (sentenceData.getSourceLanguageSentence() != null) {
                                 String sentenceAudioFileName = Codec.encodeForAudioFileName(sentenceData.getSourceLanguageSentence());
-                                wordData.put("sentence_audio_file", sentenceAudioFileName + ".mp3");
+                                String sentenceAudioFileNameWithExt = sentenceAudioFileName + ".mp3";
+                                wordData.put("sentence_audio_file", sentenceAudioFileNameWithExt);
+
+                                // Update sentence data with audio file and save to database
+                                sentenceData.setAudioFile(sentenceAudioFileNameWithExt);
+                                sentenceStorageService.saveSentence(
+                                    sourceWord,
+                                    request.getSourceLanguage(),
+                                    request.isEnableTranslation() ? request.getTargetLanguage() : "en",
+                                    sentenceData
+                                );
 
                                 if (!processedAudioFiles.contains(sentenceAudioFileName)) {
                                     allAudioRequests.add(new AsyncAudioGenerationService.AudioRequest(

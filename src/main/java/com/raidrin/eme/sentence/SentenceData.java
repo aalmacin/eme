@@ -14,4 +14,5 @@ public class SentenceData implements Serializable {
     private String targetLanguageTransliteration;    // Sentence transliteration in Latin characters
     private String targetLanguageSentence;           // Sentence in target language (e.g., English translation)
     private String sourceLanguageStructure;          // Word-by-word structure analysis
+    private String audioFile;                        // Audio file name for the sentence (e.g., "encoded-sentence.mp3")
 }
