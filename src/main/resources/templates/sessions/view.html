@@ -294,6 +294,67 @@
             color: #007bff;
             font-size: 16px;
         }
+        .word-checklist {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 8px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            border: 1px solid #e9ecef;
+        }
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            padding: 4px 8px;
+            border-radius: 4px;
+            background: white;
+        }
+        .checklist-item .check-icon {
+            font-size: 14px;
+            font-weight: bold;
+        }
+        .checklist-item.present {
+            color: #155724;
+            background: #d4edda;
+        }
+        .checklist-item.present .check-icon {
+            color: #28a745;
+        }
+        .checklist-item.missing {
+            color: #6c757d;
+            background: #e9ecef;
+            opacity: 0.6;
+        }
+        .checklist-item.missing .check-icon {
+            color: #adb5bd;
+        }
+        .word-content-section {
+            margin-bottom: 15px;
+        }
+        .section-title {
+            font-weight: 600;
+            color: #495057;
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+            padding-bottom: 4px;
+            border-bottom: 2px solid #e9ecef;
+        }
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        @media (max-width: 768px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+            }
+        }
     </style>
 </head>
 <body>
@@ -430,44 +491,20 @@
                     <span th:if="${wordData.containsKey('source_transliteration')}"
                           th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
                           style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
-                    <button type="button"
-                            th:if="${wordData.containsKey('word_id')}"
-                            th:data-word-id="${wordData.get('word_id')}"
-                            th:data-source-word="${wordData.get('source_word')}"
-                            th:data-current-transliteration="${wordData.containsKey('source_transliteration') ? wordData.get('source_transliteration') : ''}"
-                            onclick="showUpdateTransliterationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTransliteration)"
-                            class="btn btn-sm btn-outline-info"
-                            style="padding: 2px 8px; font-size: 12px;"
-                            title="Edit Transliteration">
-                        ✏️ Translit
-                    </button>
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${wordData.get('translations')}"
                           style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
-                    <button type="button"
-                            th:if="${wordData.containsKey('word_id') && wordData.containsKey('translations')}"
-                            th:data-word-id="${wordData.get('word_id')}"
-                            th:data-source-word="${wordData.get('source_word')}"
-                            th:data-current-translation="${wordData.get('translations')}"
-                            onclick="showUpdateTranslationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTranslation)"
-                            class="btn btn-sm btn-outline-primary"
-                            style="margin-left: 8px; padding: 2px 8px; font-size: 12px;">
-                        ✏️ Edit Translation
-                    </button>
-                    <span th:if="${wordData.containsKey('mnemonic_keyword')}"
-                          th:text="' 🔑 ' + ${wordData.get('mnemonic_keyword')}"
-                          style="font-size: 14px; color: #17a2b8; font-weight: 600; margin-left: 8px; background: #e7f6f8; padding: 2px 8px; border-radius: 4px;"></span>
                     <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == true}"
-                          class="reused-badge">♻️ Reused from previous session</span>
+                          class="reused-badge">♻️ Reused</span>
                     <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == false}"
-                          class="new-badge">✨ Newly generated</span>
+                          class="new-badge">✨ New</span>
 
                     <!-- Word Actions -->
                     <span th:if="${wordData.containsKey('word_id')}" style="float: right;">
                         <a th:href="@{/words/{id}(id=${wordData.get('word_id')})}"
                            class="btn btn-sm btn-outline-primary"
                            style="margin-left: 10px;">
-                            📖 View Details
+                            📖 View
                         </a>
                         <button type="button"
                                 th:data-word-id="${wordData.get('word_id')}"
@@ -475,209 +512,228 @@
                                 onclick="showRegenerateModal(this.dataset.wordId, this.dataset.sourceWord)"
                                 class="btn btn-sm btn-outline-warning"
                                 style="margin-left: 5px;">
-                            🔄 Regenerate Image
+                            🔄 Regen
                         </button>
                     </span>
                 </div>
 
-                <!-- Mnemonic Display -->
-                <div th:if="${wordData.containsKey('mnemonic_sentence')}"
-                     style="margin: 12px 0; padding: 12px; background: #f8f9fa; border-left: 4px solid #17a2b8; border-radius: 4px;">
-                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                        <strong style="color: #17a2b8; font-size: 13px;">🔑 MNEMONIC KEYWORD:</strong>
-                        <span th:if="${wordData.containsKey('mnemonic_keyword')}"
-                              th:text="${wordData.get('mnemonic_keyword')}"
-                              style="font-size: 15px; font-weight: 600; color: #0056b3;"></span>
-                        <button type="button"
-                                th:if="${wordData.containsKey('word_id') && wordData.containsKey('mnemonic_keyword')}"
-                                th:data-word-id="${wordData.get('word_id')}"
-                                th:data-source-word="${wordData.get('source_word')}"
-                                th:data-current-keyword="${wordData.get('mnemonic_keyword')}"
-                                onclick="showUpdateMnemonicKeywordModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentKeyword)"
-                                class="btn btn-sm btn-outline-primary"
-                                style="padding: 2px 8px; font-size: 12px;">
-                            ✏️ Edit Keyword
-                        </button>
+                <!-- Content Checklist -->
+                <div class="word-checklist">
+                    <div th:class="'checklist-item ' + (${wordData.containsKey('translations')} ? 'present' : 'missing')">
+                        <span class="check-icon" th:text="${wordData.containsKey('translations')} ? '✓' : '○'"></span>
+                        <span>Translation</span>
                     </div>
-                    <div style="display: flex; align-items: flex-start; gap: 8px;">
-                        <strong style="color: #17a2b8; font-size: 13px; white-space: nowrap;">💭 SENTENCE:</strong>
-                        <span th:text="${wordData.get('mnemonic_sentence')}"
-                              style="font-size: 14px; color: #495057; line-height: 1.6;"></span>
+                    <div th:class="'checklist-item ' + (${wordData.containsKey('source_transliteration')} ? 'present' : 'missing')">
+                        <span class="check-icon" th:text="${wordData.containsKey('source_transliteration')} ? '✓' : '○'"></span>
+                        <span>Transliteration</span>
+                    </div>
+                    <div th:class="'checklist-item ' + (${wordData.containsKey('mnemonic_keyword')} ? 'present' : 'missing')">
+                        <span class="check-icon" th:text="${wordData.containsKey('mnemonic_keyword')} ? '✓' : '○'"></span>
+                        <span>Mnemonic</span>
+                    </div>
+                    <div th:class="'checklist-item ' + (${wordData.containsKey('mnemonic_sentence')} ? 'present' : 'missing')">
+                        <span class="check-icon" th:text="${wordData.containsKey('mnemonic_sentence')} ? '✓' : '○'"></span>
+                        <span>Mnemonic Sentence</span>
+                    </div>
+                    <div th:class="'checklist-item ' + (${wordData.containsKey('sentence_data')} ? 'present' : 'missing')">
+                        <span class="check-icon" th:text="${wordData.containsKey('sentence_data')} ? '✓' : '○'"></span>
+                        <span>Example Sentence</span>
+                    </div>
+                    <div th:class="'checklist-item ' + (${wordData.containsKey('source_audio_file')} ? 'present' : 'missing')">
+                        <span class="check-icon" th:text="${wordData.containsKey('source_audio_file')} ? '✓' : '○'"></span>
+                        <span>Audio</span>
+                    </div>
+                    <div th:class="'checklist-item ' + (${wordData.containsKey('image_file')} ? 'present' : 'missing')">
+                        <span class="check-icon" th:text="${wordData.containsKey('image_file')} ? '✓' : '○'"></span>
+                        <span>Image</span>
+                    </div>
+                    <div th:class="'checklist-item ' + (${wordData.containsKey('character_name')} ? 'present' : 'missing')">
+                        <span class="check-icon" th:text="${wordData.containsKey('character_name')} ? '✓' : '○'"></span>
+                        <span>Character Guide</span>
                     </div>
                 </div>
 
-                <!-- Translation Status -->
-                <div th:if="${wordData.containsKey('translation_status')}"
-                     th:class="'process-item ' + (${wordData.get('translation_status')} == 'success' ? 'success' : 'failed')">
+                <!-- Main Content Grid -->
+                <div class="content-grid">
+                    <!-- Left Column: Text Content -->
                     <div>
-                        <span class="process-name">Translation:</span>
-                        <span th:if="${wordData.get('translation_status')} == 'success'" style="color: #28a745;">✓ Success</span>
-                        <span th:if="${wordData.get('translation_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
-                        <small th:if="${wordData.containsKey('translation_error')}"
-                               th:text="' - ' + ${wordData.get('translation_error')}"
-                               style="color: #721c24; display: block; margin-top: 4px;"></small>
-                    </div>
-                    <div class="process-actions" th:if="${wordData.get('translation_status')} == 'failed'">
-                        <form th:action="@{/sessions/{id}/retry-word-translation(id=${translationSession.id})}" method="post" style="display: inline;">
-                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
-                            <button type="submit" class="btn btn-danger btn-sm">Retry</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Audio Status -->
-                <div th:if="${wordData.containsKey('source_audio_file')}" class="process-item success">
-                    <div>
-                        <span class="process-name">Source Audio:</span>
-                        <span style="color: #28a745;">✓ Generated</span>
-                        <code th:text="${wordData.get('source_audio_file')}" style="font-size: 11px; margin-left: 8px;"></code>
-                    </div>
-                    <div class="process-actions">
-                        <form th:action="@{/sessions/{id}/regenerate-audio(id=${translationSession.id})}" method="post" style="display: inline;">
-                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
-                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Regenerate audio for this word?');">🔄 Regenerate Audio</button>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Sentence Status -->
-                <div th:if="${wordData.containsKey('sentence_status')}"
-                     th:class="'process-item ' + (${wordData.get('sentence_status')} == 'success' ? 'success' : 'failed')">
-                    <div style="flex: 1;">
-                        <span class="process-name">Sentence:</span>
-                        <span th:if="${wordData.get('sentence_status')} == 'success'" style="color: #28a745;">✓ Success</span>
-                        <span th:if="${wordData.get('sentence_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
-                        <small th:if="${wordData.containsKey('sentence_error')}"
-                               th:text="' - ' + ${wordData.get('sentence_error')}"
-                               style="color: #721c24; display: block; margin-top: 4px;"></small>
-
-                        <!-- Display sentence data if successful -->
-                        <div th:if="${wordData.get('sentence_status') == 'success' and wordData.containsKey('sentence_data')}"
-                             style="margin-top: 12px; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
-                            <div th:with="sentenceData=${wordData.get('sentence_data')}">
-                                <!-- Source language sentence -->
-                                <div style="margin-bottom: 8px;">
-                                    <strong style="color: #495057; font-size: 12px;">Example Sentence:</strong>
-                                    <div th:text="${sentenceData.get('source_language_sentence')}" style="font-size: 14px; color: #212529; margin-top: 4px;"></div>
+                        <!-- Word Info Section -->
+                        <div class="word-content-section" th:if="${wordData.containsKey('translations') || wordData.containsKey('source_transliteration')}">
+                            <div class="section-title">Word Info</div>
+                            <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+                                <div th:if="${wordData.containsKey('translations')}" style="margin-bottom: 8px;">
+                                    <strong style="font-size: 12px; color: #6c757d;">Translation:</strong>
+                                    <div style="font-size: 14px; color: #212529; margin-top: 2px;" th:text="${wordData.get('translations')}"></div>
+                                    <button type="button"
+                                            th:if="${wordData.containsKey('word_id')}"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            th:data-source-word="${wordData.get('source_word')}"
+                                            th:data-current-translation="${wordData.get('translations')}"
+                                            onclick="showUpdateTranslationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTranslation)"
+                                            class="btn btn-sm btn-outline-primary"
+                                            style="margin-top: 4px; padding: 2px 6px; font-size: 11px;">
+                                        ✏️ Edit
+                                    </button>
                                 </div>
+                                <div th:if="${wordData.containsKey('source_transliteration')}">
+                                    <strong style="font-size: 12px; color: #6c757d;">Transliteration:</strong>
+                                    <div style="font-size: 13px; color: #0056b3; font-style: italic; margin-top: 2px;" th:text="${wordData.get('source_transliteration')}"></div>
+                                    <button type="button"
+                                            th:if="${wordData.containsKey('word_id')}"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            th:data-source-word="${wordData.get('source_word')}"
+                                            th:data-current-transliteration="${wordData.get('source_transliteration')}"
+                                            onclick="showUpdateTransliterationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTransliteration)"
+                                            class="btn btn-sm btn-outline-info"
+                                            style="margin-top: 4px; padding: 2px 6px; font-size: 11px;">
+                                        ✏️ Edit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
 
-                                <!-- Transliteration -->
+                        <!-- Mnemonic Section -->
+                        <div class="word-content-section" th:if="${wordData.containsKey('mnemonic_keyword') || wordData.containsKey('mnemonic_sentence')}">
+                            <div class="section-title">Mnemonic</div>
+                            <div style="background: #f0f8ff; padding: 10px; border-radius: 4px; border-left: 3px solid #17a2b8;">
+                                <div th:if="${wordData.containsKey('mnemonic_keyword')}" style="margin-bottom: 8px;">
+                                    <strong style="font-size: 12px; color: #17a2b8;">🔑 Keyword:</strong>
+                                    <span th:text="${wordData.get('mnemonic_keyword')}"
+                                          style="font-size: 14px; font-weight: 600; color: #0056b3; margin-left: 6px;"></span>
+                                    <button type="button"
+                                            th:if="${wordData.containsKey('word_id')}"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            th:data-source-word="${wordData.get('source_word')}"
+                                            th:data-current-keyword="${wordData.get('mnemonic_keyword')}"
+                                            onclick="showUpdateMnemonicKeywordModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentKeyword)"
+                                            class="btn btn-sm btn-outline-primary"
+                                            style="margin-left: 8px; padding: 2px 6px; font-size: 11px;">
+                                        ✏️ Edit
+                                    </button>
+                                </div>
+                                <div th:if="${wordData.containsKey('mnemonic_sentence')}">
+                                    <strong style="font-size: 12px; color: #17a2b8;">💭 Sentence:</strong>
+                                    <div th:text="${wordData.get('mnemonic_sentence')}"
+                                         style="font-size: 13px; color: #495057; line-height: 1.5; margin-top: 4px;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Example Sentence Section -->
+                        <div class="word-content-section" th:if="${wordData.get('sentence_status') == 'success' and wordData.containsKey('sentence_data')}">
+                            <div class="section-title">Example Sentence</div>
+                            <div th:with="sentenceData=${wordData.get('sentence_data')}"
+                                 style="background: #f0fff4; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745;">
+                                <div style="margin-bottom: 8px;">
+                                    <div th:text="${sentenceData.get('source_language_sentence')}"
+                                         style="font-size: 14px; color: #212529; font-weight: 500;"></div>
+                                </div>
                                 <div th:if="${sentenceData.containsKey('target_language_transliteration') and sentenceData.get('target_language_transliteration') != null}"
                                      style="margin-bottom: 8px;">
-                                    <strong style="color: #495057; font-size: 12px;">Transliteration:</strong>
-                                    <div th:text="${sentenceData.get('target_language_transliteration')}" style="font-size: 13px; color: #6c757d; font-style: italic; margin-top: 4px;"></div>
+                                    <em th:text="${sentenceData.get('target_language_transliteration')}"
+                                        style="font-size: 12px; color: #6c757d;"></em>
                                 </div>
-
-                                <!-- Target language translation -->
                                 <div style="margin-bottom: 8px;">
-                                    <strong style="color: #495057; font-size: 12px;">Translation:</strong>
-                                    <div th:text="${sentenceData.get('target_language_sentence')}" style="font-size: 13px; color: #6c757d; margin-top: 4px;"></div>
+                                    <div th:text="${sentenceData.get('target_language_sentence')}"
+                                         style="font-size: 13px; color: #495057;"></div>
                                 </div>
+                                <div th:if="${sentenceData.containsKey('source_language_structure') and sentenceData.get('source_language_structure') != null}">
+                                    <details style="margin-top: 8px;">
+                                        <summary style="cursor: pointer; font-size: 12px; color: #6c757d;">Structure</summary>
+                                        <pre th:text="${sentenceData.get('source_language_structure')}"
+                                             style="font-size: 11px; color: #495057; margin-top: 4px; white-space: pre-wrap; font-family: monospace; background: white; padding: 6px; border-radius: 3px;"></pre>
+                                    </details>
+                                </div>
+                                <form th:if="${wordData.containsKey('word_id')}"
+                                      th:action="@{/sessions/{id}/regenerate-sentence(id=${translationSession.id})}"
+                                      method="post"
+                                      style="display: inline;">
+                                    <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                                    <button type="submit"
+                                            class="btn btn-sm btn-primary"
+                                            style="margin-top: 8px; padding: 3px 8px; font-size: 11px;"
+                                            onclick="return confirm('Regenerate sentence?');">
+                                        🔄 Regenerate
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
 
-                                <!-- Word structure -->
-                                <div th:if="${sentenceData.containsKey('source_language_structure') and sentenceData.get('source_language_structure') != null}"
-                                     style="margin-bottom: 0;">
-                                    <strong style="color: #495057; font-size: 12px;">Structure:</strong>
-                                    <div th:text="${sentenceData.get('source_language_structure')}" style="font-size: 12px; color: #6c757d; margin-top: 4px; white-space: pre-wrap; font-family: monospace;"></div>
+                        <!-- Character Guide Section -->
+                        <div class="word-content-section" th:if="${wordData.containsKey('character_name')}">
+                            <div class="section-title">Character Guide</div>
+                            <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+                                <div style="margin-bottom: 6px;">
+                                    <strong style="font-size: 13px; color: #495057;" th:text="${wordData.get('character_name')}"></strong>
+                                    <span th:if="${wordData.containsKey('character_context') && !wordData.get('character_context').isEmpty()}"
+                                          th:text="' (' + ${wordData.get('character_context')} + ')'"
+                                          style="color: #6c757d; font-size: 12px;"></span>
+                                </div>
+                                <div style="font-size: 12px; color: #6c757d;">
+                                    Start sound: <code th:text="${wordData.get('character_start_sound')}"
+                                                      style="background: #e9ecef; padding: 1px 4px; border-radius: 2px; font-size: 11px;"></code>
+                                </div>
+                                <div style="margin-top: 6px;">
+                                    <span th:if="${wordData.get('character_in_guide') == true}"
+                                          style="background: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">
+                                        ✓ In Guide
+                                    </span>
+                                    <span th:if="${wordData.get('character_in_guide') == false}"
+                                          style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 11px; font-weight: bold;">
+                                        ⚠ Not in Guide
+                                    </span>
+                                    <button th:if="${wordData.get('character_in_guide') == false}"
+                                            type="button"
+                                            th:data-language="${translationSession.sourceLanguage}"
+                                            th:data-start-sound="${wordData.get('character_start_sound')}"
+                                            th:data-character-name="${wordData.get('character_name')}"
+                                            th:data-character-context="${wordData.get('character_context')}"
+                                            onclick="showAddCharacterModal(this.dataset)"
+                                            class="btn btn-success btn-sm"
+                                            style="margin-left: 8px; padding: 2px 6px; font-size: 11px;">
+                                        ➕ Add
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="process-actions">
-                        <form th:if="${wordData.get('sentence_status')} == 'failed'"
-                              th:action="@{/sessions/{id}/retry-word-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
-                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
-                            <button type="submit" class="btn btn-danger btn-sm">Retry</button>
-                        </form>
-                        <form th:if="${wordData.get('sentence_status')} == 'success'"
-                              th:action="@{/sessions/{id}/regenerate-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
-                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
-                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Regenerate sentence for this word?');">🔄 Regenerate Sentence</button>
-                        </form>
-                    </div>
-                </div>
 
-                <!-- Image Status -->
-                <div th:if="${wordData.containsKey('image_status')}"
-                     th:class="'process-item ' + (${wordData.get('image_status')} == 'success' ? 'success' : 'failed')">
-                    <div style="flex: 1;">
-                        <span class="process-name">Image:</span>
-                        <span th:if="${wordData.get('image_status')} == 'success'" style="color: #28a745;">✓ Success</span>
-                        <span th:if="${wordData.get('image_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
-                        <small th:if="${wordData.containsKey('image_error')}"
-                               th:text="' - ' + ${wordData.get('image_error')}"
-                               style="color: #721c24; display: block; margin-top: 4px;"></small>
-
-                        <!-- Display image thumbnail if successful -->
-                        <div th:if="${wordData.get('image_status') == 'success' and wordData.containsKey('image_file')}"
-                             style="margin-top: 12px; display: flex; align-items: flex-start; gap: 15px;">
-                            <img th:src="@{'/generated_images/' + ${wordData.get('image_file')}}"
-                                 alt="Word image"
-                                 style="max-width: 200px; max-height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"/>
-                            <div th:if="${wordData.containsKey('image_prompt')}" style="margin-left: 15px;">
-                                <small style="color: #6c757d;">Prompt:</small>
-                                <pre th:text="${wordData.get('image_prompt')}" style="font-size: 11px; background: #f1f3f5; padding: 8px; border-radius: 4px; margin-top: 4px; max-width: 400px; white-space: pre-wrap;"></pre>
+                    <!-- Right Column: Media Content -->
+                    <div>
+                        <!-- Image Section -->
+                        <div class="word-content-section" th:if="${wordData.get('image_status') == 'success' and wordData.containsKey('image_file')}">
+                            <div class="section-title">Image</div>
+                            <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+                                <img th:src="@{'/generated_images/' + ${wordData.get('image_file')}}"
+                                     alt="Word image"
+                                     style="width: 100%; border-radius: 6px; margin-bottom: 8px;"/>
+                                <details th:if="${wordData.containsKey('image_prompt')}">
+                                    <summary style="cursor: pointer; font-size: 11px; color: #6c757d;">Prompt</summary>
+                                    <pre th:text="${wordData.get('image_prompt')}"
+                                         style="font-size: 10px; background: #f8f9fa; padding: 6px; border-radius: 3px; margin-top: 4px; white-space: pre-wrap;"></pre>
+                                </details>
                             </div>
                         </div>
 
-                        <!-- Show prompt even if no image yet -->
-                        <div th:if="${wordData.get('image_status') != 'success' and wordData.containsKey('image_prompt')}" style="margin-top: 8px;">
-                            <small style="color: #6c757d;">Prompt:</small>
-                            <pre th:text="${wordData.get('image_prompt')}" style="font-size: 11px; background: #f1f3f5; padding: 8px; border-radius: 4px; margin-top: 4px;"></pre>
-                        </div>
-                    </div>
-                    <div class="process-actions" th:if="${wordData.get('image_status')} == 'failed'">
-                        <form th:action="@{/sessions/{id}/retry-word-image(id=${translationSession.id})}" method="post" style="display: inline;">
-                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
-                            <div>
-                                <input type="text" name="imagePromptOverride"
-                                       th:placeholder="'Override prompt (optional)'"
-                                       class="image-prompt-override"/>
-                                <button type="submit" class="btn btn-danger btn-sm" style="margin-top: 8px; margin-left: 0;">Retry Image</button>
+                        <!-- Audio Section -->
+                        <div class="word-content-section" th:if="${wordData.containsKey('source_audio_file')}">
+                            <div class="section-title">Audio</div>
+                            <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+                                <div style="font-size: 12px; color: #28a745; margin-bottom: 6px;">
+                                    ✓ Generated
+                                </div>
+                                <code th:text="${wordData.get('source_audio_file')}"
+                                      style="font-size: 10px; background: #f8f9fa; padding: 4px 6px; border-radius: 3px; display: block; word-break: break-all;"></code>
+                                <form th:action="@{/sessions/{id}/regenerate-audio(id=${translationSession.id})}" method="post" style="display: inline;">
+                                    <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                                    <button type="submit" class="btn btn-primary btn-sm"
+                                            style="margin-top: 8px; padding: 3px 8px; font-size: 11px;"
+                                            onclick="return confirm('Regenerate audio?');">
+                                        🔄 Regenerate
+                                    </button>
+                                </form>
                             </div>
-                        </form>
-                    </div>
-                </div>
-
-                <!-- Character Guide Information -->
-                <div th:if="${wordData.containsKey('character_name')}" class="process-item" style="background: #f8f9fa; border-left: 3px solid #6c757d;">
-                    <div style="flex: 1;">
-                        <span class="process-name">Character Used:</span>
-                        <strong th:text="${wordData.get('character_name')}"></strong>
-                        <span th:if="${wordData.containsKey('character_context') && !wordData.get('character_context').isEmpty()}"
-                              th:text="' (' + ${wordData.get('character_context')} + ')'"
-                              style="color: #6c757d; font-size: 12px;"></span>
-
-                        <div style="margin-top: 8px;">
-                            <small style="color: #6c757d;">
-                                Start sound: <code th:text="${wordData.get('character_start_sound')}" style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;"></code>
-                            </small>
                         </div>
-
-                        <!-- Show status badge -->
-                        <div style="margin-top: 8px;">
-                            <span th:if="${wordData.get('character_in_guide') == true}"
-                                  style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                                ✓ In Character Guide
-                            </span>
-                            <span th:if="${wordData.get('character_in_guide') == false}"
-                                  style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
-                                ⚠ Not in Character Guide
-                            </span>
-                        </div>
-                    </div>
-
-                    <!-- Add to Character Guide button -->
-                    <div class="process-actions" th:if="${wordData.get('character_in_guide') == false}">
-                        <button type="button"
-                                th:data-language="${translationSession.sourceLanguage}"
-                                th:data-start-sound="${wordData.get('character_start_sound')}"
-                                th:data-character-name="${wordData.get('character_name')}"
-                                th:data-character-context="${wordData.get('character_context')}"
-                                onclick="showAddCharacterModal(this.dataset)"
-                                class="btn btn-success btn-sm">
-                            ➕ Add to Character Guide
-                        </button>
                     </div>
                 </div>
             </div>
