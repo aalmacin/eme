@@ -2199,8 +2199,7 @@
                 imageStyle: /*[[${sessionData.containsKey('original_request') && sessionData.get('original_request').containsKey('image_style') ? sessionData.get('original_request').get('image_style') : 'REALISTIC_CINEMATIC'}]]*/ 'REALISTIC_CINEMATIC',
                 ankiEnabled: /*[[${translationSession.ankiEnabled}]]*/ false,
                 ankiDeck: /*[[${translationSession.ankiDeck != null ? translationSession.ankiDeck : ''}]]*/ '',
-                ankiFrontTemplate: /*[[${translationSession.ankiFrontTemplate != null ? translationSession.ankiFrontTemplate : ''}]]*/ '',
-                ankiBackTemplate: /*[[${translationSession.ankiBackTemplate != null ? translationSession.ankiBackTemplate : ''}]]*/ ''
+                ankiFormatId: /*[[${translationSession.ankiFormat != null ? translationSession.ankiFormat.id : null}]]*/ null
             };
 
             sessionStorage.setItem('loadPresetConfig', JSON.stringify(presetConfig));
@@ -2284,9 +2283,14 @@
         // Anki Card Preview Functions
         let ankiCardData = null;
         let currentSessionId = [[${translationSession.id}]];
+        let availableFormats = [];
 
         async function showAnkiCardPreview() {
             try {
+                // Load available formats
+                const formatsResponse = await fetch('/anki-formats/all');
+                availableFormats = await formatsResponse.json();
+
                 const response = await fetch(`/sessions/${currentSessionId}/anki-cards-preview`);
                 const data = await response.json();
 
@@ -2308,15 +2312,28 @@
             const cardListEl = document.getElementById('ankiCardList');
             cardListEl.innerHTML = '';
 
-            // Add template overview section
+            // Add format overview section
             const overviewDiv = document.createElement('div');
             overviewDiv.style.cssText = 'background: #e7f3ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #007bff;';
+
+            const formatOptions = availableFormats.map(f =>
+                `<option value="${f.id}"${f.isDefault ? ' selected' : ''}>${escapeHtml(f.name)}${f.isDefault ? ' (Default)' : ''}</option>`
+            ).join('');
+
             overviewDiv.innerHTML = `
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
                     <h3 style="margin: 0; color: #007bff;">Card Format Preview</h3>
-                    <button type="button" class="btn btn-sm btn-primary" onclick="toggleFormatEdit()" id="toggleFormatEditBtn">
-                        ✏️ Edit Format
-                    </button>
+                </div>
+
+                <!-- Format Selector -->
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Anki Card Format:</label>
+                    <select class="form-control" id="formatSelector" onchange="onFormatChange()">
+                        ${availableFormats.length === 0
+                            ? '<option value="">No formats available - Create one first</option>'
+                            : formatOptions}
+                    </select>
+                    <small class="text-muted">Select a format or <a href="/anki-formats/create" target="_blank">create a new one</a></small>
                 </div>
 
                 <!-- Deck Name Input -->
@@ -2330,13 +2347,13 @@
                 <!-- View Mode -->
                 <div id="formatViewMode">
                     <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Front Template:</div>
-                        <div id="frontTemplateDisplay" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].frontTemplate)}</div>
+                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Front Card Structure:</div>
+                        <div data-structure="front" style="background: #f8f9fa; padding: 10px; border-radius: 4px;">${data.cards[0].frontStructure || '<div class="text-muted">No structure available</div>'}</div>
                     </div>
 
                     <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Back Template:</div>
-                        <div id="backTemplateDisplay" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].backTemplate)}</div>
+                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Back Card Structure:</div>
+                        <div data-structure="back" style="background: #f8f9fa; padding: 10px; border-radius: 4px;">${data.cards[0].backStructure || '<div class="text-muted">No structure available</div>'}</div>
                     </div>
                 </div>
 
@@ -2465,6 +2482,10 @@
 
             // Generate preview using JavaScript to ensure toggles render properly
             setTimeout(() => {
+                // Load the selected format immediately
+                if (availableFormats.length > 0) {
+                    onFormatChange();
+                }
                 updateFormatPreview();
                 updateAllCardsFromTemplates();
             }, 0);
@@ -2667,6 +2688,133 @@
             }
 
             return result;
+        }
+
+        async function onFormatChange() {
+            const formatSelector = document.getElementById('formatSelector');
+            const selectedFormatId = formatSelector.value;
+
+            if (!selectedFormatId) {
+                return;
+            }
+
+            try {
+                // Fetch the selected format
+                const response = await fetch(`/anki-formats/${selectedFormatId}`);
+                const formatData = await response.json();
+
+                // Update the format structure display
+                const frontStructureEl = document.querySelector('[data-structure="front"]');
+                const backStructureEl = document.querySelector('[data-structure="back"]');
+
+                if (frontStructureEl && backStructureEl) {
+                    frontStructureEl.innerHTML = buildFormatStructurePreview(formatData.format.frontCardItems);
+                    backStructureEl.innerHTML = buildFormatStructurePreview(formatData.format.backCardItems);
+                }
+
+                // Update card previews with the new format
+                if (ankiCardData && ankiCardData.cards) {
+                    ankiCardData.cards.forEach(card => {
+                        card.frontPreview = buildCardFromFormat(formatData.format.frontCardItems, card.wordData);
+                        card.backPreview = buildCardFromFormat(formatData.format.backCardItems, card.wordData);
+                    });
+
+                    // Update the sample preview
+                    if (ankiCardData.cards.length > 0) {
+                        const frontPreview = document.getElementById('sampleFrontPreview');
+                        const backPreview = document.getElementById('sampleBackPreview');
+                        if (frontPreview) frontPreview.textContent = ankiCardData.cards[0].frontPreview;
+                        if (backPreview) backPreview.textContent = ankiCardData.cards[0].backPreview;
+                    }
+
+                    // Regenerate card list
+                    regenerateCardList();
+                }
+            } catch (error) {
+                console.error('Error loading format:', error);
+                alert('Failed to load format: ' + error.message);
+            }
+        }
+
+        function buildFormatStructurePreview(cardItems) {
+            if (!cardItems || cardItems.length === 0) {
+                return '<div class="text-muted">Empty</div>';
+            }
+
+            return cardItems.map(item => {
+                const label = item.cardType.replace(/_/g, ' ');
+                const toggleBadge = item.isToggled ? ' <span class="badge bg-primary">Collapsible</span>' : '';
+                return `<div>${label}${toggleBadge}</div>`;
+            }).join('');
+        }
+
+        function buildCardFromFormat(cardItems, wordData) {
+            if (!cardItems || cardItems.length === 0) {
+                return '';
+            }
+
+            let result = '';
+            cardItems.forEach(item => {
+                const content = getCardItemContent(item.cardType, wordData);
+                if (content) {
+                    if (item.isToggled) {
+                        result += createToggleHtml(item.cardType, content);
+                    } else {
+                        result += content;
+                    }
+                    if (item.cardType !== 'LINE_BREAK') {
+                        result += '<br/>';
+                    }
+                }
+            });
+            return result;
+        }
+
+        function getCardItemContent(cardType, wordData) {
+            switch (cardType) {
+                case 'SOURCE_TEXT': return wordData.source_word || '';
+                case 'TARGET_TEXT': return (wordData.translations || []).join(', ');
+                case 'SOURCE_TRANSLITERATION': return wordData.source_transliteration || '';
+                case 'SOURCE_AUDIO': return wordData.source_audio_file ? `[sound:${wordData.source_audio_file}]` : '';
+                case 'TARGET_AUDIO': return (wordData.target_audio_files && wordData.target_audio_files[0]) ? `[sound:${wordData.target_audio_files[0]}]` : '';
+                case 'SENTENCE_LATIN': return wordData.sentence_latin || '';
+                case 'SENTENCE_TARGET': return wordData.sentence_target || '';
+                case 'SENTENCE_TRANSLITERATION': return wordData.sentence_transliteration || '';
+                case 'SENTENCE_SOURCE': return wordData.sentence_source || '';
+                case 'SENTENCE_STRUCTURE': return wordData.sentence_structure || '';
+                case 'SENTENCE_SOURCE_AUDIO': return wordData.sentence_source_audio_file ? `[sound:${wordData.sentence_source_audio_file}]` : '';
+                case 'IMAGE': return wordData.image_file ? `<img src="${wordData.image_file}" style="max-width: 300px;" />` : '';
+                case 'MNEMONIC_KEYWORD': return wordData.mnemonic_keyword || '';
+                case 'MNEMONIC_SENTENCE': return wordData.mnemonic_sentence || '';
+                case 'LINE_BREAK': return '<br/>';
+                default: return '';
+            }
+        }
+
+        function createToggleHtml(cardType, content) {
+            const uniqueId = 'toggle-' + Date.now() + '-' + Math.random();
+            const label = cardType.replace(/_/g, ' ');
+            return `<div style="margin: 10px 0;">
+                <button onclick="var el = document.getElementById('${uniqueId}'); el.style.display = el.style.display === 'none' ? 'block' : 'none';"
+                    style="background: #4CAF50; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px;">
+                    Toggle ${label}
+                </button>
+                <div id="${uniqueId}" style="display: none; padding: 10px; background: #f9f9f9; margin-top: 5px;">
+                    ${content}
+                </div>
+            </div>`;
+        }
+
+        function regenerateCardList() {
+            const existingCards = document.querySelectorAll('.anki-card-review-item');
+            existingCards.forEach((cardEl, index) => {
+                if (ankiCardData.cards[index]) {
+                    const frontEl = cardEl.querySelector('.card-front-content');
+                    const backEl = cardEl.querySelector('.card-back-content');
+                    if (frontEl) frontEl.textContent = ankiCardData.cards[index].frontPreview;
+                    if (backEl) backEl.textContent = ankiCardData.cards[index].backPreview;
+                }
+            });
         }
 
         function closeAnkiCardPreview() {

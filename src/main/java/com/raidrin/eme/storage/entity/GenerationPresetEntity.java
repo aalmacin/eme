@@ -80,11 +80,9 @@ public class GenerationPresetEntity {
     @Column(length = 100)
     private String ankiDeck;
 
-    @Column(columnDefinition = "TEXT")
-    private String ankiFrontTemplate;
-
-    @Column(columnDefinition = "TEXT")
-    private String ankiBackTemplate;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "anki_format_id")
+    private AnkiFormatEntity ankiFormat;
 
     // Metadata
     @Column(nullable = false)

@@ -47,6 +47,8 @@ public class TranslationSessionController {
     private final AsyncAudioGenerationService audioGenerationService;
     private final SentenceStorageService sentenceStorageService;
     private final SentenceGenerationService sentenceGenerationService;
+    private final com.raidrin.eme.anki.AnkiCardBuilderService ankiCardBuilderService;
+    private final com.raidrin.eme.storage.service.AnkiFormatService ankiFormatService;
 
     @GetMapping
     public String listSessions(Model model,
@@ -996,18 +998,23 @@ public class TranslationSessionController {
                 );
 
                 // Build front and back content using latest data
-                String frontTemplate = session.getAnkiFrontTemplate();
-                String backTemplate = session.getAnkiBackTemplate();
                 String frontPreview = buildAnkiFront(session, latestWordData);
                 String backPreview = buildAnkiBack(session, latestWordData);
 
                 Map<String, Object> cardPreview = new HashMap<>();
                 cardPreview.put("sourceWord", latestWordData.get("source_word"));
-                cardPreview.put("frontTemplate", frontTemplate != null ? frontTemplate : "[source-text]");
-                cardPreview.put("backTemplate", backTemplate != null ? backTemplate : "[target-text]");
                 cardPreview.put("frontPreview", frontPreview);
                 cardPreview.put("backPreview", backPreview);
                 cardPreview.put("wordData", latestWordData);
+
+                // Add format structure if available
+                if (session.getAnkiFormat() != null && session.getAnkiFormat().getFormat() != null) {
+                    cardPreview.put("formatName", session.getAnkiFormat().getName());
+                    cardPreview.put("frontStructure", ankiCardBuilderService.buildPreviewHtml(
+                            session.getAnkiFormat().getFormat().getFrontCardItems()));
+                    cardPreview.put("backStructure", ankiCardBuilderService.buildPreviewHtml(
+                            session.getAnkiFormat().getFormat().getBackCardItems()));
+                }
 
                 cardPreviews.add(cardPreview);
             }
@@ -1136,182 +1143,39 @@ public class TranslationSessionController {
     }
 
     private String buildAnkiFront(TranslationSessionEntity session, Map<?, ?> wordData) {
-        String template = session.getAnkiFrontTemplate();
-        if (template == null) {
-            template = "[source-text]";
+        if (session.getAnkiFormat() == null || session.getAnkiFormat().getFormat() == null) {
+            // Fallback to simple source word
+            Object sourceWord = wordData.get("source_word");
+            return sourceWord != null ? sourceWord.toString() : "";
         }
 
-        return replaceAnkiPlaceholders(template, session, wordData);
+        return ankiCardBuilderService.buildCardSide(
+                session.getAnkiFormat().getFormat().getFrontCardItems(),
+                wordData
+        );
     }
 
     private String buildAnkiBack(TranslationSessionEntity session, Map<?, ?> wordData) {
-        String template = session.getAnkiBackTemplate();
-        if (template == null) {
-            template = "[target-text]";
-        }
-
-        return replaceAnkiPlaceholders(template, session, wordData);
-    }
-
-    private String replaceAnkiPlaceholders(String text, TranslationSessionEntity session, Map<?, ?> wordData) {
-        String result = text;
-
-        // First, process toggle placeholders
-        result = processTogglePlaceholders(result, wordData);
-
-        // Replace basic placeholders
-        Object sourceWord = wordData.get("source_word");
-        result = result.replace("[source-text]", sourceWord != null ? sourceWord.toString() : "");
-
-        // Replace source transliteration
-        Object sourceTransliteration = wordData.get("source_transliteration");
-        result = result.replace("[source_transliteration]", sourceTransliteration != null ? sourceTransliteration.toString() : "");
-
-        // Replace translations
-        if (wordData.containsKey("translations")) {
-            List<?> translations = (List<?>) wordData.get("translations");
-            StringBuilder sb = new StringBuilder();
-            if (!translations.isEmpty()) {
-                for (Object trans : translations) {
-                    if (sb.length() > 0) sb.append(", ");
-                    sb.append(trans.toString());
+        if (session.getAnkiFormat() == null || session.getAnkiFormat().getFormat() == null) {
+            // Fallback to simple translation
+            if (wordData.containsKey("translations")) {
+                List<?> translations = (List<?>) wordData.get("translations");
+                StringBuilder sb = new StringBuilder();
+                if (!translations.isEmpty()) {
+                    for (Object trans : translations) {
+                        if (sb.length() > 0) sb.append(", ");
+                        sb.append(trans.toString());
+                    }
                 }
+                return sb.toString();
             }
-            result = result.replace("[target-text]", sb.toString());
+            return "";
         }
 
-        // Replace audio placeholders
-        if (wordData.containsKey("source_audio_file")) {
-            String audioFile = wordData.get("source_audio_file").toString();
-            result = result.replace("[source-audio]", "[sound:" + audioFile + "]");
-        }
-
-        if (wordData.containsKey("target_audio_files") && wordData.get("target_audio_files") instanceof List) {
-            List<?> audioFiles = (List<?>) wordData.get("target_audio_files");
-            if (!audioFiles.isEmpty()) {
-                String audioFile = audioFiles.get(0).toString();
-                result = result.replace("[target-audio]", "[sound:" + audioFile + "]");
-            }
-        }
-
-        // Replace sentence placeholders
-        if (wordData.containsKey("sentence_data") && wordData.get("sentence_data") instanceof Map) {
-            Map<?, ?> sentenceData = (Map<?, ?>) wordData.get("sentence_data");
-            Object sourceSent = sentenceData.get("source_language_sentence");
-            Object targetSent = sentenceData.get("target_language_sentence");
-            Object latin = sentenceData.get("target_language_latin");
-            Object translit = sentenceData.get("target_language_transliteration");
-            Object structure = sentenceData.get("source_language_structure");
-
-            result = result.replace("[sentence-source]", sourceSent != null ? sourceSent.toString() : "");
-            result = result.replace("[sentence-target]", targetSent != null ? targetSent.toString() : "");
-            result = result.replace("[sentence-latin]", latin != null ? latin.toString() : "");
-            result = result.replace("[sentence-transliteration]", translit != null ? translit.toString() : "");
-            result = result.replace("[sentence-structure]", structure != null ? structure.toString() : "");
-        }
-
-        if (wordData.containsKey("sentence_audio_file")) {
-            String audioFile = wordData.get("sentence_audio_file").toString();
-            result = result.replace("[sentence-source-audio]", "[sound:" + audioFile + "]");
-        }
-
-        // Replace mnemonic placeholders
-        Object mnemonicKeyword = wordData.get("mnemonic_keyword");
-        Object mnemonicSentence = wordData.get("mnemonic_sentence");
-        result = result.replace("[mnemonic_keyword]", mnemonicKeyword != null ? mnemonicKeyword.toString() : "");
-        result = result.replace("[mnemonic_sentence]", mnemonicSentence != null ? mnemonicSentence.toString() : "");
-
-        if (wordData.containsKey("image_file") && wordData.get("image_file") != null) {
-            String imageFile = wordData.get("image_file").toString();
-            if (!imageFile.isEmpty()) {
-                result = result.replace("[image]", "<img src=\"" + imageFile + "\" />");
-            } else {
-                result = result.replace("[image]", "");
-            }
-        } else {
-            result = result.replace("[image]", "");
-        }
-
-        return result;
-    }
-
-    /**
-     * Process toggle placeholders in the format [toggle][placeholder]
-     * Converts them to collapsible HTML sections with inline CSS
-     */
-    private String processTogglePlaceholders(String text, Map<?, ?> wordData) {
-        String result = text;
-
-        // Generate unique ID prefix for each toggle to avoid conflicts across cards
-        String uniquePrefix = "toggle-" + System.currentTimeMillis() + "-" + Math.random();
-        int toggleId = 0;
-
-        // Map of placeholders to their actual values
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("[source-text]", wordData.get("source_word") != null ? wordData.get("source_word").toString() : "");
-        placeholderValues.put("[source_transliteration]", wordData.get("source_transliteration") != null ? wordData.get("source_transliteration").toString() : "");
-
-        // Handle translations
-        if (wordData.containsKey("translations")) {
-            List<?> translations = (List<?>) wordData.get("translations");
-            StringBuilder sb = new StringBuilder();
-            if (!translations.isEmpty()) {
-                for (Object trans : translations) {
-                    if (sb.length() > 0) sb.append(", ");
-                    sb.append(trans.toString());
-                }
-            }
-            placeholderValues.put("[target-text]", sb.toString());
-        }
-
-        // Handle sentence data
-        if (wordData.containsKey("sentence_data") && wordData.get("sentence_data") instanceof Map) {
-            Map<?, ?> sentenceData = (Map<?, ?>) wordData.get("sentence_data");
-            placeholderValues.put("[sentence-source]", sentenceData.get("source_language_sentence") != null ? sentenceData.get("source_language_sentence").toString() : "");
-            placeholderValues.put("[sentence-target]", sentenceData.get("target_language_sentence") != null ? sentenceData.get("target_language_sentence").toString() : "");
-            placeholderValues.put("[sentence-latin]", sentenceData.get("target_language_latin") != null ? sentenceData.get("target_language_latin").toString() : "");
-            placeholderValues.put("[sentence-transliteration]", sentenceData.get("target_language_transliteration") != null ? sentenceData.get("target_language_transliteration").toString() : "");
-            placeholderValues.put("[sentence-structure]", sentenceData.get("source_language_structure") != null ? sentenceData.get("source_language_structure").toString() : "");
-        }
-
-        // Handle mnemonic data
-        placeholderValues.put("[mnemonic_keyword]", wordData.get("mnemonic_keyword") != null ? wordData.get("mnemonic_keyword").toString() : "");
-        placeholderValues.put("[mnemonic_sentence]", wordData.get("mnemonic_sentence") != null ? wordData.get("mnemonic_sentence").toString() : "");
-
-        // Process each toggle placeholder
-        for (Map.Entry<String, String> entry : placeholderValues.entrySet()) {
-            String placeholder = entry.getKey();
-            String value = entry.getValue();
-            String togglePattern = "[toggle]" + placeholder;
-
-            if (result.contains(togglePattern)) {
-                // Extract a label from the placeholder name
-                String label = placeholder.replace("[", "").replace("]", "").replace("-", " ").replace("_", " ");
-                label = label.substring(0, 1).toUpperCase() + label.substring(1); // Capitalize first letter
-
-                // Create unique ID for this toggle
-                String uniqueId = uniquePrefix + "-" + toggleId++;
-
-                // Create the toggle HTML with inline CSS
-                String toggleHtml =
-                    "<div style=\"margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; padding: 5px;\">" +
-                        "<button onclick=\"var el = document.getElementById('" + uniqueId + "'); " +
-                                "if(el.style.display === 'none') { el.style.display = 'block'; this.textContent = 'Hide " + label + "'; } " +
-                                "else { el.style.display = 'none'; this.textContent = 'Show " + label + "'; }\" " +
-                                "style=\"background: #4CAF50; color: white; border: none; padding: 8px 16px; " +
-                                "cursor: pointer; border-radius: 4px; font-size: 14px; margin-bottom: 5px;\">" +
-                            "Show " + label +
-                        "</button>" +
-                        "<div id=\"" + uniqueId + "\" style=\"display: none; padding: 10px; background: #f9f9f9; border-radius: 4px; margin-top: 5px;\">" +
-                            value +
-                        "</div>" +
-                    "</div>";
-
-                result = result.replace(togglePattern, toggleHtml);
-            }
-        }
-
-        return result;
+        return ankiCardBuilderService.buildCardSide(
+                session.getAnkiFormat().getFormat().getBackCardItems(),
+                wordData
+        );
     }
 
     /**
