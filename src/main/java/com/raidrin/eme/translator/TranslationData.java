@@ -11,4 +11,5 @@ public class TranslationData implements Serializable {
     private String sourceLanguage;          // Source language code
     private String targetLanguage;          // Target language code
     private Set<String> translations;       // Set of translations
+    private String transliteration;         // Romanization/transliteration of the source word
 }

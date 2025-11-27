@@ -114,6 +114,7 @@ public class SentenceStorageService {
         data.setTargetLanguageTransliteration(entity.getSentenceTransliteration());
         data.setTargetLanguageSentence(entity.getSentenceTarget());
         data.setSourceLanguageStructure(entity.getWordStructure());
+        data.setAudioFile(entity.getAudioFile());
         return data;
     }
     
@@ -126,7 +127,8 @@ public class SentenceStorageService {
             sentenceData.getSourceLanguageSentence(),
             sentenceData.getTargetLanguageTransliteration(),
             sentenceData.getTargetLanguageSentence(),
-            sentenceData.getSourceLanguageStructure()
+            sentenceData.getSourceLanguageStructure(),
+            sentenceData.getAudioFile()
         );
     }
     
@@ -136,5 +138,6 @@ public class SentenceStorageService {
         entity.setSentenceTransliteration(sentenceData.getTargetLanguageTransliteration());
         entity.setSentenceTarget(sentenceData.getTargetLanguageSentence());
         entity.setWordStructure(sentenceData.getSourceLanguageStructure());
+        entity.setAudioFile(sentenceData.getAudioFile());
     }
 }

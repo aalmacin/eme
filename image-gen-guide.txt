@@ -1,0 +1,48 @@
+ 1. Where is the current image generation code? I need to find the files to
+  understand what to fix.
+  - OpenAiImageService generates the images
+  - MnemonicGenerationService generates the image prompt
+2. What's wrong with current outputs? Can you show me an example of a bad
+prompt/image so I understand what to improve?
+  I wanted to generate an image for the Hindi word: लिए
+  Here are the results:
+  - Transliteration: liye
+  - Translation: for
+  - Mnemonic Word: leaf
+  - Mnemonic Sentence: Naruto from Naruto is searching for a leaf to give to his friend as a gift, emphasizing that it's 'for' them.
+  - Image Prompt: In a vibrant forest during golden hour, Naruto from Naruto is happily holding a large green leaf in one hand while extending the other hand towards a small, colorful gift box placed on the ground. Sunlight filters through the trees, creating a warm, dynamic atmosphere. The focus is on Naruto interacting with both the leaf and the gift box, symbolizing the concept of 'for'.
+  - Character Guide: Lisa Soberano
+  - Character Guide Context: Filipino Celebrity
+
+  Here are things that are correct:
+  - Mnemonic Word: leaf is good since the first syllable matches liye.
+
+  Here are the mistakes:
+  - The wrong character guide was on the mnemonic sentence and image prompt. It should've been Lisa Soberano instead of Naruto.
+  - The mnemonic sentence should be a simple sentence that can be remembered easily. For example: "Lisa Soberano gave 4 leaf clover for the foreman who has a ford. They are in a leafy forest.". In this example, it uses the character guide, and additional words that either sound like the source or the translation to support the image.
+
+  Suggestions:
+  - For mnemonic keyword, go in this order: match first syllable sound, match first syllable text characters, match first letter
+  - For the mnemonic sentence, use about 2-10 items that sound like or starts with the same letter as the first syllable or letter of either the source or translation.
+  - For the mnemonic sentence, there is always a character (from character guide) with its context (anime, tv show, book, celebrity etc.), an object which the character is interacting with (from mnemonic keyword), additional objects or characters (sounds like source or translation), and a setting (sounds like source or translation).
+  - The mnemonic sentence should always include the facial and body expression. For example, if something is smelly, mention that the character put their index finger horizontally under her nostrills to cover it.
+  - Fail the generation if character guide is not found.
+  - Mnemonic Word should always be a real object and not abstract. The Mnemonic Keyword should always either be a noun or a verb/adjective that can be visualized or gestured. For example: hoping -> can be visualized by a hands together hopeful expression.
+3. Character guide database structure - what fields exist in the
+character_guide table?
+id, language, start_sound, character_name, character_context, created_at, updated_at
+4. Mnemonic keyword selection - when none is provided, you want it to "sound
+really well from the source" - do you mean:
+  - Phonetically similar? (e.g., "Naru" → "Naruto")
+  - Related in meaning?
+  - Something else?
+
+  I want it to be phonetically similar as the source. Always from the source. If the syllable is not possible, use the first letter of the source. In the example above, liye could either be 'li' or 'l'. 
+5. Languages - Is this Japanese only, or other languages too?
+  Not only in Japanese. My main usage at the moment is Hindi but these rules should apply to all languages.
+6. When no character guide exists (not in database for first 3, 2, or 1 chars)
+- should the system:
+  - Generate a character dynamically based on the word?
+  - Use a default character?
+  - How should it choose?
+  If there is no character guide after the 3, 2, 1 check -> fail the generation and on the UI it should mention "No character guide for 'SYLLABLE'" and then show an "Add character guide" modal.

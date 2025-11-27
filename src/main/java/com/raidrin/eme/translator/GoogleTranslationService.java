@@ -21,7 +21,12 @@ public class GoogleTranslationService implements TranslationService {
     private final TranslationStorageService translationStorageService;
 
     @Override
-    public Set<String> translateText(String text, String sourceLanguage, String targetLanguage) {
+    public TranslationData translateText(String text, String sourceLanguage, String targetLanguage) {
+        return translateText(text, sourceLanguage, targetLanguage, false);
+    }
+
+    @Override
+    public TranslationData translateText(String text, String sourceLanguage, String targetLanguage, boolean skipCache) {
         if (sourceLanguage == null || sourceLanguage.trim().isEmpty()) {
             throw new IllegalArgumentException("Source language must be provided");
         }
@@ -29,11 +34,21 @@ public class GoogleTranslationService implements TranslationService {
             throw new IllegalArgumentException("Target language must be provided");
         }
 
-        // Check if translation already exists in storage
-        Optional<Set<String>> existingTranslation = translationStorageService.findTranslations(text, sourceLanguage, targetLanguage);
-        if (existingTranslation.isPresent()) {
-            System.out.println("Found existing translation for: " + text + " (" + sourceLanguage + " -> " + targetLanguage + ")");
-            return existingTranslation.get();
+        // Check if translation already exists in storage (unless skipCache is true)
+        if (!skipCache) {
+            Optional<Set<String>> existingTranslation = translationStorageService.findTranslations(text, sourceLanguage, targetLanguage);
+            if (existingTranslation.isPresent()) {
+                System.out.println("Found existing translation for: " + text + " (" + sourceLanguage + " -> " + targetLanguage + ")");
+                TranslationData data = new TranslationData();
+                data.setWord(text);
+                data.setSourceLanguage(sourceLanguage);
+                data.setTargetLanguage(targetLanguage);
+                data.setTranslations(existingTranslation.get());
+                data.setTransliteration(null); // Google doesn't provide transliteration
+                return data;
+            }
+        } else {
+            System.out.println("Skipping cache - forcing new translation for: " + text + " (" + sourceLanguage + " -> " + targetLanguage + ")");
         }
 
         // Perform new translation
@@ -43,7 +58,19 @@ public class GoogleTranslationService implements TranslationService {
         // Save the translation
         translationStorageService.saveTranslations(text, sourceLanguage, targetLanguage, translations);
 
-        return translations;
+        TranslationData data = new TranslationData();
+        data.setWord(text);
+        data.setSourceLanguage(sourceLanguage);
+        data.setTargetLanguage(targetLanguage);
+        data.setTranslations(translations);
+        data.setTransliteration(null); // Google doesn't provide transliteration
+        return data;
+    }
+
+    @Override
+    public String getTransliteration(String text, String sourceLanguage) {
+        // Google Translate API doesn't provide transliteration
+        throw new UnsupportedOperationException("Google Translate does not support transliteration. Use OpenAI translation service instead.");
     }
 
     private Set<String> performTranslation(String text, String sourceLanguage, String targetLanguage) {

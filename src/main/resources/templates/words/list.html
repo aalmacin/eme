@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Words Management</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+        .filter-bar {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .words-table-container {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .words-table {
+            width: 100%;
+            margin-top: 20px;
+        }
+        .words-table th {
+            background-color: #f8f9fa;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+            user-select: none;
+        }
+        .words-table th:hover {
+            background-color: #e9ecef;
+        }
+        .words-table th .sort-icon {
+            margin-left: 5px;
+            font-size: 12px;
+            opacity: 0.5;
+        }
+        .words-table th.sorted .sort-icon {
+            opacity: 1;
+        }
+        .words-table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        .action-btn {
+            padding: 4px 8px;
+            margin: 0 2px;
+            font-size: 12px;
+        }
+        .word-cell {
+            font-weight: bold;
+            font-size: 16px;
+        }
+        .translation-cell {
+            max-width: 300px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        .language-badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: bold;
+            margin: 2px;
+        }
+        .has-image {
+            color: #28a745;
+        }
+        .no-image {
+            color: #6c757d;
+        }
+        .stats-bar {
+            background: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .stat-item {
+            text-align: center;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #007bff;
+        }
+        .stat-label {
+            font-size: 12px;
+            color: #6c757d;
+            text-transform: uppercase;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="page-header">
+            <h1>Words Management</h1>
+            <div>
+                <a href="/" class="btn btn-secondary">Home</a>
+                <button onclick="showCreateModal()" class="btn btn-primary">+ Add New Word</button>
+            </div>
+        </div>
+
+        <!-- Stats Bar -->
+        <div class="stats-bar">
+            <div class="stat-item">
+                <div class="stat-value" id="totalWordsCount">0</div>
+                <div class="stat-label">Total Words</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="filteredWordsCount">0</div>
+                <div class="stat-label">Filtered</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="withImagesCount">0</div>
+                <div class="stat-label">With Images</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-value" id="languagePairsCount">0</div>
+                <div class="stat-label">Language Pairs</div>
+            </div>
+        </div>
+
+        <!-- Filter Bar -->
+        <div class="filter-bar">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <input type="text" id="searchInput" class="form-control" placeholder="Search word or translation...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Source Language</label>
+                    <select id="sourceLanguageFilter" class="form-select">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Target Language</label>
+                    <select id="targetLanguageFilter" class="form-select">
+                        <option value="">All</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Has Image</label>
+                    <select id="imageFilter" class="form-select">
+                        <option value="">All</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label">Has Translation</label>
+                    <select id="translationFilter" class="form-select">
+                        <option value="">All</option>
+                        <option value="yes">Yes</option>
+                        <option value="no">No</option>
+                    </select>
+                </div>
+                <div class="col-md-1">
+                    <label class="form-label">&nbsp;</label>
+                    <button onclick="clearFilters()" class="btn btn-outline-secondary w-100">Clear</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Words Table -->
+        <div class="words-table-container">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5>All Words</h5>
+                <div>
+                    <button onclick="exportToCSV()" class="btn btn-sm btn-outline-primary">Export CSV</button>
+                </div>
+            </div>
+
+            <table class="table table-hover words-table">
+                <thead>
+                    <tr>
+                        <th onclick="sortTable('id')" style="width: 80px;">
+                            ID <span class="sort-icon">↕</span>
+                        </th>
+                        <th onclick="sortTable('word')" style="width: 200px;">
+                            Word <span class="sort-icon">↕</span>
+                        </th>
+                        <th onclick="sortTable('sourceLanguage')" style="width: 120px;">
+                            Source <span class="sort-icon">↕</span>
+                        </th>
+                        <th onclick="sortTable('targetLanguage')" style="width: 120px;">
+                            Target <span class="sort-icon">↕</span>
+                        </th>
+                        <th style="width: 250px;">Translation</th>
+                        <th style="width: 150px;">Transliteration</th>
+                        <th onclick="sortTable('hasImage')" style="width: 80px;" class="text-center">
+                            Image <span class="sort-icon">↕</span>
+                        </th>
+                        <th onclick="sortTable('createdAt')" style="width: 140px;">
+                            Created <span class="sort-icon">↕</span>
+                        </th>
+                        <th style="width: 200px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="wordsTableBody">
+                    <tr>
+                        <td colspan="9" class="text-center">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- Create/Edit Word Modal -->
+    <div id="wordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin: 50px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;" id="modalTitle">Add New Word</h3>
+
+            <div class="mb-3">
+                <label class="form-label">Word *</label>
+                <input type="text" id="modalWord" class="form-control" placeholder="Enter word">
+            </div>
+
+            <div class="row mb-3">
+                <div class="col-md-6">
+                    <label class="form-label">Source Language *</label>
+                    <select id="modalSourceLanguage" class="form-select">
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="cafr">Canadian French</option>
+                        <option value="kr">Korean</option>
+                        <option value="jp">Japanese</option>
+                        <option value="hi">Hindi</option>
+                        <option value="pa">Punjabi</option>
+                        <option value="tl">Tagalog</option>
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Target Language *</label>
+                    <select id="modalTargetLanguage" class="form-select">
+                        <option value="en">English</option>
+                        <option value="es">Spanish</option>
+                        <option value="fr">French</option>
+                        <option value="cafr">Canadian French</option>
+                        <option value="kr">Korean</option>
+                        <option value="jp">Japanese</option>
+                        <option value="hi">Hindi</option>
+                        <option value="pa">Punjabi</option>
+                        <option value="tl">Tagalog</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Translation (comma-separated)</label>
+                <input type="text" id="modalTranslation" class="form-control" placeholder="translation1, translation2">
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Transliteration</label>
+                <input type="text" id="modalTransliteration" class="form-control" placeholder="Enter transliteration">
+            </div>
+
+            <div id="editOnlyFields" style="display: none;">
+                <div class="mb-3">
+                    <label class="form-label">Mnemonic Keyword</label>
+                    <input type="text" id="modalMnemonicKeyword" class="form-control">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Mnemonic Sentence</label>
+                    <textarea id="modalMnemonicSentence" class="form-control" rows="3"></textarea>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Image Prompt</label>
+                    <textarea id="modalImagePrompt" class="form-control" rows="3"></textarea>
+                </div>
+            </div>
+
+            <div id="modalStatus" class="alert" style="display: none;"></div>
+
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
+                <button onclick="closeWordModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="saveWord()" class="btn btn-primary" id="saveWordBtn">Save</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h4 style="margin-top: 0;">Confirm Delete</h4>
+            <p id="deleteMessage">Are you sure you want to delete this word?</p>
+            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+                <button onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
+                <button onclick="confirmDelete()" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        let allWords = [];
+        let filteredWords = [];
+        let currentSort = { field: 'id', direction: 'asc' };
+        let currentWordId = null;
+        let deleteWordId = null;
+
+        // Language name mapping
+        const languageNames = {
+            'en': 'English',
+            'es': 'Spanish',
+            'fr': 'French',
+            'cafr': 'Canadian French',
+            'kr': 'Korean',
+            'jp': 'Japanese',
+            'hi': 'Hindi',
+            'pa': 'Punjabi',
+            'tl': 'Tagalog'
+        };
+
+        // Load words on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadWords();
+            setupFilterListeners();
+        });
+
+        async function loadWords() {
+            try {
+                const response = await fetch('/api/words');
+                allWords = await response.json();
+
+                // Populate filter dropdowns
+                populateFilters();
+
+                // Apply filters and render
+                applyFilters();
+                updateStats();
+            } catch (error) {
+                console.error('Error loading words:', error);
+                showError('Failed to load words');
+            }
+        }
+
+        function populateFilters() {
+            const sourceLanguages = new Set();
+            const targetLanguages = new Set();
+
+            allWords.forEach(word => {
+                sourceLanguages.add(word.sourceLanguage);
+                targetLanguages.add(word.targetLanguage);
+            });
+
+            // Populate source language filter
+            const sourceSelect = document.getElementById('sourceLanguageFilter');
+            sourceSelect.innerHTML = '<option value="">All</option>';
+            Array.from(sourceLanguages).sort().forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang;
+                option.textContent = languageNames[lang] || lang;
+                sourceSelect.appendChild(option);
+            });
+
+            // Populate target language filter
+            const targetSelect = document.getElementById('targetLanguageFilter');
+            targetSelect.innerHTML = '<option value="">All</option>';
+            Array.from(targetLanguages).sort().forEach(lang => {
+                const option = document.createElement('option');
+                option.value = lang;
+                option.textContent = languageNames[lang] || lang;
+                targetSelect.appendChild(option);
+            });
+        }
+
+        function setupFilterListeners() {
+            document.getElementById('searchInput').addEventListener('input', applyFilters);
+            document.getElementById('sourceLanguageFilter').addEventListener('change', applyFilters);
+            document.getElementById('targetLanguageFilter').addEventListener('change', applyFilters);
+            document.getElementById('imageFilter').addEventListener('change', applyFilters);
+            document.getElementById('translationFilter').addEventListener('change', applyFilters);
+        }
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const sourceLanguage = document.getElementById('sourceLanguageFilter').value;
+            const targetLanguage = document.getElementById('targetLanguageFilter').value;
+            const imageFilter = document.getElementById('imageFilter').value;
+            const translationFilter = document.getElementById('translationFilter').value;
+
+            filteredWords = allWords.filter(word => {
+                // Search filter
+                if (searchTerm) {
+                    const wordMatch = word.word.toLowerCase().includes(searchTerm);
+                    const translationMatch = word.translation && word.translation.toLowerCase().includes(searchTerm);
+                    const transliterationMatch = word.sourceTransliteration && word.sourceTransliteration.toLowerCase().includes(searchTerm);
+                    if (!wordMatch && !translationMatch && !transliterationMatch) {
+                        return false;
+                    }
+                }
+
+                // Source language filter
+                if (sourceLanguage && word.sourceLanguage !== sourceLanguage) {
+                    return false;
+                }
+
+                // Target language filter
+                if (targetLanguage && word.targetLanguage !== targetLanguage) {
+                    return false;
+                }
+
+                // Image filter
+                if (imageFilter === 'yes' && !word.imageFile) {
+                    return false;
+                }
+                if (imageFilter === 'no' && word.imageFile) {
+                    return false;
+                }
+
+                // Translation filter
+                if (translationFilter === 'yes' && !word.translation) {
+                    return false;
+                }
+                if (translationFilter === 'no' && word.translation) {
+                    return false;
+                }
+
+                return true;
+            });
+
+            sortWords();
+            renderWords();
+            updateStats();
+        }
+
+        function clearFilters() {
+            document.getElementById('searchInput').value = '';
+            document.getElementById('sourceLanguageFilter').value = '';
+            document.getElementById('targetLanguageFilter').value = '';
+            document.getElementById('imageFilter').value = '';
+            document.getElementById('translationFilter').value = '';
+            applyFilters();
+        }
+
+        function sortTable(field) {
+            if (currentSort.field === field) {
+                currentSort.direction = currentSort.direction === 'asc' ? 'desc' : 'asc';
+            } else {
+                currentSort.field = field;
+                currentSort.direction = 'asc';
+            }
+
+            sortWords();
+            renderWords();
+        }
+
+        function sortWords() {
+            filteredWords.sort((a, b) => {
+                let aVal, bVal;
+
+                switch (currentSort.field) {
+                    case 'id':
+                        aVal = a.id;
+                        bVal = b.id;
+                        break;
+                    case 'word':
+                        aVal = a.word.toLowerCase();
+                        bVal = b.word.toLowerCase();
+                        break;
+                    case 'sourceLanguage':
+                        aVal = a.sourceLanguage;
+                        bVal = b.sourceLanguage;
+                        break;
+                    case 'targetLanguage':
+                        aVal = a.targetLanguage;
+                        bVal = b.targetLanguage;
+                        break;
+                    case 'hasImage':
+                        aVal = a.imageFile ? 1 : 0;
+                        bVal = b.imageFile ? 1 : 0;
+                        break;
+                    case 'createdAt':
+                        aVal = new Date(a.createdAt);
+                        bVal = new Date(b.createdAt);
+                        break;
+                    default:
+                        return 0;
+                }
+
+                if (aVal < bVal) return currentSort.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return currentSort.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+
+            // Update sort indicators
+            document.querySelectorAll('.words-table th').forEach(th => {
+                th.classList.remove('sorted');
+                const icon = th.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = '↕';
+                }
+            });
+
+            const sortedTh = Array.from(document.querySelectorAll('.words-table th'))
+                .find(th => th.textContent.toLowerCase().includes(currentSort.field.toLowerCase()));
+            if (sortedTh) {
+                sortedTh.classList.add('sorted');
+                const icon = sortedTh.querySelector('.sort-icon');
+                if (icon) {
+                    icon.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+                }
+            }
+        }
+
+        function renderWords() {
+            const tbody = document.getElementById('wordsTableBody');
+
+            if (filteredWords.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="9" class="text-center">No words found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filteredWords.map(word => {
+                const translations = word.translation ? parseTranslations(word.translation) : [];
+                const translationText = translations.join(', ');
+                const hasImage = word.imageFile ? 'has-image' : 'no-image';
+                const imageIcon = word.imageFile ? '✓' : '✗';
+
+                return `
+                    <tr>
+                        <td>${word.id}</td>
+                        <td class="word-cell">${escapeHtml(word.word)}</td>
+                        <td><span class="language-badge bg-primary text-white">${languageNames[word.sourceLanguage] || word.sourceLanguage}</span></td>
+                        <td><span class="language-badge bg-success text-white">${languageNames[word.targetLanguage] || word.targetLanguage}</span></td>
+                        <td class="translation-cell" title="${escapeHtml(translationText)}">${escapeHtml(translationText) || '-'}</td>
+                        <td>${escapeHtml(word.sourceTransliteration) || '-'}</td>
+                        <td class="text-center ${hasImage}">${imageIcon}</td>
+                        <td>${formatDate(word.createdAt)}</td>
+                        <td>
+                            <a href="/words/${word.id}" class="btn btn-sm btn-info action-btn" title="View Details">View</a>
+                            <button onclick="showEditModal(${word.id})" class="btn btn-sm btn-primary action-btn" title="Edit">Edit</button>
+                            <button onclick="showDeleteModal(${word.id}, '${escapeHtml(word.word)}')" class="btn btn-sm btn-danger action-btn" title="Delete">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        function updateStats() {
+            document.getElementById('totalWordsCount').textContent = allWords.length;
+            document.getElementById('filteredWordsCount').textContent = filteredWords.length;
+
+            const withImages = allWords.filter(w => w.imageFile).length;
+            document.getElementById('withImagesCount').textContent = withImages;
+
+            const languagePairs = new Set(allWords.map(w => `${w.sourceLanguage}-${w.targetLanguage}`)).size;
+            document.getElementById('languagePairsCount').textContent = languagePairs;
+        }
+
+        function parseTranslations(translationJson) {
+            try {
+                return JSON.parse(translationJson);
+            } catch (e) {
+                return [];
+            }
+        }
+
+        function formatDate(dateStr) {
+            if (!dateStr) return '-';
+            const date = new Date(dateStr);
+            return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Modal functions
+        function showCreateModal() {
+            currentWordId = null;
+            document.getElementById('modalTitle').textContent = 'Add New Word';
+            document.getElementById('modalWord').value = '';
+            document.getElementById('modalWord').disabled = false;
+            document.getElementById('modalSourceLanguage').value = 'en';
+            document.getElementById('modalSourceLanguage').disabled = false;
+            document.getElementById('modalTargetLanguage').value = 'en';
+            document.getElementById('modalTargetLanguage').disabled = false;
+            document.getElementById('modalTranslation').value = '';
+            document.getElementById('modalTransliteration').value = '';
+            document.getElementById('editOnlyFields').style.display = 'none';
+            document.getElementById('modalStatus').style.display = 'none';
+            document.getElementById('wordModal').style.display = 'block';
+        }
+
+        function showEditModal(wordId) {
+            const word = allWords.find(w => w.id === wordId);
+            if (!word) return;
+
+            currentWordId = wordId;
+            document.getElementById('modalTitle').textContent = 'Edit Word';
+            document.getElementById('modalWord').value = word.word;
+            document.getElementById('modalWord').disabled = true;
+            document.getElementById('modalSourceLanguage').value = word.sourceLanguage;
+            document.getElementById('modalSourceLanguage').disabled = true;
+            document.getElementById('modalTargetLanguage').value = word.targetLanguage;
+            document.getElementById('modalTargetLanguage').disabled = true;
+
+            const translations = word.translation ? parseTranslations(word.translation) : [];
+            document.getElementById('modalTranslation').value = translations.join(', ');
+            document.getElementById('modalTransliteration').value = word.sourceTransliteration || '';
+
+            document.getElementById('editOnlyFields').style.display = 'block';
+            document.getElementById('modalMnemonicKeyword').value = word.mnemonicKeyword || '';
+            document.getElementById('modalMnemonicSentence').value = word.mnemonicSentence || '';
+            document.getElementById('modalImagePrompt').value = word.imagePrompt || '';
+
+            document.getElementById('modalStatus').style.display = 'none';
+            document.getElementById('wordModal').style.display = 'block';
+        }
+
+        function closeWordModal() {
+            document.getElementById('wordModal').style.display = 'none';
+            currentWordId = null;
+        }
+
+        async function saveWord() {
+            const word = document.getElementById('modalWord').value.trim();
+            const sourceLanguage = document.getElementById('modalSourceLanguage').value;
+            const targetLanguage = document.getElementById('modalTargetLanguage').value;
+            const translation = document.getElementById('modalTranslation').value.trim();
+            const transliteration = document.getElementById('modalTransliteration').value.trim();
+
+            if (!word) {
+                showModalError('Word is required');
+                return;
+            }
+
+            if (!sourceLanguage || !targetLanguage) {
+                showModalError('Source and target languages are required');
+                return;
+            }
+
+            const saveBtn = document.getElementById('saveWordBtn');
+            saveBtn.disabled = true;
+            saveBtn.textContent = 'Saving...';
+
+            try {
+                const requestBody = {
+                    word,
+                    sourceLanguage,
+                    targetLanguage,
+                    translation,
+                    sourceTransliteration: transliteration
+                };
+
+                // Add edit-only fields if editing
+                if (currentWordId) {
+                    requestBody.mnemonicKeyword = document.getElementById('modalMnemonicKeyword').value.trim();
+                    requestBody.mnemonicSentence = document.getElementById('modalMnemonicSentence').value.trim();
+                    requestBody.imagePrompt = document.getElementById('modalImagePrompt').value.trim();
+                }
+
+                const url = currentWordId ? `/api/words/${currentWordId}` : '/api/words';
+                const method = currentWordId ? 'PUT' : 'POST';
+
+                const response = await fetch(url, {
+                    method,
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showModalSuccess(currentWordId ? 'Word updated successfully!' : 'Word created successfully!');
+                    setTimeout(() => {
+                        closeWordModal();
+                        loadWords();
+                    }, 1500);
+                } else {
+                    showModalError(result.error || 'Failed to save word');
+                }
+            } catch (error) {
+                console.error('Error saving word:', error);
+                showModalError('An error occurred while saving');
+            } finally {
+                saveBtn.disabled = false;
+                saveBtn.textContent = 'Save';
+            }
+        }
+
+        function showModalError(message) {
+            const statusEl = document.getElementById('modalStatus');
+            statusEl.className = 'alert alert-danger';
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+        }
+
+        function showModalSuccess(message) {
+            const statusEl = document.getElementById('modalStatus');
+            statusEl.className = 'alert alert-success';
+            statusEl.textContent = message;
+            statusEl.style.display = 'block';
+        }
+
+        function showDeleteModal(wordId, word) {
+            deleteWordId = wordId;
+            document.getElementById('deleteMessage').textContent =
+                `Are you sure you want to delete the word "${word}"? This action cannot be undone.`;
+            document.getElementById('deleteModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('deleteModal').style.display = 'none';
+            deleteWordId = null;
+        }
+
+        async function confirmDelete() {
+            if (!deleteWordId) return;
+
+            const confirmBtn = document.getElementById('confirmDeleteBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.textContent = 'Deleting...';
+
+            try {
+                const response = await fetch(`/api/words/${deleteWordId}`, {
+                    method: 'DELETE'
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    closeDeleteModal();
+                    loadWords();
+                    showSuccess('Word deleted successfully');
+                } else {
+                    showError(result.error || 'Failed to delete word');
+                }
+            } catch (error) {
+                console.error('Error deleting word:', error);
+                showError('An error occurred while deleting');
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.textContent = 'Delete';
+            }
+        }
+
+        function showError(message) {
+            alert('Error: ' + message);
+        }
+
+        function showSuccess(message) {
+            alert(message);
+        }
+
+        function exportToCSV() {
+            const headers = ['ID', 'Word', 'Source Language', 'Target Language', 'Translation', 'Transliteration', 'Has Image', 'Created At'];
+            const rows = filteredWords.map(word => {
+                const translations = word.translation ? parseTranslations(word.translation) : [];
+                return [
+                    word.id,
+                    word.word,
+                    languageNames[word.sourceLanguage] || word.sourceLanguage,
+                    languageNames[word.targetLanguage] || word.targetLanguage,
+                    translations.join('; '),
+                    word.sourceTransliteration || '',
+                    word.imageFile ? 'Yes' : 'No',
+                    formatDate(word.createdAt)
+                ];
+            });
+
+            const csvContent = [
+                headers.join(','),
+                ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+            ].join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            const url = URL.createObjectURL(blob);
+            link.setAttribute('href', url);
+            link.setAttribute('download', 'words_export.csv');
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        }
+
+        // Close modals on background click
+        document.getElementById('wordModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeWordModal();
+            }
+        });
+    </script>
+</body>
+</html>

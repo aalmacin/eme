@@ -41,7 +41,10 @@ public class SentenceEntity {
     
     @Column(name = "word_structure", columnDefinition = "TEXT")
     private String wordStructure;
-    
+
+    @Column(name = "audio_file", columnDefinition = "TEXT")
+    private String audioFile;
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
     
@@ -60,9 +63,9 @@ public class SentenceEntity {
         updatedAt = LocalDateTime.now();
     }
     
-    public SentenceEntity(String word, String sourceLanguage, String targetLanguage, 
+    public SentenceEntity(String word, String sourceLanguage, String targetLanguage,
                          String wordRomanized, String sentenceSource, String sentenceTransliteration,
-                         String sentenceTarget, String wordStructure) {
+                         String sentenceTarget, String wordStructure, String audioFile) {
         this.word = word;
         this.sourceLanguage = sourceLanguage;
         this.targetLanguage = targetLanguage;
@@ -71,5 +74,6 @@ public class SentenceEntity {
         this.sentenceTransliteration = sentenceTransliteration;
         this.sentenceTarget = sentenceTarget;
         this.wordStructure = wordStructure;
+        this.audioFile = audioFile;
     }
 }

@@ -74,8 +74,12 @@
     <h1 class="mb-4">Eme</h1>
     
     <div class="nav-links">
+        <a href="/words">📖 Words Library</a>
         <a href="/translations">📚 Manage Translations</a>
         <a href="/sentences">📝 Manage Sentences</a>
+        <a href="/character-guide">🎭 Character Guide</a>
+        <a href="/sessions">📦 Translation Sessions</a>
+        <a href="/presets">⚙️ Manage Presets</a>
     </div>
 
     <div th:if="${not #lists.isEmpty(errors)}" class="alert alert-danger">
@@ -87,7 +91,26 @@
 
     <div class="row justify-content-center">
         <div class="col-md-8">
-            <form th:action="@{/generate}" method="post">
+            <form th:action="@{/generate/review}" method="post">
+
+                <!-- Card: Preset Selection -->
+                <div class="card shadow mb-3">
+                    <div class="card-header">
+                        <h2 class="card-title h5">Preset Configuration</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label for="preset-selector" class="form-label">Load Preset:</label>
+                            <select class="form-select" id="preset-selector" v-model="selectedPreset" @change="loadPreset">
+                                <option value="">-- Select a preset --</option>
+                                <option v-for="preset in presets" :key="preset.id" :value="preset.id" v-text="preset.presetName + (preset.isDefault ? ' (Default)' : '')"></option>
+                            </select>
+                        </div>
+                        <button type="button" class="btn btn-success" @click="showSavePresetModal">
+                            💾 Save Current Settings as Preset
+                        </button>
+                    </div>
+                </div>
 
                 <!-- Card: Source Text Options -->
                 <div class="card shadow">
@@ -102,14 +125,16 @@
                         </div>
                         <div class="mb-3">
                             <label for="lang" class="form-label">Select Source Language:</label>
-                            <select class="form-select" id="lang" name="lang">
+                            <select class="form-select" id="lang" name="lang" v-model="sourceLang">
                                 <option value="cafr">Canadian French</option>
                                 <option value="jp">Japanese</option>
                                 <option value="kr">Korean</option>
                                 <option value="es">Spanish</option>
                                 <option value="fr">French</option>
                                 <option value="en">English</option>
-                                <option value="hi" selected>Hindi</option>
+                                <option value="hi">Hindi</option>
+                                <option value="pa">Punjabi</option>
+                                <option value="tl">Tagalog</option>
                             </select>
                         </div>
                         <div class="form-check mb-2">
@@ -135,18 +160,39 @@
                         </div>
                         <div v-if="translation">
                             <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="override-translation" name="override-translation" v-model="overrideTranslation">
+                                <label class="form-check-label" for="override-translation">Override Translation Cache</label>
+                                <div class="form-text">Force new translation instead of using cached translations</div>
+                            </div>
+                            <div class="form-check mb-3">
                                 <input type="checkbox" class="form-check-input" id="target-audio" name="target-audio" v-model="targetAudio">
                                 <label class="form-check-label" for="target-audio">Target Audio</label>
                             </div>
+                            <div class="form-check mb-3">
+                                <input type="checkbox" class="form-check-input" id="image-generation" name="image-generation" v-model="imageGeneration">
+                                <label class="form-check-label" for="image-generation">Generate Mnemonic Images</label>
+                                <div class="form-text">Creates visual mnemonics using characters from your Character Guide</div>
+                            </div>
+                            <div class="mb-3" v-show="imageGeneration">
+                                <label for="image-style" class="form-label">Image Style:</label>
+                                <select class="form-select" id="image-style" name="image-style" v-model="imageStyle">
+                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                                </select>
+                                <div class="form-text">Choose the artistic style for generated images</div>
+                            </div>
                             <div class="mb-3">
                                 <label for="target-lang" class="form-label">Select Target Language:</label>
-                                <select class="form-select" id="target-lang" name="target-lang">
+                                <select class="form-select" id="target-lang" name="target-lang" v-model="targetLang">
                                     <option value="en">English</option>
                                     <option value="jp">Japanese</option>
                                     <option value="kr">Korean</option>
                                     <option value="es">Spanish</option>
                                     <option value="fr">French</option>
                                     <option value="hi">Hindi</option>
+                                    <option value="pa">Punjabi</option>
+                                    <option value="tl">Tagalog</option>
                                 </select>
                             </div>
                         </div>
@@ -168,6 +214,7 @@
                         <div class="anki-placeholder-info" v-if="anki">
                             <strong>Available placeholders:</strong>
                             <div>[source-text]</div>
+                            <div>[source_transliteration]</div>
                             <div v-if="sourceAudio">[source-audio]</div>
                             <div v-if="translation">[target-text]</div>
                             <div v-if="translation && targetAudio">[target-audio]</div>
@@ -177,12 +224,18 @@
                             <div v-if="sentenceGeneration">[sentence-source]</div>
                             <div v-if="sentenceGeneration">[sentence-structure]</div>
                             <div v-if="sentenceGeneration">[sentence-source-audio]</div>
+                            <div v-if="translation && imageGeneration" class="mt-2" style="border-top: 1px solid #ccc; padding-top: 0.5rem;">
+                                <strong>Mnemonic Image placeholders:</strong>
+                                <div>[image] - The generated image (available after download)</div>
+                                <div>[mnemonic_keyword] - Memory keyword</div>
+                                <div>[mnemonic_sentence] - Memory sentence</div>
+                            </div>
                         </div>
 
                         <div v-if="anki">
                             <div class="mb-3">
                                 <label for="deck" class="form-label">Deck:</label>
-                                <input type="text" class="form-control" id="deck" name="deck"/>
+                                <input type="text" class="form-control" id="deck" name="deck" v-model="deck"/>
                             </div>
                             <div class="mb-3">
                                 <label for="front" class="form-label">Front:</label>
@@ -195,6 +248,10 @@
                                     <a class="btn btn-secondary btn-sm m-1" href="#addFrontSourceText" role="button"
                                        @click.prevent="addFrontSourceText">
                                         Add source text
+                                    </a>
+                                    <a class="btn btn-secondary btn-sm m-1" href="#addFrontSourceTransliteration" role="button"
+                                       @click.prevent="addFrontSourceTransliteration">
+                                        Add source transliteration
                                     </a>
                                     <a v-if="translation" class="btn btn-secondary btn-sm m-1" href="#addFrontTargetText" role="button"
                                        @click.prevent="addFrontTargetText">
@@ -232,6 +289,18 @@
                                        role="button" @click.prevent="addFrontSentenceSourceAudio">
                                         Add sentence source audio
                                     </a>
+                                    <a v-if="translation && imageGeneration" class="btn btn-warning btn-sm m-1" href="#addFrontImage"
+                                       role="button" @click.prevent="addFrontImage">
+                                        Add image
+                                    </a>
+                                    <a v-if="translation && imageGeneration" class="btn btn-warning btn-sm m-1" href="#addFrontMnemonicKeyword"
+                                       role="button" @click.prevent="addFrontMnemonicKeyword">
+                                        Add mnemonic keyword
+                                    </a>
+                                    <a v-if="translation && imageGeneration" class="btn btn-warning btn-sm m-1" href="#addFrontMnemonicSentence"
+                                       role="button" @click.prevent="addFrontMnemonicSentence">
+                                        Add mnemonic sentence
+                                    </a>
                                 </div>
                                 <div class="mt-2" v-if="sentenceGeneration">
                                     <button type="button" class="btn btn-success btn-sm" @click="setOptimalHindiCard">
@@ -250,6 +319,10 @@
                                     <a class="btn btn-secondary btn-sm m-1" href="#addBackSourceText" role="button"
                                        @click.prevent="addBackSourceText">
                                         Add source text
+                                    </a>
+                                    <a class="btn btn-secondary btn-sm m-1" href="#addBackSourceTransliteration" role="button"
+                                       @click.prevent="addBackSourceTransliteration">
+                                        Add source transliteration
                                     </a>
                                     <a v-if="translation" class="btn btn-secondary btn-sm m-1" href="#addBackTargetText" role="button"
                                        @click.prevent="addBackTargetText">
@@ -287,6 +360,18 @@
                                        role="button" @click.prevent="addBackSentenceSourceAudio">
                                         Add sentence source audio
                                     </a>
+                                    <a v-if="translation && imageGeneration" class="btn btn-warning btn-sm m-1" href="#addBackImage"
+                                       role="button" @click.prevent="addBackImage">
+                                        Add image
+                                    </a>
+                                    <a v-if="translation && imageGeneration" class="btn btn-warning btn-sm m-1" href="#addBackMnemonicKeyword"
+                                       role="button" @click.prevent="addBackMnemonicKeyword">
+                                        Add mnemonic keyword
+                                    </a>
+                                    <a v-if="translation && imageGeneration" class="btn btn-warning btn-sm m-1" href="#addBackMnemonicSentence"
+                                       role="button" @click.prevent="addBackMnemonicSentence">
+                                        Add mnemonic sentence
+                                    </a>
                                 </div>
                             </div>
                         </div>
@@ -298,6 +383,35 @@
                     Generate
                 </button>
             </form>
+        </div>
+    </div>
+
+    <!-- Save Preset Modal -->
+    <div class="modal fade" id="savePresetModal" tabindex="-1" aria-labelledby="savePresetModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="savePresetModalLabel">Save Preset</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="preset-name" class="form-label">Preset Name:</label>
+                        <input type="text" class="form-control" id="preset-name" v-model="presetName" placeholder="e.g., Hindi with Audio">
+                    </div>
+                    <div class="mb-3">
+                        <label for="preset-description" class="form-label">Description (optional):</label>
+                        <textarea class="form-control" id="preset-description" v-model="presetDescription" rows="2" placeholder="Brief description of this preset"></textarea>
+                    </div>
+                    <div class="alert alert-info" v-if="presetSaveMessage">
+                        {{ presetSaveMessage }}
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" @click="savePreset">Save Preset</button>
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -313,10 +427,25 @@
             targetAudio: false,
             sourceAudio: false,
             translation: false,
+            overrideTranslation: false,
             anki: false,
             sentenceGeneration: false,
+            imageGeneration: false,
+            imageStyle: 'REALISTIC_CINEMATIC',
             front: '',
-            back: ''
+            back: '',
+            presets: [],
+            selectedPreset: '',
+            presetName: '',
+            presetDescription: '',
+            presetSaveMessage: '',
+            sourceLang: 'hi',
+            targetLang: 'en',
+            deck: ''
+        },
+        mounted: function() {
+            this.loadPresets();
+            this.checkForPresetConfig();
         },
         methods: {
             addFrontLineBreak: function () {
@@ -324,6 +453,9 @@
             },
             addFrontSourceText: function () {
                 this.front += "[source-text]\n";
+            },
+            addFrontSourceTransliteration: function () {
+                this.front += "[source_transliteration]\n";
             },
             addFrontTargetText: function () {
                 this.front += "[target-text]\n";
@@ -339,6 +471,9 @@
             },
             addBackSourceText: function () {
                 this.back += "[source-text]\n";
+            },
+            addBackSourceTransliteration: function () {
+                this.back += "[source_transliteration]\n";
             },
             addBackTargetText: function () {
                 this.back += "[target-text]\n";
@@ -386,13 +521,150 @@
             addBackSentenceSourceAudio: function () {
                 this.back += "[sentence-source-audio]\n";
             },
+            addFrontImage: function () {
+                this.front += "[image]\n";
+            },
+            addBackImage: function () {
+                this.back += "[image]\n";
+            },
+            addFrontMnemonicKeyword: function () {
+                this.front += "[mnemonic_keyword]\n";
+            },
+            addBackMnemonicKeyword: function () {
+                this.back += "[mnemonic_keyword]\n";
+            },
+            addFrontMnemonicSentence: function () {
+                this.front += "[mnemonic_sentence]\n";
+            },
+            addBackMnemonicSentence: function () {
+                this.back += "[mnemonic_sentence]\n";
+            },
             setOptimalHindiCard: function () {
                 // Set optimal front template
                 this.front = "[source-text] ([sentence-latin])\n[source-audio]";
-                
+
                 // Set optimal back template
                 this.back = "<br>\n[target-text]\n<br>\n[sentence-source]\n<br>\n[sentence-transliteration]\n<br>\n[sentence-target]\n<br>\n[sentence-structure]\n<br>\n[sentence-source-audio]";
             },
+            loadPresets: function() {
+                var self = this;
+                fetch('/presets/api/all')
+                    .then(response => response.json())
+                    .then(data => {
+                        self.presets = data;
+                    })
+                    .catch(error => {
+                        console.error('Error loading presets:', error);
+                    });
+            },
+            loadPreset: function() {
+                if (!this.selectedPreset) return;
+
+                var self = this;
+                var preset = this.presets.find(p => p.id == this.selectedPreset);
+                if (!preset) return;
+
+                // Update form fields based on preset (v-model will update the DOM automatically)
+                this.sourceLang = preset.sourceLanguage || 'hi';
+                this.targetLang = preset.targetLanguage || 'en';
+                this.sourceAudio = !!preset.enableSourceAudio;
+                this.targetAudio = !!preset.enableTargetAudio;
+                this.translation = preset.enableTranslation !== false;
+                this.sentenceGeneration = !!preset.enableSentenceGeneration;
+                this.imageGeneration = !!preset.enableImageGeneration;
+                this.imageStyle = preset.imageStyle || 'REALISTIC_CINEMATIC';
+                this.anki = !!preset.ankiEnabled;
+                this.deck = preset.ankiDeck || '';
+                this.front = preset.ankiFrontTemplate || '';
+                this.back = preset.ankiBackTemplate || '';
+            },
+            showSavePresetModal: function() {
+                this.presetName = '';
+                this.presetDescription = '';
+                this.presetSaveMessage = '';
+                var modal = new bootstrap.Modal(document.getElementById('savePresetModal'));
+                modal.show();
+            },
+            savePreset: function() {
+                var self = this;
+
+                if (!this.presetName || this.presetName.trim() === '') {
+                    this.presetSaveMessage = 'Please enter a preset name';
+                    return;
+                }
+
+                var presetData = {
+                    presetName: this.presetName,
+                    description: this.presetDescription,
+                    sourceLanguage: this.sourceLang,
+                    targetLanguage: this.targetLang,
+                    enableSourceAudio: this.sourceAudio,
+                    enableTargetAudio: this.targetAudio,
+                    enableTranslation: this.translation,
+                    enableSentenceGeneration: this.sentenceGeneration,
+                    enableImageGeneration: this.imageGeneration,
+                    imageStyle: this.imageStyle,
+                    ankiEnabled: this.anki,
+                    ankiDeck: this.deck,
+                    ankiFrontTemplate: this.front,
+                    ankiBackTemplate: this.back
+                };
+
+                console.log('Saving preset with data:', presetData);
+                console.log('imageGeneration value:', this.imageGeneration);
+
+                fetch('/presets/save', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(presetData)
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        self.presetSaveMessage = data.message;
+                        self.loadPresets();
+                        setTimeout(function() {
+                            var modal = bootstrap.Modal.getInstance(document.getElementById('savePresetModal'));
+                            modal.hide();
+                        }, 1500);
+                    } else {
+                        self.presetSaveMessage = 'Error: ' + data.error;
+                    }
+                })
+                .catch(error => {
+                    self.presetSaveMessage = 'Error saving preset: ' + error;
+                });
+            },
+            checkForPresetConfig: function() {
+                // Check if there's a preset config in sessionStorage (from "Generate with same preset")
+                const presetConfigStr = sessionStorage.getItem('loadPresetConfig');
+                if (presetConfigStr) {
+                    try {
+                        const presetConfig = JSON.parse(presetConfigStr);
+
+                        // Load the configuration into the form (v-model will update the DOM automatically)
+                        this.sourceLang = presetConfig.sourceLanguage || 'hi';
+                        this.targetLang = presetConfig.targetLanguage || 'en';
+                        this.sourceAudio = !!presetConfig.enableSourceAudio;
+                        this.targetAudio = !!presetConfig.enableTargetAudio;
+                        this.translation = presetConfig.enableTranslation !== false;
+                        this.sentenceGeneration = !!presetConfig.enableSentenceGeneration;
+                        this.imageGeneration = !!presetConfig.enableImageGeneration;
+                        this.imageStyle = presetConfig.imageStyle || 'REALISTIC_CINEMATIC';
+                        this.anki = !!presetConfig.ankiEnabled;
+                        this.deck = presetConfig.ankiDeck || '';
+                        this.front = presetConfig.ankiFrontTemplate || '';
+                        this.back = presetConfig.ankiBackTemplate || '';
+
+                        // Clear the sessionStorage
+                        sessionStorage.removeItem('loadPresetConfig');
+                    } catch (e) {
+                        console.error('Error loading preset config:', e);
+                    }
+                }
+            }
         }
     })
 </script>

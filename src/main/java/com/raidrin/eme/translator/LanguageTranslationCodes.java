@@ -6,7 +6,9 @@ public enum LanguageTranslationCodes {
     French("fr"),
     Korean("ko"),
     Japanese("ja"),
-    Hindi("hi");
+    Hindi("hi"),
+    Punjabi("pa"),
+    Tagalog("tl");
 
     private final String code;
 

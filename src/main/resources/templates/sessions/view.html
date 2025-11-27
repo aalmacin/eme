@@ -1,0 +1,3152 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Session Details - Eme</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1000px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .nav-links a {
+            margin-right: 15px;
+            text-decoration: none;
+            color: #007bff;
+        }
+        .nav-links a:hover {
+            text-decoration: underline;
+        }
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .info-row {
+            display: flex;
+            padding: 10px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .info-row:last-child {
+            border-bottom: none;
+        }
+        .info-label {
+            font-weight: bold;
+            width: 200px;
+            color: #495057;
+        }
+        .info-value {
+            flex: 1;
+        }
+        .btn {
+            display: inline-block;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        .btn:hover {
+            background-color: #0056b3;
+        }
+        .btn-success {
+            background-color: #28a745;
+        }
+        .btn-success:hover {
+            background-color: #218838;
+        }
+        .btn-primary {
+            background-color: #007bff;
+        }
+        .btn-primary:hover {
+            background-color: #0056b3;
+        }
+        .status-badge {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-size: 14px;
+            font-weight: bold;
+            display: inline-block;
+        }
+        .status-pending {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .status-in-progress {
+            background-color: #17a2b8;
+            color: #fff;
+        }
+        .status-completed {
+            background-color: #28a745;
+            color: #fff;
+        }
+        .status-failed {
+            background-color: #dc3545;
+            color: #fff;
+        }
+        .data-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        .data-section pre {
+            background: white;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #f5c6cb;
+        }
+        .collapsible-header {
+            cursor: pointer;
+            background: #e9ecef;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 0;
+            user-select: none;
+        }
+        .collapsible-header:hover {
+            background: #dee2e6;
+        }
+        .collapsible-header .arrow {
+            float: right;
+            transition: transform 0.3s ease;
+        }
+        .collapsible-header:not(.collapsed) .arrow {
+            transform: rotate(180deg);
+        }
+        .collapse-content {
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 0 0 4px 4px;
+            margin-top: 5px;
+        }
+        .word-item {
+            padding: 8px;
+            background: white;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        .process-status-card {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            border-left: 4px solid #6c757d;
+        }
+        .process-status-card.success {
+            border-left-color: #28a745;
+        }
+        .process-status-card.partial {
+            border-left-color: #ffc107;
+        }
+        .process-status-card.failure {
+            border-left-color: #dc3545;
+        }
+        .process-header {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+        }
+        .error-list {
+            list-style: none;
+            padding: 0;
+            margin: 10px 0;
+        }
+        .error-list li {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 8px;
+            margin-bottom: 5px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-danger {
+            background-color: #dc3545;
+        }
+        .btn-danger:hover {
+            background-color: #c82333;
+        }
+        .btn-warning {
+            background-color: #ffc107;
+            color: #000;
+        }
+        .btn-warning:hover {
+            background-color: #e0a800;
+        }
+        .btn-sm {
+            padding: 4px 8px;
+            font-size: 12px;
+            margin-left: 8px;
+        }
+        .word-detail {
+            background: white;
+            margin-bottom: 15px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #dee2e6;
+        }
+        .word-detail-header {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #007bff;
+        }
+        .process-item {
+            margin: 8px 0;
+            padding: 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .process-item.success {
+            background: #d4edda;
+            border-left: 3px solid #28a745;
+        }
+        .process-item.failed {
+            background: #f8d7da;
+            border-left: 3px solid #dc3545;
+        }
+        .process-name {
+            font-weight: 500;
+        }
+        .process-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .image-prompt-override {
+            width: 100%;
+            margin-top: 10px;
+            padding: 8px;
+            border: 1px solid #ced4da;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .reused-badge {
+            background: #17a2b8;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: normal;
+            margin-left: 10px;
+        }
+        .new-badge {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: normal;
+            margin-left: 10px;
+        }
+        .word-select-checkbox {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+            margin-right: 12px;
+            vertical-align: middle;
+        }
+        .word-detail.selected {
+            border-color: #007bff;
+            box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
+        }
+        .selection-toolbar {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #dee2e6;
+        }
+        .selection-count {
+            font-weight: bold;
+            color: #007bff;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Translation Session Details</h1>
+        <div class="nav-links">
+            <a href="/sessions">← Back to Sessions</a>
+            <a href="/">Home</a>
+            <a href="/words">📖 Words Library</a>
+            <a href="/translations">📚 Translations</a>
+            <a href="/sentences">📝 Sentences</a>
+            <a href="/character-guide">🎭 Character Guide</a>
+        </div>
+    </div>
+
+    <div class="info-card">
+        <h2>Session Information</h2>
+        <div class="info-row">
+            <div class="info-label">Session ID:</div>
+            <div class="info-value" th:text="${translationSession.id}"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Word:</div>
+            <div class="info-value"><strong th:text="${translationSession.word}"></strong></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Source Language:</div>
+            <div class="info-value" th:text="${translationSession.sourceLanguage}"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Target Language:</div>
+            <div class="info-value" th:text="${translationSession.targetLanguage}"></div>
+        </div>
+        <div class="info-row" th:if="${sourceWordsText != null && !sourceWordsText.isEmpty()}">
+            <div class="info-label">Source Words:</div>
+            <div class="info-value">
+                <textarea readonly th:text="${sourceWordsText}"
+                          style="width: 100%; min-height: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Status:</div>
+            <div class="info-value">
+                <span th:class="'status-badge status-' + ${#strings.toLowerCase(translationSession.status)}"
+                      th:text="${translationSession.status}"></span>
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Image Generation:</div>
+            <div class="info-value" th:text="${translationSession.imageGenerationEnabled ? 'Enabled' : 'Disabled'}"></div>
+        </div>
+        <div class="info-row" th:if="${translationSession.imageGenerationEnabled && sessionData.containsKey('original_request') && sessionData.get('original_request').containsKey('image_style')}">
+            <div class="info-label">Image Style:</div>
+            <div class="info-value">
+                <span th:switch="${sessionData.get('original_request').get('image_style')}">
+                    <span th:case="'REALISTIC_CINEMATIC'">Realistic Cinematic</span>
+                    <span th:case="'ANIMATED_2D_CINEMATIC'">2D Animated Cinematic</span>
+                    <span th:case="'ANIMATED_3D_CINEMATIC'">3D Animated Cinematic</span>
+                    <span th:case="*" th:text="${sessionData.get('original_request').get('image_style')}">Unknown Style</span>
+                </span>
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Audio Generation:</div>
+            <div class="info-value" th:text="${translationSession.audioGenerationEnabled ? 'Enabled' : 'Disabled'}"></div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">Created:</div>
+            <div class="info-value" th:text="${#temporals.format(translationSession.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></div>
+        </div>
+        <div class="info-row" th:if="${translationSession.completedAt != null}">
+            <div class="info-label">Completed:</div>
+            <div class="info-value" th:text="${#temporals.format(translationSession.completedAt, 'yyyy-MM-dd HH:mm:ss')}"></div>
+        </div>
+
+        <!-- Action Buttons -->
+        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
+            <form th:if="${translationSession.status.name() == 'PENDING' || translationSession.status.name() == 'IN_PROGRESS'}"
+                  th:action="@{/sessions/{id}/cancel(id=${translationSession.id})}"
+                  method="post"
+                  style="display: inline;"
+                  onsubmit="return confirm('Are you sure you want to cancel this session?');">
+                <button type="submit" class="btn btn-danger">❌ Cancel Session</button>
+            </form>
+            <form th:if="${(translationSession.status.name() == 'FAILED' || translationSession.status.name() == 'CANCELLED') && sessionData.containsKey('original_request')}"
+                  th:action="@{/sessions/{id}/retry(id=${translationSession.id})}"
+                  method="post"
+                  style="display: inline;">
+                <button type="submit" class="btn btn-warning">🔄 Retry Entire Session</button>
+            </form>
+            <button th:if="${sessionData.containsKey('original_request')}" type="button" class="btn btn-success" onclick="generateWithPreset()">⚙️ Generate with Same Preset</button>
+        </div>
+    </div>
+
+    <!-- Words Section with Detailed Status -->
+    <div class="info-card" th:if="${sessionData.containsKey('words') && !sessionData.get('words').isEmpty()}">
+        <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#words-content" aria-expanded="true" aria-controls="words-content">
+            <h2 style="margin: 0; display: inline-block;">
+                <span th:text="${sessionData.containsKey('total_words') ? sessionData.get('total_words') : sessionData.get('words').size()}"></span> Words
+            </h2>
+            <span th:if="${sessionData.containsKey('dedup_stats')}" style="font-size: 14px; margin-left: 15px; color: #6c757d;">
+                <span th:if="${sessionData.get('dedup_stats').get('reused_count') > 0}"
+                      th:text="'♻️ ' + ${sessionData.get('dedup_stats').get('reused_count')} + ' reused'"
+                      style="margin-right: 10px;"></span>
+                <span th:if="${sessionData.get('dedup_stats').get('new_count') > 0}"
+                      th:text="'✨ ' + ${sessionData.get('dedup_stats').get('new_count')} + ' new'"></span>
+            </span>
+            <span class="arrow">▼</span>
+        </div>
+        <div id="words-content" class="collapse show">
+            <div class="collapse-content">
+            <!-- Selection Toolbar -->
+            <div class="selection-toolbar" id="selectionToolbar" style="display: none;">
+                <div>
+                    <span class="selection-count" id="selectionCount">0 selected</span>
+                </div>
+                <div>
+                    <button onclick="selectAllWords()" class="btn btn-sm" style="background: #6c757d; margin-right: 5px;">Select All</button>
+                    <button onclick="deselectAllWords()" class="btn btn-sm" style="background: #6c757d; margin-right: 10px;">Deselect All</button>
+                    <button onclick="showBatchRegenerateModal()" class="btn btn-warning" id="batchRegenerateBtn" style="display: none;">
+                        🔄 Regenerate Selected (<span id="batchRegenerateCount">0</span>)
+                    </button>
+                </div>
+            </div>
+            <div th:each="wordData, iterStat : ${sessionData.get('words')}" class="word-detail">
+                <div class="word-detail-header">
+                    <input type="checkbox"
+                           class="word-select-checkbox"
+                           th:if="${wordData.containsKey('word_id')}"
+                           th:data-word-id="${wordData.get('word_id')}"
+                           th:data-source-word="${wordData.get('source_word')}"
+                           onchange="handleWordCheckboxChange(this)">
+                    <span th:text="${wordData.get('source_word')}"></span>
+                    <span th:if="${wordData.containsKey('source_transliteration')}"
+                          th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
+                          style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
+                    <button type="button"
+                            th:if="${wordData.containsKey('word_id')}"
+                            th:data-word-id="${wordData.get('word_id')}"
+                            th:data-source-word="${wordData.get('source_word')}"
+                            th:data-current-transliteration="${wordData.containsKey('source_transliteration') ? wordData.get('source_transliteration') : ''}"
+                            onclick="showUpdateTransliterationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTransliteration)"
+                            class="btn btn-sm btn-outline-info"
+                            style="padding: 2px 8px; font-size: 12px;"
+                            title="Edit Transliteration">
+                        ✏️ Translit
+                    </button>
+                    <span th:if="${wordData.containsKey('translations')}"
+                          th:text="' → ' + ${wordData.get('translations')}"
+                          style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
+                    <button type="button"
+                            th:if="${wordData.containsKey('word_id') && wordData.containsKey('translations')}"
+                            th:data-word-id="${wordData.get('word_id')}"
+                            th:data-source-word="${wordData.get('source_word')}"
+                            th:data-current-translation="${wordData.get('translations')}"
+                            onclick="showUpdateTranslationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTranslation)"
+                            class="btn btn-sm btn-outline-primary"
+                            style="margin-left: 8px; padding: 2px 8px; font-size: 12px;">
+                        ✏️ Edit Translation
+                    </button>
+                    <span th:if="${wordData.containsKey('mnemonic_keyword')}"
+                          th:text="' 🔑 ' + ${wordData.get('mnemonic_keyword')}"
+                          style="font-size: 14px; color: #17a2b8; font-weight: 600; margin-left: 8px; background: #e7f6f8; padding: 2px 8px; border-radius: 4px;"></span>
+                    <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == true}"
+                          class="reused-badge">♻️ Reused from previous session</span>
+                    <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == false}"
+                          class="new-badge">✨ Newly generated</span>
+
+                    <!-- Word Actions -->
+                    <span th:if="${wordData.containsKey('word_id')}" style="float: right;">
+                        <a th:href="@{/words/{id}(id=${wordData.get('word_id')})}"
+                           class="btn btn-sm btn-outline-primary"
+                           style="margin-left: 10px;">
+                            📖 View Details
+                        </a>
+                        <button type="button"
+                                th:data-word-id="${wordData.get('word_id')}"
+                                th:data-source-word="${wordData.get('source_word')}"
+                                onclick="showRegenerateModal(this.dataset.wordId, this.dataset.sourceWord)"
+                                class="btn btn-sm btn-outline-warning"
+                                style="margin-left: 5px;">
+                            🔄 Regenerate Image
+                        </button>
+                    </span>
+                </div>
+
+                <!-- Mnemonic Display -->
+                <div th:if="${wordData.containsKey('mnemonic_sentence')}"
+                     style="margin: 12px 0; padding: 12px; background: #f8f9fa; border-left: 4px solid #17a2b8; border-radius: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <strong style="color: #17a2b8; font-size: 13px;">🔑 MNEMONIC KEYWORD:</strong>
+                        <span th:if="${wordData.containsKey('mnemonic_keyword')}"
+                              th:text="${wordData.get('mnemonic_keyword')}"
+                              style="font-size: 15px; font-weight: 600; color: #0056b3;"></span>
+                        <button type="button"
+                                th:if="${wordData.containsKey('word_id') && wordData.containsKey('mnemonic_keyword')}"
+                                th:data-word-id="${wordData.get('word_id')}"
+                                th:data-source-word="${wordData.get('source_word')}"
+                                th:data-current-keyword="${wordData.get('mnemonic_keyword')}"
+                                onclick="showUpdateMnemonicKeywordModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentKeyword)"
+                                class="btn btn-sm btn-outline-primary"
+                                style="padding: 2px 8px; font-size: 12px;">
+                            ✏️ Edit Keyword
+                        </button>
+                    </div>
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <strong style="color: #17a2b8; font-size: 13px; white-space: nowrap;">💭 SENTENCE:</strong>
+                        <span th:text="${wordData.get('mnemonic_sentence')}"
+                              style="font-size: 14px; color: #495057; line-height: 1.6;"></span>
+                    </div>
+                </div>
+
+                <!-- Translation Status -->
+                <div th:if="${wordData.containsKey('translation_status')}"
+                     th:class="'process-item ' + (${wordData.get('translation_status')} == 'success' ? 'success' : 'failed')">
+                    <div>
+                        <span class="process-name">Translation:</span>
+                        <span th:if="${wordData.get('translation_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('translation_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                        <small th:if="${wordData.containsKey('translation_error')}"
+                               th:text="' - ' + ${wordData.get('translation_error')}"
+                               style="color: #721c24; display: block; margin-top: 4px;"></small>
+                    </div>
+                    <div class="process-actions" th:if="${wordData.get('translation_status')} == 'failed'">
+                        <form th:action="@{/sessions/{id}/retry-word-translation(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-danger btn-sm">Retry</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Audio Status -->
+                <div th:if="${wordData.containsKey('source_audio_file')}" class="process-item success">
+                    <div>
+                        <span class="process-name">Source Audio:</span>
+                        <span style="color: #28a745;">✓ Generated</span>
+                        <code th:text="${wordData.get('source_audio_file')}" style="font-size: 11px; margin-left: 8px;"></code>
+                    </div>
+                    <div class="process-actions">
+                        <form th:action="@{/sessions/{id}/regenerate-audio(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Regenerate audio for this word?');">🔄 Regenerate Audio</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Sentence Status -->
+                <div th:if="${wordData.containsKey('sentence_status')}"
+                     th:class="'process-item ' + (${wordData.get('sentence_status')} == 'success' ? 'success' : 'failed')">
+                    <div style="flex: 1;">
+                        <span class="process-name">Sentence:</span>
+                        <span th:if="${wordData.get('sentence_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('sentence_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                        <small th:if="${wordData.containsKey('sentence_error')}"
+                               th:text="' - ' + ${wordData.get('sentence_error')}"
+                               style="color: #721c24; display: block; margin-top: 4px;"></small>
+
+                        <!-- Display sentence data if successful -->
+                        <div th:if="${wordData.get('sentence_status') == 'success' and wordData.containsKey('sentence_data')}"
+                             style="margin-top: 12px; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
+                            <div th:with="sentenceData=${wordData.get('sentence_data')}">
+                                <!-- Source language sentence -->
+                                <div style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Example Sentence:</strong>
+                                    <div th:text="${sentenceData.get('source_language_sentence')}" style="font-size: 14px; color: #212529; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Transliteration -->
+                                <div th:if="${sentenceData.containsKey('target_language_transliteration') and sentenceData.get('target_language_transliteration') != null}"
+                                     style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Transliteration:</strong>
+                                    <div th:text="${sentenceData.get('target_language_transliteration')}" style="font-size: 13px; color: #6c757d; font-style: italic; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Target language translation -->
+                                <div style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Translation:</strong>
+                                    <div th:text="${sentenceData.get('target_language_sentence')}" style="font-size: 13px; color: #6c757d; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Word structure -->
+                                <div th:if="${sentenceData.containsKey('source_language_structure') and sentenceData.get('source_language_structure') != null}"
+                                     style="margin-bottom: 0;">
+                                    <strong style="color: #495057; font-size: 12px;">Structure:</strong>
+                                    <div th:text="${sentenceData.get('source_language_structure')}" style="font-size: 12px; color: #6c757d; margin-top: 4px; white-space: pre-wrap; font-family: monospace;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="process-actions">
+                        <form th:if="${wordData.get('sentence_status')} == 'failed'"
+                              th:action="@{/sessions/{id}/retry-word-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-danger btn-sm">Retry</button>
+                        </form>
+                        <form th:if="${wordData.get('sentence_status')} == 'success'"
+                              th:action="@{/sessions/{id}/regenerate-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Regenerate sentence for this word?');">🔄 Regenerate Sentence</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Image Status -->
+                <div th:if="${wordData.containsKey('image_status')}"
+                     th:class="'process-item ' + (${wordData.get('image_status')} == 'success' ? 'success' : 'failed')">
+                    <div style="flex: 1;">
+                        <span class="process-name">Image:</span>
+                        <span th:if="${wordData.get('image_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('image_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                        <small th:if="${wordData.containsKey('image_error')}"
+                               th:text="' - ' + ${wordData.get('image_error')}"
+                               style="color: #721c24; display: block; margin-top: 4px;"></small>
+
+                        <!-- Display image thumbnail if successful -->
+                        <div th:if="${wordData.get('image_status') == 'success' and wordData.containsKey('image_file')}"
+                             style="margin-top: 12px; display: flex; align-items: flex-start; gap: 15px;">
+                            <img th:src="@{'/generated_images/' + ${wordData.get('image_file')}}"
+                                 alt="Word image"
+                                 style="max-width: 200px; max-height: 150px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15);"/>
+                            <div th:if="${wordData.containsKey('image_prompt')}" style="margin-left: 15px;">
+                                <small style="color: #6c757d;">Prompt:</small>
+                                <pre th:text="${wordData.get('image_prompt')}" style="font-size: 11px; background: #f1f3f5; padding: 8px; border-radius: 4px; margin-top: 4px; max-width: 400px; white-space: pre-wrap;"></pre>
+                            </div>
+                        </div>
+
+                        <!-- Show prompt even if no image yet -->
+                        <div th:if="${wordData.get('image_status') != 'success' and wordData.containsKey('image_prompt')}" style="margin-top: 8px;">
+                            <small style="color: #6c757d;">Prompt:</small>
+                            <pre th:text="${wordData.get('image_prompt')}" style="font-size: 11px; background: #f1f3f5; padding: 8px; border-radius: 4px; margin-top: 4px;"></pre>
+                        </div>
+                    </div>
+                    <div class="process-actions" th:if="${wordData.get('image_status')} == 'failed'">
+                        <form th:action="@{/sessions/{id}/retry-word-image(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <div>
+                                <input type="text" name="imagePromptOverride"
+                                       th:placeholder="'Override prompt (optional)'"
+                                       class="image-prompt-override"/>
+                                <button type="submit" class="btn btn-danger btn-sm" style="margin-top: 8px; margin-left: 0;">Retry Image</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Character Guide Information -->
+                <div th:if="${wordData.containsKey('character_name')}" class="process-item" style="background: #f8f9fa; border-left: 3px solid #6c757d;">
+                    <div style="flex: 1;">
+                        <span class="process-name">Character Used:</span>
+                        <strong th:text="${wordData.get('character_name')}"></strong>
+                        <span th:if="${wordData.containsKey('character_context') && !wordData.get('character_context').isEmpty()}"
+                              th:text="' (' + ${wordData.get('character_context')} + ')'"
+                              style="color: #6c757d; font-size: 12px;"></span>
+
+                        <div style="margin-top: 8px;">
+                            <small style="color: #6c757d;">
+                                Start sound: <code th:text="${wordData.get('character_start_sound')}" style="background: #e9ecef; padding: 2px 6px; border-radius: 3px;"></code>
+                            </small>
+                        </div>
+
+                        <!-- Show status badge -->
+                        <div style="margin-top: 8px;">
+                            <span th:if="${wordData.get('character_in_guide') == true}"
+                                  style="background: #d4edda; color: #155724; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                                ✓ In Character Guide
+                            </span>
+                            <span th:if="${wordData.get('character_in_guide') == false}"
+                                  style="background: #fff3cd; color: #856404; padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold;">
+                                ⚠ Not in Character Guide
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Add to Character Guide button -->
+                    <div class="process-actions" th:if="${wordData.get('character_in_guide') == false}">
+                        <button type="button"
+                                th:data-language="${translationSession.sourceLanguage}"
+                                th:data-start-sound="${wordData.get('character_start_sound')}"
+                                th:data-character-name="${wordData.get('character_name')}"
+                                th:data-character-context="${wordData.get('character_context')}"
+                                onclick="showAddCharacterModal(this.dataset)"
+                                class="btn btn-success btn-sm">
+                            ➕ Add to Character Guide
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Progress Information for In-Progress Sessions -->
+    <div class="info-card" th:if="${translationSession.status.name() == 'IN_PROGRESS'}">
+        <h2>⏳ Processing In Progress</h2>
+
+        <!-- Show progress bar if we have processed_words info -->
+        <div th:if="${sessionData.containsKey('processed_words') && sessionData.containsKey('total_words')}" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                <span style="font-weight: bold;">Progress:</span>
+                <span th:text="${sessionData.get('processed_words')} + ' / ' + ${sessionData.get('total_words')} + ' words processed'"></span>
+            </div>
+            <div style="background: #e9ecef; border-radius: 8px; height: 24px; overflow: hidden;">
+                <div th:style="'width: ' + ${(sessionData.get('processed_words') * 100.0 / sessionData.get('total_words'))} + '%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; border-radius: 8px; transition: width 0.3s ease;'"></div>
+            </div>
+            <div th:if="${sessionData.containsKey('last_update')}" style="margin-top: 8px; font-size: 12px; color: #6c757d;">
+                Last updated: <span th:text="${sessionData.get('last_update')}"></span>
+            </div>
+        </div>
+
+        <!-- Show current word progress if available -->
+        <div th:if="${sessionData.containsKey('words') && !sessionData.get('words').isEmpty()}" style="margin-bottom: 20px;">
+            <h3 style="font-size: 18px; margin-bottom: 15px;">Current Progress by Word:</h3>
+            <div th:each="wordData, iterStat : ${sessionData.get('words')}" class="word-detail" style="opacity: 0.95;">
+                <div class="word-detail-header">
+                    <span th:text="${wordData.get('source_word')}"></span>
+                    <span th:if="${wordData.containsKey('source_transliteration')}"
+                          th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
+                          style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
+                    <button type="button"
+                            th:if="${wordData.containsKey('word_id')}"
+                            th:data-word-id="${wordData.get('word_id')}"
+                            th:data-source-word="${wordData.get('source_word')}"
+                            th:data-current-transliteration="${wordData.containsKey('source_transliteration') ? wordData.get('source_transliteration') : ''}"
+                            onclick="showUpdateTransliterationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTransliteration)"
+                            class="btn btn-sm btn-outline-info"
+                            style="padding: 2px 8px; font-size: 12px;"
+                            title="Edit Transliteration">
+                        ✏️ Translit
+                    </button>
+                    <span th:if="${wordData.containsKey('translations')}"
+                          th:text="' → ' + ${wordData.get('translations')}"
+                          style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
+                    <button type="button"
+                            th:if="${wordData.containsKey('word_id') && wordData.containsKey('translations')}"
+                            th:data-word-id="${wordData.get('word_id')}"
+                            th:data-source-word="${wordData.get('source_word')}"
+                            th:data-current-translation="${wordData.get('translations')}"
+                            onclick="showUpdateTranslationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTranslation)"
+                            class="btn btn-sm btn-outline-primary"
+                            style="margin-left: 8px; padding: 2px 8px; font-size: 12px;">
+                        ✏️ Edit Translation
+                    </button>
+                    <span style="float: right; color: #28a745; font-size: 14px;">✓ Processed</span>
+                </div>
+
+                <!-- Mnemonic Display -->
+                <div th:if="${wordData.containsKey('mnemonic_sentence')}"
+                     style="margin: 12px 0; padding: 12px; background: #f8f9fa; border-left: 4px solid #17a2b8; border-radius: 4px;">
+                    <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
+                        <strong style="color: #17a2b8; font-size: 13px;">🔑 MNEMONIC KEYWORD:</strong>
+                        <span th:if="${wordData.containsKey('mnemonic_keyword')}"
+                              th:text="${wordData.get('mnemonic_keyword')}"
+                              style="font-size: 15px; font-weight: 600; color: #0056b3;"></span>
+                        <button type="button"
+                                th:if="${wordData.containsKey('word_id') && wordData.containsKey('mnemonic_keyword')}"
+                                th:data-word-id="${wordData.get('word_id')}"
+                                th:data-source-word="${wordData.get('source_word')}"
+                                th:data-current-keyword="${wordData.get('mnemonic_keyword')}"
+                                onclick="showUpdateMnemonicKeywordModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentKeyword)"
+                                class="btn btn-sm btn-outline-primary"
+                                style="padding: 2px 8px; font-size: 12px;">
+                            ✏️ Edit Keyword
+                        </button>
+                    </div>
+                    <div style="display: flex; align-items: flex-start; gap: 8px;">
+                        <strong style="color: #17a2b8; font-size: 13px; white-space: nowrap;">💭 SENTENCE:</strong>
+                        <span th:text="${wordData.get('mnemonic_sentence')}"
+                              style="font-size: 14px; color: #495057; line-height: 1.6;"></span>
+                    </div>
+                </div>
+
+                <!-- Translation Status -->
+                <div th:if="${wordData.containsKey('translation_status')}"
+                     th:class="'process-item ' + (${wordData.get('translation_status')} == 'success' ? 'success' : 'failed')">
+                    <div>
+                        <span class="process-name">Translation:</span>
+                        <span th:if="${wordData.get('translation_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('translation_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                    </div>
+                </div>
+
+                <!-- Audio Status -->
+                <div th:if="${wordData.containsKey('source_audio_file')}" class="process-item success">
+                    <div>
+                        <span class="process-name">Source Audio:</span>
+                        <span style="color: #28a745;">✓ Queued</span>
+                    </div>
+                    <div class="process-actions">
+                        <form th:action="@{/sessions/{id}/regenerate-audio(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Regenerate audio for this word?');">🔄 Regenerate Audio</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Sentence Status -->
+                <div th:if="${wordData.containsKey('sentence_status')}"
+                     th:class="'process-item ' + (${wordData.get('sentence_status')} == 'success' ? 'success' : 'failed')">
+                    <div style="flex: 1;">
+                        <span class="process-name">Sentence:</span>
+                        <span th:if="${wordData.get('sentence_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('sentence_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+
+                        <!-- Display sentence data if successful -->
+                        <div th:if="${wordData.get('sentence_status') == 'success' and wordData.containsKey('sentence_data')}"
+                             style="margin-top: 12px; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
+                            <div th:with="sentenceData=${wordData.get('sentence_data')}">
+                                <!-- Source language sentence -->
+                                <div style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Example Sentence:</strong>
+                                    <div th:text="${sentenceData.get('source_language_sentence')}" style="font-size: 14px; color: #212529; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Transliteration -->
+                                <div th:if="${sentenceData.containsKey('target_language_transliteration') and sentenceData.get('target_language_transliteration') != null}"
+                                     style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Transliteration:</strong>
+                                    <div th:text="${sentenceData.get('target_language_transliteration')}" style="font-size: 13px; color: #6c757d; font-style: italic; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Target language translation -->
+                                <div style="margin-bottom: 8px;">
+                                    <strong style="color: #495057; font-size: 12px;">Translation:</strong>
+                                    <div th:text="${sentenceData.get('target_language_sentence')}" style="font-size: 13px; color: #6c757d; margin-top: 4px;"></div>
+                                </div>
+
+                                <!-- Word structure -->
+                                <div th:if="${sentenceData.containsKey('source_language_structure') and sentenceData.get('source_language_structure') != null}"
+                                     style="margin-bottom: 0;">
+                                    <strong style="color: #495057; font-size: 12px;">Structure:</strong>
+                                    <div th:text="${sentenceData.get('source_language_structure')}" style="font-size: 12px; color: #6c757d; margin-top: 4px; white-space: pre-wrap; font-family: monospace;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="process-actions">
+                        <form th:if="${wordData.get('sentence_status')} == 'success'"
+                              th:action="@{/sessions/{id}/regenerate-sentence(id=${translationSession.id})}" method="post" style="display: inline;">
+                            <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
+                            <button type="submit" class="btn btn-primary btn-sm" onclick="return confirm('Regenerate sentence for this word?');">🔄 Regenerate Sentence</button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Image Status -->
+                <div th:if="${wordData.containsKey('image_status')}"
+                     th:class="'process-item ' + (${wordData.get('image_status')} == 'success' ? 'success' : 'failed')">
+                    <div style="flex: 1;">
+                        <span class="process-name">Image:</span>
+                        <span th:if="${wordData.get('image_status')} == 'success'" style="color: #28a745;">✓ Success</span>
+                        <span th:if="${wordData.get('image_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Show planned steps if no progress data yet -->
+        <div th:if="${!sessionData.containsKey('words') || sessionData.get('words').isEmpty()}">
+            <p>This session is starting. The following steps will be completed:</p>
+            <ul style="list-style: none; padding-left: 0;">
+                <li style="padding: 8px 0;">📝 Translation of words</li>
+                <li th:if="${translationSession.audioGenerationEnabled}" style="padding: 8px 0;">🔊 Audio generation</li>
+                <li th:if="${translationSession.imageGenerationEnabled}" style="padding: 8px 0;">🖼️ Image generation with mnemonics</li>
+                <li th:if="${translationSession.sentenceGenerationEnabled}" style="padding: 8px 0;">📄 Sentence generation</li>
+                <li style="padding: 8px 0;">📦 ZIP file creation</li>
+            </ul>
+        </div>
+
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-top: 20px;">
+            <strong>⚠️ Note:</strong> This session is actively being processed. Refresh the page to see the latest progress.
+        </div>
+        <button onclick="window.location.reload()" class="btn" style="margin-top: 15px;">🔄 Refresh to Check Progress</button>
+
+        <!-- Auto-refresh script -->
+        <script>
+            // Auto-refresh every 5 seconds while processing
+            setTimeout(function() {
+                if (window.location.href.indexOf('sessions/') > -1) {
+                    window.location.reload();
+                }
+            }, 5000);
+        </script>
+    </div>
+
+    <!-- Process Status Section -->
+    <div class="info-card" th:if="${sessionData.containsKey('process_summary')}">
+        <h2>Process Status</h2>
+
+        <!-- Translation Status -->
+        <div th:with="translationErrors=${sessionData.get('process_summary').get('translation_errors')}"
+             th:if="${translationSession.imageGenerationEnabled || translationSession.audioGenerationEnabled}"
+             th:classappend="${translationErrors.isEmpty() ? 'success' : 'failure'}"
+             class="process-status-card">
+            <div class="process-header">
+                Translation:
+                <span th:if="${translationErrors.isEmpty()}" style="color: #28a745;">✓ Success</span>
+                <span th:if="${!translationErrors.isEmpty()}" style="color: #dc3545;">✗ Failed</span>
+            </div>
+            <ul th:if="${!translationErrors.isEmpty()}" class="error-list">
+                <li th:each="error : ${translationErrors}" th:text="${error}"></li>
+            </ul>
+        </div>
+
+        <!-- Audio Status -->
+        <div th:with="audioErrors=${sessionData.get('process_summary').get('audio_errors')},
+                      audioSuccess=${sessionData.get('process_summary').get('audio_success_count')},
+                      audioFailure=${sessionData.get('process_summary').get('audio_failure_count')}"
+             th:if="${translationSession.audioGenerationEnabled}"
+             th:classappend="${audioErrors.isEmpty() ? 'success' : (audioSuccess > 0 ? 'partial' : 'failure')}"
+             class="process-status-card">
+            <div class="process-header">
+                Audio Generation:
+                <span th:if="${audioErrors.isEmpty()}" style="color: #28a745;">✓ All Success (<span th:text="${audioSuccess}"></span> files)</span>
+                <span th:if="${!audioErrors.isEmpty() && audioSuccess > 0}" style="color: #ffc107;">⚠ Partial Success (<span th:text="${audioSuccess}"></span> success, <span th:text="${audioFailure}"></span> failed)</span>
+                <span th:if="${!audioErrors.isEmpty() && audioSuccess == 0}" style="color: #dc3545;">✗ All Failed</span>
+            </div>
+            <ul th:if="${!audioErrors.isEmpty()}" class="error-list">
+                <li th:each="error : ${audioErrors}" th:text="${error}"></li>
+            </ul>
+        </div>
+
+        <!-- Image Status -->
+        <div th:with="imageErrors=${sessionData.get('process_summary').get('image_errors')}"
+             th:if="${translationSession.imageGenerationEnabled}"
+             th:classappend="${imageErrors.isEmpty() ? 'success' : 'failure'}"
+             class="process-status-card">
+            <div class="process-header">
+                Image Generation:
+                <span th:if="${imageErrors.isEmpty()}" style="color: #28a745;">✓ Success</span>
+                <span th:if="${!imageErrors.isEmpty()}" style="color: #dc3545;">✗ Failed</span>
+            </div>
+            <ul th:if="${!imageErrors.isEmpty()}" class="error-list">
+                <li th:each="error : ${imageErrors}" th:text="${error}"></li>
+            </ul>
+        </div>
+
+        <!-- Sentence Status -->
+        <div th:with="sentenceErrors=${sessionData.get('process_summary').get('sentence_errors')}"
+             th:if="${translationSession.sentenceGenerationEnabled}"
+             th:classappend="${sentenceErrors.isEmpty() ? 'success' : 'failure'}"
+             class="process-status-card">
+            <div class="process-header">
+                Sentence Generation:
+                <span th:if="${sentenceErrors.isEmpty()}" style="color: #28a745;">✓ Success</span>
+                <span th:if="${!sentenceErrors.isEmpty()}" style="color: #dc3545;">✗ Failed</span>
+            </div>
+            <ul th:if="${!sentenceErrors.isEmpty()}" class="error-list">
+                <li th:each="error : ${sentenceErrors}" th:text="${error}"></li>
+            </ul>
+        </div>
+
+        <!-- Retry Buttons -->
+        <div th:if="${sessionData.get('process_summary').get('has_errors')}" style="margin-top: 20px;">
+            <form th:action="@{/sessions/{id}/retry(id=${translationSession.id})}" method="post" style="display: inline;">
+                <button type="submit" class="btn btn-warning">Retry Failed Processes</button>
+            </form>
+        </div>
+    </div>
+
+    <div class="info-card" th:if="${translationSession.status.name() == 'COMPLETED'}">
+        <h2>Generated Assets</h2>
+        <div class="info-row" th:if="${sessionData.containsKey('mnemonic_keyword')}">
+            <div class="info-label">Mnemonic Keyword:</div>
+            <div class="info-value"><strong th:text="${sessionData.get('mnemonic_keyword')}"></strong></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('mnemonic_sentence')}">
+            <div class="info-label">Mnemonic Sentence:</div>
+            <div class="info-value" th:text="${sessionData.get('mnemonic_sentence')}"></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('image_file')}">
+            <div class="info-label">Image File:</div>
+            <div class="info-value"><code th:text="${sessionData.get('image_file')}"></code></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('local_path')}">
+            <div class="info-label">Local Path:</div>
+            <div class="info-value"><code th:text="${sessionData.get('local_path')}"></code></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('gcs_url')}">
+            <div class="info-label">GCS Backup:</div>
+            <div class="info-value"><code th:text="${sessionData.get('gcs_url')}"></code></div>
+        </div>
+        <div class="info-row" th:if="${sessionData.containsKey('credit_cost')}">
+            <div class="info-label">Image Credit Cost:</div>
+            <div class="info-value"><strong th:text="${sessionData.get('credit_cost')} + ' credits'"></strong></div>
+        </div>
+
+        <div style="margin-top: 20px;">
+            <a th:href="@{/sessions/{id}/download(id=${translationSession.id})}" class="btn btn-success">Download Assets (ZIP)</a>
+
+            <!-- Anki Card Creation Button -->
+            <div th:if="${translationSession.ankiEnabled}" style="display: inline-block; margin-left: 10px;">
+                <button type="button" class="btn btn-primary" onclick="showAnkiCardPreview()">Create Anki Cards</button>
+            </div>
+        </div>
+
+        <div class="data-section" th:if="${sessionData.containsKey('image_prompt')}">
+            <h4>Image Prompt Used:</h4>
+            <pre th:text="${sessionData.get('image_prompt')}"></pre>
+        </div>
+    </div>
+
+    <!-- Regeneration Actions -->
+    <div class="info-card" th:if="${translationSession.status.name() == 'COMPLETED'}">
+        <h2>Regeneration Actions</h2>
+        <p style="color: #856404; margin-bottom: 15px;">Regenerate content for all words in this session.</p>
+
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <!-- Regenerate All Sentences Button -->
+            <div th:if="${translationSession.sentenceGenerationEnabled}">
+                <form th:action="@{/sessions/{id}/regenerate-all-sentences(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('This will regenerate sentences for all words in this session. This may take a while. Continue?');">🔄 Regenerate All Sentences</button>
+                </form>
+            </div>
+
+            <!-- Regenerate All Audio Button -->
+            <div th:if="${translationSession.audioGenerationEnabled}">
+                <form th:action="@{/sessions/{id}/regenerate-all-audio(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-warning" onclick="return confirm('This will regenerate audio for all words in this session. Continue?');">🔄 Regenerate All Audio</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-card" th:if="${translationSession.status.name() == 'FAILED'}">
+        <h2>Error Information</h2>
+        <div class="error-message" th:if="${sessionData.containsKey('error')}">
+            <strong>Error:</strong>
+            <p th:text="${sessionData.get('error')}"></p>
+            <small th:if="${sessionData.containsKey('errorTime')}" th:text="'Error occurred at: ' + ${sessionData.get('errorTime')}"></small>
+        </div>
+    </div>
+
+    <!-- Session Data Debug Info (for empty sessions) -->
+    <div class="info-card" th:if="${!sessionData.containsKey('words') && translationSession.status.name() == 'COMPLETED'}">
+        <h2>Session Completed (Legacy Format)</h2>
+        <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 4px; border: 1px solid #ffeaa7;">
+            This session was completed using an older format. Detailed word-by-word information is not available.
+        </p>
+        <div th:if="${!sessionData.isEmpty()}">
+            <h3>Available Data:</h3>
+            <div class="data-section">
+                <pre th:text="${sessionData}"></pre>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pending Status -->
+    <div class="info-card" th:if="${translationSession.status.name() == 'PENDING'}">
+        <h2>⏸️ Session Pending</h2>
+        <p>This session is pending and will start processing soon.</p>
+        <button onclick="window.location.reload()" class="btn">Refresh Page</button>
+    </div>
+
+    <!-- Full Session Data (JSON) - Collapsible for debugging -->
+    <div class="info-card" th:if="${!sessionData.isEmpty()}">
+        <div class="collapsible-header collapsed" data-bs-toggle="collapse" data-bs-target="#session-data-content" aria-expanded="false" aria-controls="session-data-content">
+            <h2 style="margin: 0; display: inline-block;">Full Session Data (JSON)</h2>
+            <span style="font-size: 14px; margin-left: 15px; color: #6c757d;">For debugging purposes</span>
+            <span class="arrow">▼</span>
+        </div>
+        <div id="session-data-content" class="collapse">
+            <div class="collapse-content">
+                <div class="data-section">
+                    <pre th:text="${sessionData}"></pre>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Regenerate Image Modal -->
+    <div id="regenerateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Regenerate Image for <span id="modalWordTitle"></span></h3>
+
+            <!-- Model Selection -->
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Model:</label>
+                <div style="display: flex; gap: 20px;">
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="imageModel" value="gpt-image-1-mini" checked style="margin-right: 6px;">
+                        GPT Image 1 Mini
+                    </label>
+                    <label style="display: flex; align-items: center; cursor: pointer;">
+                        <input type="radio" name="imageModel" value="gpt-image-1" style="margin-right: 6px;">
+                        GPT Image 1
+                    </label>
+                </div>
+            </div>
+
+            <!-- Image Style Selection -->
+            <div style="margin-bottom: 20px;">
+                <label for="imageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
+                <select id="imageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                </select>
+            </div>
+
+            <!-- Use Same Prompt Checkbox -->
+            <div style="margin-bottom: 15px;">
+                <label style="display: flex; align-items: center; cursor: pointer;">
+                    <input type="checkbox" id="useSamePromptCheckbox" style="margin-right: 8px;">
+                    Use same prompt (reuse existing prompt instead of generating new one)
+                </label>
+            </div>
+
+            <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">Custom prompt (optional - leave blank to auto-generate new prompt):</p>
+            <textarea id="regeneratePromptTextarea"
+                      placeholder="Enter a custom image prompt or leave blank to auto-generate..."
+                      style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;"></textarea>
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="regenerateStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeRegenerateModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="regenerateWordImage()" class="btn btn-warning" id="regenerateBtn">🔄 Regenerate</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Translation Modal -->
+    <div id="updateTranslationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Update Translation for <span id="translationModalWordTitle"></span></h3>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Translation:</label>
+                <input type="text" id="newTranslationInput"
+                       placeholder="Enter new translation..."
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This will regenerate the mnemonic sentence and image prompt.</p>
+            </div>
+
+            <!-- Image Style Selection -->
+            <div style="margin-bottom: 20px;">
+                <label for="translationImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
+                <select id="translationImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                </select>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="updateTranslationStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeUpdateTranslationModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="updateTranslation()" class="btn btn-primary" id="updateTranslationBtn">✏️ Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Mnemonic Keyword Modal -->
+    <div id="updateMnemonicKeywordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Update Mnemonic Keyword for <span id="mnemonicKeywordModalWordTitle"></span></h3>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Mnemonic Keyword:</label>
+                <input type="text" id="newMnemonicKeywordInput"
+                       placeholder="Enter new mnemonic keyword..."
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This will regenerate the image prompt with the new keyword.</p>
+            </div>
+
+            <!-- Image Style Selection -->
+            <div style="margin-bottom: 20px;">
+                <label for="mnemonicKeywordImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
+                <select id="mnemonicKeywordImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                </select>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="updateMnemonicKeywordStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeUpdateMnemonicKeywordModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="updateMnemonicKeyword()" class="btn btn-primary" id="updateMnemonicKeywordBtn">✏️ Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Update Transliteration Modal -->
+    <div id="updateTransliterationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Update Transliteration for <span id="transliterationModalWordTitle"></span></h3>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Transliteration (Romanization):</label>
+                <input type="text" id="newTransliterationInput"
+                       placeholder="Enter new transliteration (e.g., marna for Hindi)..."
+                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
+                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This is the romanized pronunciation of the word. It's used to find matching character guides for mnemonic generation.</p>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="updateTransliterationStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeUpdateTransliterationModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="updateTransliteration()" class="btn btn-info" id="updateTransliterationBtn">✏️ Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Batch Regenerate Image Modal -->
+    <div id="batchRegenerateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 900px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Batch Regenerate Images (<span id="batchModalCount">0</span> words)</h3>
+
+            <!-- Global Settings -->
+            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #007bff;">
+                <h4 style="margin-top: 0; font-size: 16px;">Apply to All Words:</h4>
+                <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
+                    <div>
+                        <label style="font-weight: bold; margin-right: 10px;">Model:</label>
+                        <select id="globalModel" onchange="applyModelToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="">-- Don't change --</option>
+                            <option value="gpt-image-1-mini">GPT Image 1 Mini</option>
+                            <option value="gpt-image-1">GPT Image 1</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="font-weight: bold; margin-right: 10px;">Image Style:</label>
+                        <select id="globalImageStyle" onchange="applyImageStyleToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="">-- Don't change --</option>
+                            <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                            <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                            <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" id="globalUseSamePrompt" onchange="applyUseSamePromptToAll()" style="margin-right: 6px;">
+                            Use same prompt for all
+                        </label>
+                    </div>
+                    <div style="flex: 1;">
+                        <button onclick="applyCustomPromptToAll()" class="btn btn-sm" style="background: #6c757d;">
+                            Apply Custom Prompt to All
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Word List -->
+            <div id="batchWordList" style="max-height: 500px; overflow-y: auto; margin-bottom: 20px;">
+                <!-- Words will be dynamically added here -->
+            </div>
+
+            <!-- Progress Section -->
+            <div id="batchProgress" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+                <h4 style="margin-top: 0; font-size: 16px;">Progress:</h4>
+                <div style="margin-bottom: 10px;">
+                    <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                        <span id="batchProgressText">Processing...</span>
+                        <span id="batchProgressNumbers">0 / 0</span>
+                    </div>
+                    <div style="background: #e9ecef; border-radius: 8px; height: 24px; overflow: hidden;">
+                        <div id="batchProgressBar" style="width: 0%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; border-radius: 8px; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+                <div id="batchProgressDetails" style="max-height: 200px; overflow-y: auto; font-size: 14px;">
+                    <!-- Progress details will be shown here -->
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div id="batchStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeBatchRegenerateModal()" class="btn btn-secondary" style="margin-right: 10px;" id="batchCancelBtn">Cancel</button>
+                    <button onclick="startBatchRegeneration()" class="btn btn-warning" id="batchStartBtn">🔄 Start Batch Regeneration</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Character Guide Modal -->
+    <div id="addCharacterModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Add Character to Guide</h3>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Language:</label>
+                <input type="text" id="addCharLanguage" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5;">
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Start Sound:</label>
+                <input type="text" id="addCharStartSound" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <small style="color: #6c757d; display: block; margin-top: 4px;">The phonetic sound at the start of the word (e.g., "cha", "sh")</small>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Character Name:</label>
+                <input type="text" id="addCharName" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <small style="color: #6c757d; display: block; margin-top: 4px;">The character or person's name (e.g., "Charizard", "Shanks")</small>
+            </div>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Character Context:</label>
+                <input type="text" id="addCharContext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <small style="color: #6c757d; display: block; margin-top: 4px;">Where the character is from (e.g., "Pokemon", "One Piece")</small>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="addCharStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeAddCharacterModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="addCharacterToGuide()" class="btn btn-success" id="addCharBtn">➕ Add to Guide</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Anki Card Preview Modal -->
+    <div id="ankiCardPreviewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
+        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 1200px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h2 style="margin-top: 0;">Review and Edit Anki Cards</h2>
+            <p style="color: #6c757d; margin-bottom: 20px;">Review the cards below and edit as needed before creating them in Anki.</p>
+
+            <!-- Card List -->
+            <div id="ankiCardList" style="margin-bottom: 30px;">
+                <!-- Cards will be dynamically added here -->
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 2px solid #dee2e6;">
+                <div id="ankiCardStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeAnkiCardPreview()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="createAnkiCards()" class="btn btn-primary" id="createAnkiCardsBtn">Create All Cards</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <style>
+        .anki-card-item {
+            background: white;
+            padding: 20px;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+        }
+        .card-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid #007bff;
+        }
+        .card-header-row h4 {
+            margin: 0;
+            color: #007bff;
+        }
+        .card-edit-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+        }
+        .placeholder-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 5px;
+            margin-top: 8px;
+        }
+        .placeholder-buttons button {
+            font-size: 11px;
+            padding: 4px 8px;
+        }
+        .preview-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .preview-label {
+            font-weight: bold;
+            color: #495057;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .preview-content {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            border: 1px solid #dee2e6;
+            min-height: 60px;
+            font-size: 16px;
+            line-height: 1.6;
+        }
+
+        /* Drag and Drop Styles */
+        .dnd-mode-toggle {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: #e7f3ff;
+            border-radius: 6px;
+        }
+        .dnd-blocks-palette {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px dashed #dee2e6;
+            margin-bottom: 15px;
+        }
+        .dnd-block {
+            display: inline-block;
+            background: #fff;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 4px;
+            cursor: grab;
+            font-size: 13px;
+            font-weight: 500;
+            color: #007bff;
+            transition: all 0.2s;
+            user-select: none;
+        }
+        .dnd-block:hover {
+            background: #e7f3ff;
+            transform: translateY(-2px);
+            box-shadow: 0 2px 8px rgba(0,123,255,0.3);
+        }
+        .dnd-block.dragging {
+            opacity: 0.5;
+            cursor: grabbing;
+        }
+        .dnd-block.toggle-block {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+        .dnd-block.toggle-block:hover {
+            background: #ffe8a1;
+        }
+        .dnd-drop-zone {
+            min-height: 100px;
+            background: #f8f9fa;
+            border: 2px dashed #6c757d;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 15px;
+        }
+        .dnd-drop-zone.drag-over {
+            background: #e7f3ff;
+            border-color: #007bff;
+            border-style: solid;
+        }
+        .dnd-drop-zone.empty::before {
+            content: 'Drag blocks here to build your card';
+            display: block;
+            text-align: center;
+            color: #6c757d;
+            padding: 30px;
+            font-style: italic;
+        }
+        .dnd-dropped-block {
+            display: inline-flex;
+            align-items: center;
+            background: #e7f3ff;
+            border: 2px solid #007bff;
+            border-radius: 6px;
+            padding: 8px 12px;
+            margin: 4px;
+            font-size: 13px;
+            font-weight: 500;
+            color: #007bff;
+            cursor: move;
+            position: relative;
+        }
+        .dnd-dropped-block.toggle-wrapper {
+            background: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+            padding: 4px;
+        }
+        .dnd-dropped-block .remove-btn {
+            margin-left: 8px;
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 6px;
+            cursor: pointer;
+            font-size: 11px;
+            font-weight: bold;
+        }
+        .dnd-dropped-block .remove-btn:hover {
+            background: #c82333;
+        }
+        .dnd-dropped-block.line-break {
+            display: block;
+            background: #e9ecef;
+            border-color: #6c757d;
+            color: #495057;
+            width: 100%;
+            text-align: center;
+            margin: 8px 0;
+        }
+    </style>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Batch Regeneration State
+        let selectedWords = new Set();
+        let batchRegenerationData = {};
+        let batchInProgress = false;
+
+        // Update selection UI
+        function updateSelectionUI() {
+            const count = selectedWords.size;
+            const toolbar = document.getElementById('selectionToolbar');
+            const countEl = document.getElementById('selectionCount');
+            const batchBtn = document.getElementById('batchRegenerateBtn');
+            const batchCountEl = document.getElementById('batchRegenerateCount');
+
+            if (count > 0) {
+                toolbar.style.display = 'flex';
+                countEl.textContent = `${count} selected`;
+                batchBtn.style.display = 'inline-block';
+                batchCountEl.textContent = count;
+            } else {
+                toolbar.style.display = 'none';
+            }
+        }
+
+        // Handle individual checkbox change
+        function handleWordCheckboxChange(checkbox) {
+            const wordId = checkbox.dataset.wordId;
+            const wordDetail = checkbox.closest('.word-detail');
+
+            if (checkbox.checked) {
+                selectedWords.add(wordId);
+                wordDetail.classList.add('selected');
+            } else {
+                selectedWords.delete(wordId);
+                wordDetail.classList.remove('selected');
+            }
+
+            updateSelectionUI();
+        }
+
+        // Select all words
+        function selectAllWords() {
+            const checkboxes = document.querySelectorAll('.word-select-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = true;
+                selectedWords.add(checkbox.dataset.wordId);
+                checkbox.closest('.word-detail').classList.add('selected');
+            });
+            updateSelectionUI();
+        }
+
+        // Deselect all words
+        function deselectAllWords() {
+            const checkboxes = document.querySelectorAll('.word-select-checkbox');
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = false;
+                checkbox.closest('.word-detail').classList.remove('selected');
+            });
+            selectedWords.clear();
+            updateSelectionUI();
+        }
+
+        // Show batch regenerate modal
+        function showBatchRegenerateModal() {
+            if (selectedWords.size === 0) return;
+
+            // Initialize regeneration data
+            batchRegenerationData = {};
+            selectedWords.forEach(wordId => {
+                const checkbox = document.querySelector(`[data-word-id="${wordId}"]`);
+                batchRegenerationData[wordId] = {
+                    wordId: wordId,
+                    sourceWord: checkbox.dataset.sourceWord,
+                    model: 'gpt-image-1-mini',
+                    imageStyle: 'REALISTIC_CINEMATIC',
+                    useSamePrompt: false,
+                    customPrompt: '',
+                    status: 'pending'
+                };
+            });
+
+            // Populate modal
+            populateBatchModal();
+
+            // Show modal
+            document.getElementById('batchRegenerateModal').style.display = 'block';
+            document.getElementById('batchModalCount').textContent = selectedWords.size;
+
+            // Reset progress
+            document.getElementById('batchProgress').style.display = 'none';
+            document.getElementById('batchStatus').textContent = '';
+        }
+
+        // Close batch regenerate modal
+        function closeBatchRegenerateModal() {
+            if (batchInProgress) {
+                if (!confirm('Regeneration is in progress. Are you sure you want to close?')) {
+                    return;
+                }
+            }
+            document.getElementById('batchRegenerateModal').style.display = 'none';
+        }
+
+        // Populate batch modal with word list
+        function populateBatchModal() {
+            const wordListEl = document.getElementById('batchWordList');
+            wordListEl.innerHTML = '';
+
+            Object.values(batchRegenerationData).forEach((data, index) => {
+                const wordDiv = document.createElement('div');
+                wordDiv.style.cssText = 'background: white; padding: 15px; margin-bottom: 15px; border: 1px solid #dee2e6; border-radius: 8px;';
+                wordDiv.innerHTML = `
+                    <div style="font-weight: bold; margin-bottom: 10px; font-size: 16px;">${index + 1}. ${data.sourceWord}</div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-weight: bold; margin-right: 10px;">Model:</label>
+                        <select class="word-model" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="gpt-image-1-mini" selected>GPT Image 1 Mini</option>
+                            <option value="gpt-image-1">GPT Image 1</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="font-weight: bold; margin-right: 10px;">Image Style:</label>
+                        <select class="word-image-style" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                            <option value="REALISTIC_CINEMATIC" selected>Realistic Cinematic</option>
+                            <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                            <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                        </select>
+                    </div>
+
+                    <div style="margin-bottom: 10px;">
+                        <label style="display: flex; align-items: center; cursor: pointer;">
+                            <input type="checkbox" class="word-use-same-prompt" data-word-id="${data.wordId}" style="margin-right: 6px;">
+                            Use same prompt
+                        </label>
+                    </div>
+
+                    <div>
+                        <label style="font-weight: bold; display: block; margin-bottom: 5px;">Custom Prompt (optional):</label>
+                        <textarea class="word-custom-prompt" data-word-id="${data.wordId}"
+                                  placeholder="Leave blank to auto-generate..."
+                                  style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px;"></textarea>
+                    </div>
+
+                    <div class="word-status-${data.wordId}" style="margin-top: 10px; display: none; padding: 8px; border-radius: 4px; font-size: 13px;"></div>
+                `;
+                wordListEl.appendChild(wordDiv);
+
+                // Add event listeners
+                wordDiv.querySelector('.word-model').addEventListener('change', (e) => {
+                    batchRegenerationData[data.wordId].model = e.target.value;
+                });
+                wordDiv.querySelector('.word-image-style').addEventListener('change', (e) => {
+                    batchRegenerationData[data.wordId].imageStyle = e.target.value;
+                });
+                wordDiv.querySelector('.word-use-same-prompt').addEventListener('change', (e) => {
+                    batchRegenerationData[data.wordId].useSamePrompt = e.target.checked;
+                });
+                wordDiv.querySelector('.word-custom-prompt').addEventListener('input', (e) => {
+                    batchRegenerationData[data.wordId].customPrompt = e.target.value.trim();
+                });
+            });
+        }
+
+        // Apply model to all
+        function applyModelToAll() {
+            const model = document.getElementById('globalModel').value;
+            if (!model) return;
+
+            document.querySelectorAll('.word-model').forEach(select => {
+                select.value = model;
+                const wordId = select.dataset.wordId;
+                batchRegenerationData[wordId].model = model;
+            });
+        }
+
+        // Apply image style to all
+        function applyImageStyleToAll() {
+            const imageStyle = document.getElementById('globalImageStyle').value;
+            if (!imageStyle) return;
+
+            document.querySelectorAll('.word-image-style').forEach(select => {
+                select.value = imageStyle;
+                const wordId = select.dataset.wordId;
+                batchRegenerationData[wordId].imageStyle = imageStyle;
+            });
+        }
+
+        // Apply use same prompt to all
+        function applyUseSamePromptToAll() {
+            const checked = document.getElementById('globalUseSamePrompt').checked;
+            document.querySelectorAll('.word-use-same-prompt').forEach(checkbox => {
+                checkbox.checked = checked;
+                const wordId = checkbox.dataset.wordId;
+                batchRegenerationData[wordId].useSamePrompt = checked;
+            });
+        }
+
+        // Apply custom prompt to all
+        function applyCustomPromptToAll() {
+            const prompt = window.prompt('Enter custom prompt to apply to all words:');
+            if (prompt === null) return;
+
+            document.querySelectorAll('.word-custom-prompt').forEach(textarea => {
+                textarea.value = prompt;
+                const wordId = textarea.dataset.wordId;
+                batchRegenerationData[wordId].customPrompt = prompt.trim();
+            });
+        }
+
+        // Start batch regeneration
+        async function startBatchRegeneration() {
+            if (batchInProgress) return;
+
+            batchInProgress = true;
+            const words = Object.values(batchRegenerationData);
+            const totalWords = words.length;
+            let completedCount = 0;
+            let successCount = 0;
+            let failureCount = 0;
+
+            // Show progress section
+            document.getElementById('batchProgress').style.display = 'block';
+            document.getElementById('batchStartBtn').disabled = true;
+            document.getElementById('batchCancelBtn').disabled = true;
+
+            // Initialize progress
+            updateBatchProgress(completedCount, totalWords, 'Starting batch regeneration...');
+
+            // Create promises for all words
+            const promises = words.map(async (data) => {
+                const wordId = data.wordId;
+                const statusEl = document.querySelector(`.word-status-${wordId}`);
+
+                // Show pending status
+                statusEl.style.display = 'block';
+                statusEl.style.background = '#fff3cd';
+                statusEl.style.color = '#856404';
+                statusEl.textContent = '⏳ Pending...';
+
+                try {
+                    // Prepare request body
+                    const requestBody = {
+                        model: data.model,
+                        imageStyle: data.imageStyle
+                    };
+
+                    if (data.customPrompt) {
+                        requestBody.imagePrompt = data.customPrompt;
+                    }
+
+                    if (data.useSamePrompt) {
+                        requestBody.useSamePrompt = true;
+                    }
+
+                    // Update status to processing
+                    statusEl.style.background = '#cfe2ff';
+                    statusEl.style.color = '#084298';
+                    statusEl.textContent = '🔄 Regenerating...';
+
+                    // Make API call
+                    const response = await fetch(`/api/words/${wordId}/regenerate-image`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify(requestBody)
+                    });
+
+                    const result = await response.json();
+
+                    if (result.success) {
+                        // Success
+                        statusEl.style.background = '#d1e7dd';
+                        statusEl.style.color = '#0f5132';
+                        statusEl.textContent = '✓ Success! Image regenerated.';
+                        batchRegenerationData[wordId].status = 'success';
+                        successCount++;
+                    } else {
+                        // API returned error
+                        statusEl.style.background = '#f8d7da';
+                        statusEl.style.color = '#842029';
+                        statusEl.textContent = '✗ Error: ' + (result.error || 'Unknown error');
+                        batchRegenerationData[wordId].status = 'failed';
+                        failureCount++;
+                    }
+                } catch (error) {
+                    // Network or other error
+                    statusEl.style.background = '#f8d7da';
+                    statusEl.style.color = '#842029';
+                    statusEl.textContent = '✗ Error: ' + error.message;
+                    batchRegenerationData[wordId].status = 'failed';
+                    failureCount++;
+                }
+
+                // Update progress
+                completedCount++;
+                updateBatchProgress(completedCount, totalWords, `Processing... (${completedCount}/${totalWords})`);
+                addProgressDetail(data.sourceWord, batchRegenerationData[wordId].status);
+            });
+
+            // Wait for all promises to complete
+            await Promise.all(promises);
+
+            // All done
+            batchInProgress = false;
+            updateBatchProgress(totalWords, totalWords, 'Batch regeneration completed!');
+
+            // Show summary
+            const statusEl = document.getElementById('batchStatus');
+            statusEl.style.color = successCount === totalWords ? '#28a745' : (failureCount === totalWords ? '#dc3545' : '#ffc107');
+            statusEl.innerHTML = `<strong>Completed:</strong> ${successCount} succeeded, ${failureCount} failed`;
+
+            // Update buttons
+            document.getElementById('batchStartBtn').style.display = 'none';
+            document.getElementById('batchCancelBtn').textContent = 'Close';
+            document.getElementById('batchCancelBtn').disabled = false;
+
+            // Auto-reload after delay if all succeeded
+            if (failureCount === 0) {
+                statusEl.innerHTML += ' <br><small>Page will reload in 3 seconds...</small>';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 3000);
+            }
+        }
+
+        // Update batch progress bar
+        function updateBatchProgress(completed, total, text) {
+            const percentage = total > 0 ? (completed / total) * 100 : 0;
+            document.getElementById('batchProgressBar').style.width = percentage + '%';
+            document.getElementById('batchProgressText').textContent = text;
+            document.getElementById('batchProgressNumbers').textContent = `${completed} / ${total}`;
+        }
+
+        // Add progress detail
+        function addProgressDetail(sourceWord, status) {
+            const detailsEl = document.getElementById('batchProgressDetails');
+            const item = document.createElement('div');
+            item.style.cssText = 'padding: 6px; margin-bottom: 4px; border-radius: 4px;';
+
+            if (status === 'success') {
+                item.style.background = '#d1e7dd';
+                item.style.color = '#0f5132';
+                item.textContent = `✓ ${sourceWord} - Success`;
+            } else {
+                item.style.background = '#f8d7da';
+                item.style.color = '#842029';
+                item.textContent = `✗ ${sourceWord} - Failed`;
+            }
+
+            detailsEl.appendChild(item);
+            // Scroll to bottom
+            detailsEl.scrollTop = detailsEl.scrollHeight;
+        }
+
+        let currentWordId = null;
+
+        function showRegenerateModal(wordId, sourceWord) {
+            currentWordId = wordId;
+            document.getElementById('modalWordTitle').textContent = sourceWord;
+            document.getElementById('regeneratePromptTextarea').value = '';
+            document.getElementById('useSamePromptCheckbox').checked = false;
+            document.querySelector('input[name="imageModel"][value="gpt-image-1-mini"]').checked = true;
+            document.getElementById('imageStyleSelect').value = 'REALISTIC_CINEMATIC';
+            document.getElementById('regenerateModal').style.display = 'flex';
+            document.getElementById('regenerateStatus').textContent = '';
+        }
+
+        function closeRegenerateModal() {
+            document.getElementById('regenerateModal').style.display = 'none';
+            currentWordId = null;
+        }
+
+        async function regenerateWordImage() {
+            if (!currentWordId) return;
+
+            const customPrompt = document.getElementById('regeneratePromptTextarea').value.trim();
+            const useSamePrompt = document.getElementById('useSamePromptCheckbox').checked;
+            const model = document.querySelector('input[name="imageModel"]:checked').value;
+            const imageStyle = document.getElementById('imageStyleSelect').value;
+            const statusEl = document.getElementById('regenerateStatus');
+            const btnEl = document.getElementById('regenerateBtn');
+
+            statusEl.textContent = 'Regenerating image...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const requestBody = {};
+
+                // Add custom prompt if provided
+                if (customPrompt) {
+                    requestBody.imagePrompt = customPrompt;
+                }
+
+                // Add useSamePrompt flag
+                if (useSamePrompt) {
+                    requestBody.useSamePrompt = true;
+                }
+
+                // Add model selection
+                requestBody.model = model;
+
+                // Add image style selection
+                requestBody.imageStyle = imageStyle;
+
+                const response = await fetch(`/api/words/${currentWordId}/regenerate-image`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.textContent = 'Image regenerated! Reloading page...';
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        // Close modal on background click
+        document.getElementById('regenerateModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeRegenerateModal();
+            }
+        });
+
+        // Translation update functions
+        let currentTranslationWordId = null;
+
+        function showUpdateTranslationModal(wordId, sourceWord, currentTranslation) {
+            currentTranslationWordId = wordId;
+            document.getElementById('translationModalWordTitle').textContent = sourceWord;
+            document.getElementById('newTranslationInput').value = currentTranslation || '';
+            document.getElementById('translationImageStyleSelect').value = 'REALISTIC_CINEMATIC';
+            document.getElementById('updateTranslationModal').style.display = 'flex';
+            document.getElementById('updateTranslationStatus').textContent = '';
+        }
+
+        function closeUpdateTranslationModal() {
+            document.getElementById('updateTranslationModal').style.display = 'none';
+            currentTranslationWordId = null;
+        }
+
+        async function updateTranslation() {
+            if (!currentTranslationWordId) return;
+
+            const newTranslation = document.getElementById('newTranslationInput').value.trim();
+            const imageStyle = document.getElementById('translationImageStyleSelect').value;
+            const statusEl = document.getElementById('updateTranslationStatus');
+            const btnEl = document.getElementById('updateTranslationBtn');
+
+            if (!newTranslation) {
+                statusEl.textContent = 'Please enter a translation';
+                statusEl.style.color = '#dc3545';
+                return;
+            }
+
+            statusEl.textContent = 'Updating translation and regenerating mnemonic...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const response = await fetch(`/api/words/${currentTranslationWordId}/update-translation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        translation: newTranslation,
+                        imageStyle: imageStyle
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.textContent = 'Translation updated! Reloading page...';
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        // Mnemonic keyword update functions
+        let currentMnemonicKeywordWordId = null;
+
+        function showUpdateMnemonicKeywordModal(wordId, sourceWord, currentKeyword) {
+            currentMnemonicKeywordWordId = wordId;
+            document.getElementById('mnemonicKeywordModalWordTitle').textContent = sourceWord;
+            document.getElementById('newMnemonicKeywordInput').value = currentKeyword || '';
+            document.getElementById('mnemonicKeywordImageStyleSelect').value = 'REALISTIC_CINEMATIC';
+            document.getElementById('updateMnemonicKeywordModal').style.display = 'flex';
+            document.getElementById('updateMnemonicKeywordStatus').textContent = '';
+        }
+
+        function closeUpdateMnemonicKeywordModal() {
+            document.getElementById('updateMnemonicKeywordModal').style.display = 'none';
+            currentMnemonicKeywordWordId = null;
+        }
+
+        async function updateMnemonicKeyword() {
+            if (!currentMnemonicKeywordWordId) return;
+
+            const newMnemonicKeyword = document.getElementById('newMnemonicKeywordInput').value.trim();
+            const imageStyle = document.getElementById('mnemonicKeywordImageStyleSelect').value;
+            const statusEl = document.getElementById('updateMnemonicKeywordStatus');
+            const btnEl = document.getElementById('updateMnemonicKeywordBtn');
+
+            if (!newMnemonicKeyword) {
+                statusEl.textContent = 'Please enter a mnemonic keyword';
+                statusEl.style.color = '#dc3545';
+                return;
+            }
+
+            statusEl.textContent = 'Updating mnemonic keyword and regenerating image prompt...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const response = await fetch(`/api/words/${currentMnemonicKeywordWordId}/update-mnemonic-keyword`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        mnemonicKeyword: newMnemonicKeyword,
+                        imageStyle: imageStyle
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.textContent = 'Mnemonic keyword updated! Reloading page...';
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        // Transliteration update functions
+        let currentTransliterationWordId = null;
+
+        function showUpdateTransliterationModal(wordId, sourceWord, currentTransliteration) {
+            currentTransliterationWordId = wordId;
+            document.getElementById('transliterationModalWordTitle').textContent = sourceWord;
+            document.getElementById('newTransliterationInput').value = currentTransliteration || '';
+            document.getElementById('updateTransliterationModal').style.display = 'flex';
+            document.getElementById('updateTransliterationStatus').textContent = '';
+        }
+
+        function closeUpdateTransliterationModal() {
+            document.getElementById('updateTransliterationModal').style.display = 'none';
+            currentTransliterationWordId = null;
+        }
+
+        async function updateTransliteration() {
+            if (!currentTransliterationWordId) return;
+
+            const newTransliteration = document.getElementById('newTransliterationInput').value.trim();
+            const statusEl = document.getElementById('updateTransliterationStatus');
+            const btnEl = document.getElementById('updateTransliterationBtn');
+
+            if (!newTransliteration) {
+                statusEl.textContent = 'Please enter a transliteration';
+                statusEl.style.color = '#dc3545';
+                return;
+            }
+
+            statusEl.textContent = 'Updating transliteration...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const response = await fetch(`/api/words/${currentTransliterationWordId}/update-transliteration`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sourceTransliteration: newTransliteration
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    let message = 'Transliteration updated!';
+                    if (result.characterGuide) {
+                        message += ' Character guide: ' + result.characterGuide;
+                    }
+                    message += ' Reloading page...';
+                    statusEl.textContent = message;
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        // Close translation modal on background click
+        document.getElementById('updateTranslationModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUpdateTranslationModal();
+            }
+        });
+
+        // Close mnemonic keyword modal on background click
+        document.getElementById('updateMnemonicKeywordModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUpdateMnemonicKeywordModal();
+            }
+        });
+
+        // Close transliteration modal on background click
+        document.getElementById('updateTransliterationModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeUpdateTransliterationModal();
+            }
+        });
+
+        // Close batch modal on background click
+        document.getElementById('batchRegenerateModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeBatchRegenerateModal();
+            }
+        });
+
+        // Generate with same preset function
+        function generateWithPreset() {
+            // Store the session configuration in sessionStorage
+            const presetConfig = {
+                sourceLanguage: /*[[${translationSession.sourceLanguage}]]*/ 'hi',
+                targetLanguage: /*[[${translationSession.targetLanguage}]]*/ 'en',
+                enableSourceAudio: /*[[${translationSession.audioGenerationEnabled}]]*/ false,
+                enableTargetAudio: /*[[${translationSession.audioGenerationEnabled}]]*/ false,
+                enableTranslation: true,
+                enableSentenceGeneration: /*[[${translationSession.sentenceGenerationEnabled}]]*/ false,
+                enableImageGeneration: /*[[${translationSession.imageGenerationEnabled}]]*/ false,
+                imageStyle: /*[[${sessionData.containsKey('original_request') && sessionData.get('original_request').containsKey('image_style') ? sessionData.get('original_request').get('image_style') : 'REALISTIC_CINEMATIC'}]]*/ 'REALISTIC_CINEMATIC',
+                ankiEnabled: /*[[${translationSession.ankiEnabled}]]*/ false,
+                ankiDeck: /*[[${translationSession.ankiDeck != null ? translationSession.ankiDeck : ''}]]*/ '',
+                ankiFrontTemplate: /*[[${translationSession.ankiFrontTemplate != null ? translationSession.ankiFrontTemplate : ''}]]*/ '',
+                ankiBackTemplate: /*[[${translationSession.ankiBackTemplate != null ? translationSession.ankiBackTemplate : ''}]]*/ ''
+            };
+
+            sessionStorage.setItem('loadPresetConfig', JSON.stringify(presetConfig));
+            window.location.href = '/';
+        }
+
+        // Character Guide Modal Functions
+        function showAddCharacterModal(dataset) {
+            document.getElementById('addCharLanguage').value = dataset.language;
+            document.getElementById('addCharStartSound').value = dataset.startSound;
+            document.getElementById('addCharName').value = dataset.characterName;
+            document.getElementById('addCharContext').value = dataset.characterContext || '';
+            document.getElementById('addCharacterModal').style.display = 'flex';
+            document.getElementById('addCharStatus').textContent = '';
+        }
+
+        function closeAddCharacterModal() {
+            document.getElementById('addCharacterModal').style.display = 'none';
+        }
+
+        async function addCharacterToGuide() {
+            const language = document.getElementById('addCharLanguage').value;
+            const startSound = document.getElementById('addCharStartSound').value.trim();
+            const characterName = document.getElementById('addCharName').value.trim();
+            const characterContext = document.getElementById('addCharContext').value.trim();
+            const statusEl = document.getElementById('addCharStatus');
+            const btnEl = document.getElementById('addCharBtn');
+
+            if (!startSound || !characterName) {
+                statusEl.textContent = 'Please fill in required fields';
+                statusEl.style.color = '#dc3545';
+                return;
+            }
+
+            statusEl.textContent = 'Adding character to guide...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const response = await fetch('/character-guide/create', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams({
+                        language: language,
+                        startSound: startSound,
+                        characterName: characterName,
+                        characterContext: characterContext
+                    })
+                });
+
+                if (response.ok) {
+                    statusEl.textContent = 'Character added successfully!';
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        closeAddCharacterModal();
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    const text = await response.text();
+                    statusEl.textContent = 'Error: ' + (text || 'Failed to add character');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error adding character:', error);
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        // Close modal on background click
+        document.getElementById('addCharacterModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAddCharacterModal();
+            }
+        });
+
+        // Anki Card Preview Functions
+        let ankiCardData = null;
+        let currentSessionId = [[${translationSession.id}]];
+
+        async function showAnkiCardPreview() {
+            try {
+                const response = await fetch(`/sessions/${currentSessionId}/anki-cards-preview`);
+                const data = await response.json();
+
+                if (data.error) {
+                    alert('Error: ' + data.error);
+                    return;
+                }
+
+                ankiCardData = data;
+                populateAnkiCardModal(data);
+                document.getElementById('ankiCardPreviewModal').style.display = 'block';
+            } catch (error) {
+                console.error('Error loading Anki card preview:', error);
+                alert('Failed to load card preview: ' + error.message);
+            }
+        }
+
+        function populateAnkiCardModal(data) {
+            const cardListEl = document.getElementById('ankiCardList');
+            cardListEl.innerHTML = '';
+
+            // Add template overview section
+            const overviewDiv = document.createElement('div');
+            overviewDiv.style.cssText = 'background: #e7f3ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #007bff;';
+            overviewDiv.innerHTML = `
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h3 style="margin: 0; color: #007bff;">Card Format Preview</h3>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="toggleFormatEdit()" id="toggleFormatEditBtn">
+                        ✏️ Edit Format
+                    </button>
+                </div>
+
+                <!-- Deck Name Input -->
+                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Anki Deck Name:</label>
+                    <input type="text" class="form-control" id="deckNameInput" value="${escapeHtml(data.deck || '')}" placeholder="Enter deck name">
+                </div>
+
+                <p style="margin-bottom: 15px; color: #495057;">This format will be applied to all ${data.cards.length} cards.</p>
+
+                <!-- View Mode -->
+                <div id="formatViewMode">
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Front Template:</div>
+                        <div id="frontTemplateDisplay" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].frontTemplate)}</div>
+                    </div>
+
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Back Template:</div>
+                        <div id="backTemplateDisplay" style="background: #f8f9fa; padding: 10px; border-radius: 4px; font-family: monospace; white-space: pre-wrap;">${escapeHtml(data.cards[0].backTemplate)}</div>
+                    </div>
+                </div>
+
+                <!-- Edit Mode (hidden by default) -->
+                <div id="formatEditMode" style="display: none;">
+                    <!-- Mode Toggle -->
+                    <div class="dnd-mode-toggle">
+                        <strong>Edit Mode:</strong>
+                        <div class="btn-group" role="group">
+                            <input type="radio" class="btn-check" name="editMode" id="textMode" autocomplete="off">
+                            <label class="btn btn-outline-primary btn-sm" for="textMode" onclick="switchEditMode('text')">📝 Text</label>
+
+                            <input type="radio" class="btn-check" name="editMode" id="dndMode" autocomplete="off" checked>
+                            <label class="btn btn-outline-primary btn-sm" for="dndMode" onclick="switchEditMode('dnd')">🎯 Drag & Drop</label>
+                        </div>
+                    </div>
+
+                    <!-- Text Mode -->
+                    <div id="textEditMode" style="display: none;">
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
+                            <textarea class="form-control" id="frontTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].frontTemplate)}</textarea>
+                        <div class="placeholder-buttons" style="margin-top: 10px;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source-text]')">source-text</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source_transliteration]')">source_transliteration</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[target-text]')">target-text</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source-audio]')">source-audio</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[target-audio]')">target-audio</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[image]')">image</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[mnemonic_keyword]')">mnemonic_keyword</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[mnemonic_sentence]')">mnemonic_sentence</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[sentence-source]')">sentence-source</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[sentence-target]')">sentence-target</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[sentence-transliteration]')">sentence-transliteration</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[sentence-structure]')">sentence-structure</button>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="insertFormatPlaceholder('front', '[toggle]')"><strong>toggle</strong></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '<br>')">line break</button>
+                        </div>
+                    </div>
+
+                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                        <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Back Template:</label>
+                        <textarea class="form-control" id="backTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].backTemplate)}</textarea>
+                        <div class="placeholder-buttons" style="margin-top: 10px;">
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source-text]')">source-text</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source_transliteration]')">source_transliteration</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[target-text]')">target-text</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source-audio]')">source-audio</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[target-audio]')">target-audio</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[image]')">image</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[mnemonic_keyword]')">mnemonic_keyword</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[mnemonic_sentence]')">mnemonic_sentence</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[sentence-source]')">sentence-source</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[sentence-target]')">sentence-target</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[sentence-transliteration]')">sentence-transliteration</button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[sentence-structure]')">sentence-structure</button>
+                            <button type="button" class="btn btn-sm btn-outline-info" onclick="insertFormatPlaceholder('back', '[toggle]')"><strong>toggle</strong></button>
+                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '<br>')">line break</button>
+                        </div>
+                    </div>
+
+                    </div>
+
+                    <!-- Drag and Drop Mode -->
+                    <div id="dndEditMode">
+                        <!-- Available Blocks Palette -->
+                        <div class="dnd-blocks-palette">
+                            <h5 style="margin-top: 0; color: #495057;">Available Blocks</h5>
+                            <p style="font-size: 13px; color: #6c757d; margin-bottom: 12px;">Drag blocks below to build your card templates</p>
+
+                            <div id="dndBlocksPalette">
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[source-text]">source-text</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[source_transliteration]">source_transliteration</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[target-text]">target-text</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[source-audio]">source-audio</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[target-audio]">target-audio</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[image]">image</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[mnemonic_keyword]">mnemonic_keyword</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[mnemonic_sentence]">mnemonic_sentence</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[sentence-source]">sentence-source</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[sentence-target]">sentence-target</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[sentence-transliteration]">sentence-transliteration</div>
+                                <div class="dnd-block" draggable="true" data-type="field" data-value="[sentence-structure]">sentence-structure</div>
+                                <div class="dnd-block toggle-block" draggable="true" data-type="toggle">🔽 Toggle (wrap next block)</div>
+                                <div class="dnd-block" draggable="true" data-type="linebreak" data-value="<br>">line break</div>
+                            </div>
+                        </div>
+
+                        <!-- Front Template Drop Zone -->
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
+                            <div id="frontDropZone" class="dnd-drop-zone empty" data-target="front"></div>
+                        </div>
+
+                        <!-- Back Template Drop Zone -->
+                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Back Template:</label>
+                            <div id="backDropZone" class="dnd-drop-zone empty" data-target="back"></div>
+                        </div>
+
+                        <div style="text-align: center; margin-bottom: 15px;">
+                            <button type="button" class="btn btn-outline-danger" onclick="clearDndZones()">
+                                🗑️ Clear All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: white; padding: 15px; border-radius: 8px;">
+                    <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Sample Preview (First Card: ${escapeHtml(data.cards[0].sourceWord)}):</div>
+                    <div style="margin-bottom: 10px;">
+                        <div style="font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 4px;">FRONT:</div>
+                        <div id="sampleFrontPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745; word-break: break-word;"></div>
+                    </div>
+                    <div>
+                        <div style="font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 4px;">BACK:</div>
+                        <div id="sampleBackPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #dc3545; word-break: break-word;"></div>
+                    </div>
+                </div>
+
+                <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
+                    <strong>Tip:</strong> Set your deck name and edit the card format template. The preview updates automatically as you edit. You can review all ${data.cards.length} cards below before creating them.
+                </div>
+            `;
+            cardListEl.appendChild(overviewDiv);
+
+            // Generate preview using JavaScript to ensure toggles render properly
+            setTimeout(() => {
+                updateFormatPreview();
+                updateAllCardsFromTemplates();
+            }, 0);
+        }
+
+        function toggleFormatEdit() {
+            const viewMode = document.getElementById('formatViewMode');
+            const editMode = document.getElementById('formatEditMode');
+            const btn = document.getElementById('toggleFormatEditBtn');
+
+            if (editMode.style.display === 'none') {
+                editMode.style.display = 'block';
+                viewMode.style.display = 'none';
+                btn.textContent = '👁️ View Format';
+                btn.classList.remove('btn-primary');
+                btn.classList.add('btn-secondary');
+
+                // Initialize with drag and drop mode
+                syncTextToDnd();
+                initializeDragAndDrop();
+
+                // Show initial preview
+                updateFormatPreview();
+            } else {
+                editMode.style.display = 'none';
+                viewMode.style.display = 'block';
+                btn.textContent = '✏️ Edit Format';
+                btn.classList.remove('btn-secondary');
+                btn.classList.add('btn-primary');
+            }
+        }
+
+        function insertFormatPlaceholder(field, placeholder) {
+            const textareaId = field === 'front' ? 'frontTemplateEdit' : 'backTemplateEdit';
+            const textarea = document.getElementById(textareaId);
+            const start = textarea.selectionStart;
+            const end = textarea.selectionEnd;
+            const text = textarea.value;
+            textarea.value = text.substring(0, start) + placeholder + text.substring(end);
+            textarea.focus();
+            textarea.selectionStart = textarea.selectionEnd = start + placeholder.length;
+
+            // Auto-update preview after inserting placeholder
+            autoUpdatePreview();
+        }
+
+        function updateFormatPreview() {
+            const frontTemplate = document.getElementById('frontTemplateEdit').value;
+            const backTemplate = document.getElementById('backTemplateEdit').value;
+            const wordData = ankiCardData.cards[0].wordData;
+
+            // Generate previews by replacing placeholders
+            const frontPreview = replacePlaceholders(frontTemplate, wordData);
+            const backPreview = replacePlaceholders(backTemplate, wordData);
+
+            // Update preview display using innerHTML to render HTML/CSS (including toggles)
+            const frontEl = document.getElementById('sampleFrontPreview');
+            const backEl = document.getElementById('sampleBackPreview');
+
+            // Wrap preview in <code> tags to show the HTML structure
+            frontEl.innerHTML = '<code style="display: block; white-space: pre-wrap; word-break: break-word;">' + escapeHtmlForDisplay(frontPreview) + '</code>';
+            backEl.innerHTML = '<code style="display: block; white-space: pre-wrap; word-break: break-word;">' + escapeHtmlForDisplay(backPreview) + '</code>';
+
+            // Also update the view mode displays
+            document.getElementById('frontTemplateDisplay').textContent = frontTemplate;
+            document.getElementById('backTemplateDisplay').textContent = backTemplate;
+        }
+
+        function escapeHtmlForDisplay(html) {
+            return html.replace(/&/g, '&amp;')
+                       .replace(/</g, '&lt;')
+                       .replace(/>/g, '&gt;')
+                       .replace(/"/g, '&quot;')
+                       .replace(/'/g, '&#039;');
+        }
+
+        function applyFormatToAllCards() {
+            const frontTemplate = document.getElementById('frontTemplateEdit').value;
+            const backTemplate = document.getElementById('backTemplateEdit').value;
+
+            if (!confirm(`This will apply the new format to all ${ankiCardData.cards.length} cards. Continue?`)) {
+                return;
+            }
+
+            // Update all cards with the new templates
+            ankiCardData.cards.forEach((card) => {
+                card.frontTemplate = frontTemplate;
+                card.backTemplate = backTemplate;
+
+                // Regenerate previews for each card
+                card.frontPreview = replacePlaceholders(frontTemplate, card.wordData);
+                card.backPreview = replacePlaceholders(backTemplate, card.wordData);
+            });
+
+            // Update the format preview display
+            updateFormatPreview();
+
+            alert(`Format applied successfully to all ${ankiCardData.cards.length} cards!`);
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function replacePlaceholders(template, wordData) {
+            let result = template;
+
+            // IMPORTANT: Process toggle placeholders FIRST before other replacements
+            // This prevents [toggle][sentence-source] from becoming [toggle]chutti
+            result = result.replace(/\[toggle\]\[([^\]]+)\]/g, function(match, placeholder) {
+                // Find what the placeholder resolves to by directly accessing wordData
+                let placeholderValue = '';
+                if (placeholder === 'source-text') {
+                    placeholderValue = wordData.source_word || '';
+                } else if (placeholder === 'source_transliteration') {
+                    placeholderValue = wordData.source_transliteration || '';
+                } else if (placeholder === 'target-text') {
+                    placeholderValue = wordData.translations ? wordData.translations.join(', ') : '';
+                } else if (placeholder === 'sentence-source' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.source_language_sentence || '';
+                } else if (placeholder === 'sentence-target' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.target_language_sentence || '';
+                } else if (placeholder === 'sentence-latin' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.target_language_latin || '';
+                } else if (placeholder === 'sentence-transliteration' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.target_language_transliteration || '';
+                } else if (placeholder === 'sentence-structure' && wordData.sentence_data) {
+                    placeholderValue = wordData.sentence_data.source_language_structure || '';
+                } else if (placeholder === 'mnemonic_keyword') {
+                    placeholderValue = wordData.mnemonic_keyword || '';
+                } else if (placeholder === 'mnemonic_sentence') {
+                    placeholderValue = wordData.mnemonic_sentence || '';
+                }
+
+                // Create readable label from placeholder name
+                const label = placeholder.replace(/[-_]/g, ' ').split(' ')
+                    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+                    .join(' ');
+
+                // Generate unique ID for this toggle
+                const uniqueId = 'toggle-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
+
+                // Create the toggle HTML with inline CSS (matching Java implementation)
+                return '<div style="margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">' +
+                    '<button onclick="var el = document.getElementById(\'' + uniqueId + '\'); ' +
+                        'if(el.style.display === \'none\') { el.style.display = \'block\'; this.textContent = \'Hide ' + label + '\'; } ' +
+                        'else { el.style.display = \'none\'; this.textContent = \'Show ' + label + '\'; }" ' +
+                        'style="background: #4CAF50; color: white; border: none; padding: 8px 16px; ' +
+                        'cursor: pointer; border-radius: 4px; font-size: 14px; margin-bottom: 5px;">' +
+                        'Show ' + label +
+                    '</button>' +
+                    '<div id="' + uniqueId + '" style="display: none; padding: 10px; background: #f9f9f9; border-radius: 4px; margin-top: 5px;">' +
+                        placeholderValue +
+                    '</div>' +
+                '</div>';
+            });
+
+            // Now replace all regular placeholders (after toggle processing)
+            result = result.replace(/\[source-text\]/g, wordData.source_word || '');
+            result = result.replace(/\[source_transliteration\]/g, wordData.source_transliteration || '');
+
+            if (wordData.translations && Array.isArray(wordData.translations)) {
+                result = result.replace(/\[target-text\]/g, wordData.translations.join(', '));
+            }
+
+            if (wordData.source_audio_file) {
+                result = result.replace(/\[source-audio\]/g, '[sound:' + wordData.source_audio_file + ']');
+            }
+
+            if (wordData.target_audio_files && wordData.target_audio_files.length > 0) {
+                result = result.replace(/\[target-audio\]/g, '[sound:' + wordData.target_audio_files[0] + ']');
+            }
+
+            result = result.replace(/\[mnemonic_keyword\]/g, wordData.mnemonic_keyword || '');
+            result = result.replace(/\[mnemonic_sentence\]/g, wordData.mnemonic_sentence || '');
+
+            // Handle sentence data
+            if (wordData.sentence_data) {
+                const sentenceData = wordData.sentence_data;
+                result = result.replace(/\[sentence-source\]/g, sentenceData.source_language_sentence || '');
+                result = result.replace(/\[sentence-target\]/g, sentenceData.target_language_sentence || '');
+                result = result.replace(/\[sentence-latin\]/g, sentenceData.target_language_latin || '');
+                result = result.replace(/\[sentence-transliteration\]/g, sentenceData.target_language_transliteration || '');
+                result = result.replace(/\[sentence-structure\]/g, sentenceData.source_language_structure || '');
+            } else {
+                // If no sentence data, remove placeholders
+                result = result.replace(/\[sentence-source\]/g, '(no sentence data)');
+                result = result.replace(/\[sentence-target\]/g, '(no sentence data)');
+                result = result.replace(/\[sentence-latin\]/g, '(no sentence data)');
+                result = result.replace(/\[sentence-transliteration\]/g, '(no sentence data)');
+                result = result.replace(/\[sentence-structure\]/g, '(no sentence data)');
+            }
+
+            if (wordData.image_file) {
+                result = result.replace(/\[image\]/g, '<img src="' + wordData.image_file + '">');
+            } else {
+                result = result.replace(/\[image\]/g, '');
+            }
+
+            return result;
+        }
+
+        function closeAnkiCardPreview() {
+            document.getElementById('ankiCardPreviewModal').style.display = 'none';
+        }
+
+        async function createAnkiCards() {
+            const createBtn = document.getElementById('createAnkiCardsBtn');
+            const statusEl = document.getElementById('ankiCardStatus');
+
+            createBtn.disabled = true;
+            statusEl.textContent = 'Creating Anki cards...';
+            statusEl.style.color = '#007bff';
+
+            try {
+                const cards = ankiCardData.cards.map(card => ({
+                    front: card.frontPreview,
+                    back: card.backPreview
+                }));
+
+                const deckName = document.getElementById('deckNameInput').value.trim();
+                if (!deckName) {
+                    statusEl.textContent = 'Error: Deck name is required';
+                    statusEl.style.color = '#dc3545';
+                    createBtn.disabled = false;
+                    return;
+                }
+
+                const response = await fetch(`/sessions/${currentSessionId}/create-anki-cards-with-edits`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        cards: cards,
+                        deckName: deckName
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.textContent = `Successfully created ${result.cardsCreated} Anki cards!`;
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        closeAnkiCardPreview();
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    createBtn.disabled = false;
+                }
+            } catch (error) {
+                console.error('Error creating Anki cards:', error);
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                createBtn.disabled = false;
+            }
+        }
+
+        // Close modal on background click
+        document.getElementById('ankiCardPreviewModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeAnkiCardPreview();
+            }
+        });
+
+        // ===== Drag and Drop Functionality =====
+        let draggedBlock = null;
+        let draggedFromZone = null; // Track if dragging from a drop zone (for reordering)
+        let pendingToggle = false; // Track if next block should be wrapped in toggle
+        let previewUpdateTimer = null; // Debounce timer for auto-preview
+
+        function autoUpdatePreview() {
+            // Debounce preview updates to avoid too many refreshes
+            if (previewUpdateTimer) {
+                clearTimeout(previewUpdateTimer);
+            }
+            previewUpdateTimer = setTimeout(() => {
+                updateFormatPreview();
+                // Also update all cards with the new templates
+                updateAllCardsFromTemplates();
+            }, 300); // 300ms debounce
+        }
+
+        function updateAllCardsFromTemplates() {
+            const frontTemplate = document.getElementById('frontTemplateEdit').value;
+            const backTemplate = document.getElementById('backTemplateEdit').value;
+
+            // Update all cards with the new templates
+            ankiCardData.cards.forEach((card) => {
+                card.frontTemplate = frontTemplate;
+                card.backTemplate = backTemplate;
+                card.frontPreview = replacePlaceholders(frontTemplate, card.wordData);
+                card.backPreview = replacePlaceholders(backTemplate, card.wordData);
+            });
+        }
+
+        function switchEditMode(mode) {
+            const textMode = document.getElementById('textEditMode');
+            const dndMode = document.getElementById('dndEditMode');
+
+            if (mode === 'text') {
+                textMode.style.display = 'block';
+                dndMode.style.display = 'none';
+                // Sync from DnD to text if needed
+                syncDndToText();
+                // Add text input listeners for auto-preview
+                setupTextModeListeners();
+            } else {
+                textMode.style.display = 'none';
+                dndMode.style.display = 'block';
+                // Sync from text to DnD
+                syncTextToDnd();
+                initializeDragAndDrop();
+            }
+        }
+
+        function setupTextModeListeners() {
+            const frontTextarea = document.getElementById('frontTemplateEdit');
+            const backTextarea = document.getElementById('backTemplateEdit');
+
+            // Remove old listeners to avoid duplicates
+            frontTextarea.removeEventListener('input', autoUpdatePreview);
+            backTextarea.removeEventListener('input', autoUpdatePreview);
+
+            // Add new listeners
+            frontTextarea.addEventListener('input', autoUpdatePreview);
+            backTextarea.addEventListener('input', autoUpdatePreview);
+        }
+
+        function initializeDragAndDrop() {
+            // Add drag event listeners to palette blocks
+            document.querySelectorAll('.dnd-block').forEach(block => {
+                block.addEventListener('dragstart', handlePaletteDragStart);
+                block.addEventListener('dragend', handleDragEnd);
+            });
+
+            // Add drop zone event listeners
+            document.querySelectorAll('.dnd-drop-zone').forEach(zone => {
+                zone.addEventListener('dragover', handleDragOver);
+                zone.addEventListener('drop', handleDrop);
+                zone.addEventListener('dragleave', handleDragLeave);
+            });
+        }
+
+        function handlePaletteDragStart(e) {
+            draggedBlock = e.target;
+            draggedFromZone = null; // Coming from palette
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'copy';
+            e.dataTransfer.setData('text/html', e.target.innerHTML);
+        }
+
+        function handleDroppedBlockDragStart(e) {
+            draggedBlock = e.target;
+            draggedFromZone = e.target.parentElement; // Track source zone
+            e.target.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', e.target.innerHTML);
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            draggedBlock = null;
+            draggedFromZone = null;
+        }
+
+        function makeBlockDraggable(block) {
+            // Ensure block is draggable and has proper event listeners
+            block.draggable = true;
+            // Remove old listeners to avoid duplicates
+            block.removeEventListener('dragstart', handleDroppedBlockDragStart);
+            block.removeEventListener('dragend', handleDragEnd);
+            // Add new listeners
+            block.addEventListener('dragstart', handleDroppedBlockDragStart);
+            block.addEventListener('dragend', handleDragEnd);
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+
+            const dropZone = e.currentTarget;
+
+            // If dragging from a zone, check if we should show insert position
+            if (draggedFromZone) {
+                e.dataTransfer.dropEffect = 'move';
+
+                // Find which block we're hovering over
+                const afterElement = getDragAfterElement(dropZone, e.clientY);
+
+                // Remove any existing insertion indicators
+                dropZone.querySelectorAll('.dnd-dropped-block').forEach(b => {
+                    b.style.borderTop = '';
+                    b.style.borderBottom = '';
+                });
+
+                if (afterElement == null) {
+                    // Dragging after all elements
+                    const lastChild = dropZone.lastElementChild;
+                    if (lastChild && lastChild !== draggedBlock) {
+                        lastChild.style.borderBottom = '3px solid #007bff';
+                    }
+                } else if (afterElement !== draggedBlock) {
+                    afterElement.style.borderTop = '3px solid #007bff';
+                }
+            } else {
+                e.dataTransfer.dropEffect = 'copy';
+            }
+
+            dropZone.classList.add('drag-over');
+            return false;
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.dnd-dropped-block:not(.dragging)')];
+
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function handleDragLeave(e) {
+            if (e.currentTarget === e.target) {
+                e.currentTarget.classList.remove('drag-over');
+                // Clean up insertion indicators
+                e.currentTarget.querySelectorAll('.dnd-dropped-block').forEach(b => {
+                    b.style.borderTop = '';
+                    b.style.borderBottom = '';
+                });
+            }
+        }
+
+        function handleDrop(e) {
+            e.stopPropagation();
+            e.preventDefault();
+
+            const dropZone = e.currentTarget;
+            dropZone.classList.remove('drag-over');
+
+            // Clean up insertion indicators
+            dropZone.querySelectorAll('.dnd-dropped-block').forEach(b => {
+                b.style.borderTop = '';
+                b.style.borderBottom = '';
+            });
+
+            if (!draggedBlock) return;
+
+            // Check if we're reordering within a zone
+            if (draggedFromZone) {
+                // Reordering existing block
+                const afterElement = getDragAfterElement(dropZone, e.clientY);
+
+                if (afterElement == null) {
+                    // Insert at end
+                    dropZone.appendChild(draggedBlock);
+                } else {
+                    // Insert before afterElement
+                    dropZone.insertBefore(draggedBlock, afterElement);
+                }
+
+                dropZone.classList.remove('empty');
+
+                // Auto-update preview after reordering
+                syncDndToText();
+                autoUpdatePreview();
+                return;
+            }
+
+            // Adding new block from palette
+            dropZone.classList.remove('empty');
+
+            const blockType = draggedBlock.getAttribute('data-type');
+            const blockValue = draggedBlock.getAttribute('data-value');
+            const blockText = draggedBlock.textContent;
+
+            // Create dropped block element
+            const droppedBlock = document.createElement('div');
+            droppedBlock.className = 'dnd-dropped-block';
+
+            if (blockType === 'toggle') {
+                // Set pending toggle flag
+                pendingToggle = true;
+                droppedBlock.classList.add('toggle-wrapper');
+                droppedBlock.setAttribute('data-type', 'toggle');
+                droppedBlock.innerHTML = `🔽 Toggle <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+            } else if (blockType === 'linebreak') {
+                droppedBlock.classList.add('line-break');
+                droppedBlock.setAttribute('data-type', 'linebreak');
+                droppedBlock.setAttribute('data-value', blockValue);
+                droppedBlock.innerHTML = `── line break ── <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+            } else {
+                // Regular field block
+                if (pendingToggle) {
+                    // Wrap this block in a toggle wrapper
+                    const toggleWrapper = document.createElement('div');
+                    toggleWrapper.className = 'dnd-dropped-block toggle-wrapper';
+                    toggleWrapper.setAttribute('data-type', 'toggle-group');
+
+                    const innerBlock = document.createElement('span');
+                    innerBlock.style.cssText = 'background: #fff; padding: 4px 8px; border-radius: 4px; margin: 2px;';
+                    innerBlock.textContent = blockText;
+                    innerBlock.setAttribute('data-value', blockValue);
+
+                    toggleWrapper.innerHTML = `🔽 `;
+                    toggleWrapper.appendChild(innerBlock);
+                    toggleWrapper.innerHTML += ` <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+
+                    // Make wrapper draggable
+                    makeBlockDraggable(toggleWrapper);
+
+                    dropZone.appendChild(toggleWrapper);
+                    pendingToggle = false;
+
+                    // Auto-update preview after adding toggle wrapper
+                    syncDndToText();
+                    autoUpdatePreview();
+                    return;
+                } else {
+                    droppedBlock.setAttribute('data-type', 'field');
+                    droppedBlock.setAttribute('data-value', blockValue);
+                    droppedBlock.innerHTML = `${blockText} <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+                }
+            }
+
+            // Make block draggable for reordering
+            makeBlockDraggable(droppedBlock);
+
+            dropZone.appendChild(droppedBlock);
+
+            // Auto-update preview after adding block
+            syncDndToText();
+            autoUpdatePreview();
+        }
+
+        function removeDndBlock(btn) {
+            const block = btn.parentElement;
+            const dropZone = block.parentElement;
+            block.remove();
+
+            // Check if zone is now empty
+            if (dropZone.children.length === 0) {
+                dropZone.classList.add('empty');
+            }
+
+            // Auto-update preview after removing block
+            syncDndToText();
+            autoUpdatePreview();
+        }
+
+        function clearDndZones() {
+            if (!confirm('Clear all blocks from both templates?')) return;
+
+            document.getElementById('frontDropZone').innerHTML = '';
+            document.getElementById('backDropZone').innerHTML = '';
+            document.getElementById('frontDropZone').classList.add('empty');
+            document.getElementById('backDropZone').classList.add('empty');
+            pendingToggle = false;
+
+            // Auto-update preview after clearing
+            syncDndToText();
+            autoUpdatePreview();
+        }
+
+        function dndZoneToTemplate(zoneId) {
+            const zone = document.getElementById(zoneId);
+            const blocks = zone.querySelectorAll('.dnd-dropped-block');
+            let template = '';
+
+            blocks.forEach(block => {
+                const type = block.getAttribute('data-type');
+
+                if (type === 'toggle-group') {
+                    // Extract the inner value
+                    const innerSpan = block.querySelector('span[data-value]');
+                    if (innerSpan) {
+                        template += '[toggle]' + innerSpan.getAttribute('data-value') + '\n';
+                    }
+                } else if (type === 'linebreak') {
+                    template += block.getAttribute('data-value') + '\n';
+                } else if (type === 'field') {
+                    template += block.getAttribute('data-value') + '\n';
+                }
+                // Skip standalone toggle markers
+            });
+
+            return template.trim();
+        }
+
+        function syncDndToText() {
+            // Convert DnD blocks to text templates
+            const frontTemplate = dndZoneToTemplate('frontDropZone');
+            const backTemplate = dndZoneToTemplate('backDropZone');
+
+            document.getElementById('frontTemplateEdit').value = frontTemplate;
+            document.getElementById('backTemplateEdit').value = backTemplate;
+        }
+
+        function syncTextToDnd() {
+            // Convert text templates to DnD blocks
+            const frontTemplate = document.getElementById('frontTemplateEdit').value;
+            const backTemplate = document.getElementById('backTemplateEdit').value;
+
+            populateDndZone('frontDropZone', frontTemplate);
+            populateDndZone('backDropZone', backTemplate);
+        }
+
+        function populateDndZone(zoneId, template) {
+            const zone = document.getElementById(zoneId);
+            zone.innerHTML = '';
+
+            if (!template || template.trim() === '') {
+                zone.classList.add('empty');
+                return;
+            }
+
+            zone.classList.remove('empty');
+            const lines = template.split('\n');
+
+            lines.forEach(line => {
+                line = line.trim();
+                if (!line) return;
+
+                const droppedBlock = document.createElement('div');
+                droppedBlock.className = 'dnd-dropped-block';
+
+                if (line.startsWith('[toggle]')) {
+                    // Toggle block
+                    const value = line.substring(8); // Remove '[toggle]'
+                    const label = value.replace(/[\[\]]/g, '').replace(/-/g, ' ').replace(/_/g, ' ');
+
+                    droppedBlock.classList.add('toggle-wrapper');
+                    droppedBlock.setAttribute('data-type', 'toggle-group');
+
+                    const innerSpan = document.createElement('span');
+                    innerSpan.style.cssText = 'background: #fff; padding: 4px 8px; border-radius: 4px; margin: 2px;';
+                    innerSpan.textContent = label;
+                    innerSpan.setAttribute('data-value', value);
+
+                    droppedBlock.innerHTML = `🔽 `;
+                    droppedBlock.appendChild(innerSpan);
+                    droppedBlock.innerHTML += ` <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+                } else if (line === '<br>') {
+                    // Line break
+                    droppedBlock.classList.add('line-break');
+                    droppedBlock.setAttribute('data-type', 'linebreak');
+                    droppedBlock.setAttribute('data-value', '<br>');
+                    droppedBlock.innerHTML = `── line break ── <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+                } else if (line.startsWith('[') && line.endsWith(']')) {
+                    // Regular field
+                    const label = line.substring(1, line.length - 1).replace(/-/g, ' ').replace(/_/g, ' ');
+                    droppedBlock.setAttribute('data-type', 'field');
+                    droppedBlock.setAttribute('data-value', line);
+                    droppedBlock.innerHTML = `${label} <button class="remove-btn" onclick="removeDndBlock(this)">×</button>`;
+                }
+
+                // Make block draggable for reordering
+                makeBlockDraggable(droppedBlock);
+
+                zone.appendChild(droppedBlock);
+            });
+        }
+
+        function applyDndFormat() {
+            syncDndToText(); // Convert DnD to text first
+            applyFormatToAllCards(); // Use existing function
+        }
+
+        function updateDndPreview() {
+            syncDndToText(); // Convert DnD to text first
+            updateFormatPreview(); // Use existing function
+        }
+    </script>
+</body>
+</html>

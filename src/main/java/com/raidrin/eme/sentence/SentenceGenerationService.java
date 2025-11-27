@@ -32,14 +32,25 @@ public class SentenceGenerationService {
             System.out.println("Found existing sentence for: " + word + " (" + sourceLanguage + " -> " + targetLanguage + ")");
             return existingSentence.get();
         }
-        
+
         // Generate new sentence
         System.out.println("Generating sentences with OpenAI for: " + word + " (" + sourceLanguage + " -> " + targetLanguage + ")");
         SentenceData sentenceData = performSentenceGeneration(word, sourceLanguage, targetLanguage);
-        
+
         // Save the sentence
         sentenceStorageService.saveSentence(word, sourceLanguage, targetLanguage, sentenceData);
-        
+
+        return sentenceData;
+    }
+
+    public SentenceData regenerateSentence(String word, String sourceLanguage, String targetLanguage) {
+        // Force regeneration by skipping cache lookup
+        System.out.println("Force regenerating sentence with OpenAI for: " + word + " (" + sourceLanguage + " -> " + targetLanguage + ")");
+        SentenceData sentenceData = performSentenceGeneration(word, sourceLanguage, targetLanguage);
+
+        // Save (or update) the sentence
+        sentenceStorageService.saveSentence(word, sourceLanguage, targetLanguage, sentenceData);
+
         return sentenceData;
     }
     
