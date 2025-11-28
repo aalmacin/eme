@@ -46,11 +46,9 @@ public class TranslationSessionEntity {
     @Column(name = "anki_deck", columnDefinition = "TEXT")
     private String ankiDeck;
 
-    @Column(name = "anki_front_template", columnDefinition = "TEXT")
-    private String ankiFrontTemplate;
-
-    @Column(name = "anki_back_template", columnDefinition = "TEXT")
-    private String ankiBackTemplate;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "anki_format_id")
+    private AnkiFormatEntity ankiFormat;
 
     @Column(name = "sentence_generation_enabled", nullable = false)
     private Boolean sentenceGenerationEnabled = false;
@@ -95,7 +93,7 @@ public class TranslationSessionEntity {
                                     Boolean imageGenerationEnabled, Boolean audioGenerationEnabled,
                                     Boolean sentenceGenerationEnabled, Boolean ankiEnabled,
                                     Boolean overrideTranslationEnabled,
-                                    String ankiDeck, String ankiFrontTemplate, String ankiBackTemplate) {
+                                    String ankiDeck, AnkiFormatEntity ankiFormat) {
         this.word = word;
         this.sourceLanguage = sourceLanguage;
         this.targetLanguage = targetLanguage;
@@ -105,8 +103,7 @@ public class TranslationSessionEntity {
         this.ankiEnabled = ankiEnabled;
         this.overrideTranslationEnabled = overrideTranslationEnabled;
         this.ankiDeck = ankiDeck;
-        this.ankiFrontTemplate = ankiFrontTemplate;
-        this.ankiBackTemplate = ankiBackTemplate;
+        this.ankiFormat = ankiFormat;
         this.status = SessionStatus.PENDING;
     }
 

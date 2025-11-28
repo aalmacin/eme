@@ -16,8 +16,11 @@ import com.raidrin.eme.storage.service.WordService;
 import com.raidrin.eme.sentence.SentenceData;
 import com.raidrin.eme.sentence.SentenceGenerationService;
 import com.raidrin.eme.translator.TranslationService;
+import com.raidrin.eme.translator.TranslationData;
 import com.raidrin.eme.util.ZipFileGenerator;
+import com.raidrin.eme.util.FileNameSanitizer;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.FileSystemResource;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -27,6 +30,10 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.net.URL;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -47,6 +54,14 @@ public class TranslationSessionController {
     private final AsyncAudioGenerationService audioGenerationService;
     private final SentenceStorageService sentenceStorageService;
     private final SentenceGenerationService sentenceGenerationService;
+    private final com.raidrin.eme.anki.AnkiCardBuilderService ankiCardBuilderService;
+    private final com.raidrin.eme.storage.service.AnkiFormatService ankiFormatService;
+    private final com.raidrin.eme.mnemonic.MnemonicGenerationService mnemonicGenerationService;
+    private final com.raidrin.eme.image.OpenAiImageService openAiImageService;
+    private final com.raidrin.eme.storage.service.GcpStorageService gcpStorageService;
+
+    @Value("${image.output.directory:./generated_images}")
+    private String imageOutputDirectory;
 
     @GetMapping
     public String listSessions(Model model,
@@ -731,6 +746,7 @@ public class TranslationSessionController {
     @PostMapping("/{id}/regenerate-all-audio")
     @SuppressWarnings("unchecked")
     public String regenerateAllAudio(@PathVariable Long id) {
+        System.out.println("Regenerating audio for session " + id);
         Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
 
         if (sessionOpt.isEmpty()) {
@@ -752,13 +768,12 @@ public class TranslationSessionController {
         }
 
         try {
-            // Get audio configuration from original request or use defaults
-            Map<String, Object> originalRequest = sessionData.containsKey("original_request")
-                    ? (Map<String, Object>) sessionData.get("original_request")
-                    : new HashMap<>();
+            // Force enable source audio when explicitly regenerating audio
+            // (User clicked the "Generate Audio" button, so they want audio regardless of original settings)
+            boolean enableSourceAudio = true;
+            boolean enableTargetAudio = false;  // Only generate source audio by default
 
-            boolean enableSourceAudio = (Boolean) originalRequest.getOrDefault("enable_source_audio", true);
-            boolean enableTargetAudio = (Boolean) originalRequest.getOrDefault("enable_target_audio", false);
+            System.out.println("Forcing audio generation: enableSourceAudio=" + enableSourceAudio + ", enableTargetAudio=" + enableTargetAudio);
 
             List<AsyncAudioGenerationService.AudioRequest> audioRequests = new ArrayList<>();
 
@@ -767,6 +782,7 @@ public class TranslationSessionController {
             LangAudioOption targetLangAudio = getLangAudioOption(session.getTargetLanguage());
 
             // Process all words
+            int audioFilesAdded = 0;
             for (Map<String, Object> wordData : words) {
                 String sourceWord = (String) wordData.get("source_word");
 
@@ -787,6 +803,7 @@ public class TranslationSessionController {
                             );
                     audioRequests.add(sourceAudioRequest);
                     wordData.put("source_audio_file", sourceAudioFileName + ".mp3");
+                    audioFilesAdded++;
                 }
 
                 // Generate target audio
@@ -813,6 +830,7 @@ public class TranslationSessionController {
             }
 
             // Generate all audio files
+            System.out.println("Added audio files to " + audioFilesAdded + " words, generating " + audioRequests.size() + " audio files");
             if (!audioRequests.isEmpty()) {
                 audioGenerationService.generateAudioFilesAsync(audioRequests).get();
             }
@@ -868,7 +886,7 @@ public class TranslationSessionController {
         processSummary.put("audio_success_count", audioCount);
         processSummary.put("audio_failure_count", 0); // Reset failures after successful regeneration
 
-        System.out.println("Updated audio count in process_summary: " + audioCount + " audio files");
+        System.out.println("Audio count updated: " + audioCount + " files");
     }
 
     private static class LangAudioOption {
@@ -996,18 +1014,23 @@ public class TranslationSessionController {
                 );
 
                 // Build front and back content using latest data
-                String frontTemplate = session.getAnkiFrontTemplate();
-                String backTemplate = session.getAnkiBackTemplate();
                 String frontPreview = buildAnkiFront(session, latestWordData);
                 String backPreview = buildAnkiBack(session, latestWordData);
 
                 Map<String, Object> cardPreview = new HashMap<>();
                 cardPreview.put("sourceWord", latestWordData.get("source_word"));
-                cardPreview.put("frontTemplate", frontTemplate != null ? frontTemplate : "[source-text]");
-                cardPreview.put("backTemplate", backTemplate != null ? backTemplate : "[target-text]");
                 cardPreview.put("frontPreview", frontPreview);
                 cardPreview.put("backPreview", backPreview);
                 cardPreview.put("wordData", latestWordData);
+
+                // Add format structure if available
+                if (session.getAnkiFormat() != null && session.getAnkiFormat().getFormat() != null) {
+                    cardPreview.put("formatName", session.getAnkiFormat().getName());
+                    cardPreview.put("frontStructure", ankiCardBuilderService.buildPreviewHtml(
+                            session.getAnkiFormat().getFormat().getFrontCardItems()));
+                    cardPreview.put("backStructure", ankiCardBuilderService.buildPreviewHtml(
+                            session.getAnkiFormat().getFormat().getBackCardItems()));
+                }
 
                 cardPreviews.add(cardPreview);
             }
@@ -1019,6 +1042,20 @@ public class TranslationSessionController {
         response.put("sessionId", session.getId());
 
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/enable-anki")
+    @ResponseBody
+    public ResponseEntity<?> enableAnki(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        translationSessionService.updateAnkiEnabled(id, true);
+
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/{id}/create-anki-cards-with-edits")
@@ -1136,182 +1173,39 @@ public class TranslationSessionController {
     }
 
     private String buildAnkiFront(TranslationSessionEntity session, Map<?, ?> wordData) {
-        String template = session.getAnkiFrontTemplate();
-        if (template == null) {
-            template = "[source-text]";
+        if (session.getAnkiFormat() == null || session.getAnkiFormat().getFormat() == null) {
+            // Fallback to simple source word
+            Object sourceWord = wordData.get("source_word");
+            return sourceWord != null ? sourceWord.toString() : "";
         }
 
-        return replaceAnkiPlaceholders(template, session, wordData);
+        return ankiCardBuilderService.buildCardSide(
+                session.getAnkiFormat().getFormat().getFrontCardItems(),
+                wordData
+        );
     }
 
     private String buildAnkiBack(TranslationSessionEntity session, Map<?, ?> wordData) {
-        String template = session.getAnkiBackTemplate();
-        if (template == null) {
-            template = "[target-text]";
-        }
-
-        return replaceAnkiPlaceholders(template, session, wordData);
-    }
-
-    private String replaceAnkiPlaceholders(String text, TranslationSessionEntity session, Map<?, ?> wordData) {
-        String result = text;
-
-        // First, process toggle placeholders
-        result = processTogglePlaceholders(result, wordData);
-
-        // Replace basic placeholders
-        Object sourceWord = wordData.get("source_word");
-        result = result.replace("[source-text]", sourceWord != null ? sourceWord.toString() : "");
-
-        // Replace source transliteration
-        Object sourceTransliteration = wordData.get("source_transliteration");
-        result = result.replace("[source_transliteration]", sourceTransliteration != null ? sourceTransliteration.toString() : "");
-
-        // Replace translations
-        if (wordData.containsKey("translations")) {
-            List<?> translations = (List<?>) wordData.get("translations");
-            StringBuilder sb = new StringBuilder();
-            if (!translations.isEmpty()) {
-                for (Object trans : translations) {
-                    if (sb.length() > 0) sb.append(", ");
-                    sb.append(trans.toString());
+        if (session.getAnkiFormat() == null || session.getAnkiFormat().getFormat() == null) {
+            // Fallback to simple translation
+            if (wordData.containsKey("translations")) {
+                List<?> translations = (List<?>) wordData.get("translations");
+                StringBuilder sb = new StringBuilder();
+                if (!translations.isEmpty()) {
+                    for (Object trans : translations) {
+                        if (sb.length() > 0) sb.append(", ");
+                        sb.append(trans.toString());
+                    }
                 }
+                return sb.toString();
             }
-            result = result.replace("[target-text]", sb.toString());
+            return "";
         }
 
-        // Replace audio placeholders
-        if (wordData.containsKey("source_audio_file")) {
-            String audioFile = wordData.get("source_audio_file").toString();
-            result = result.replace("[source-audio]", "[sound:" + audioFile + "]");
-        }
-
-        if (wordData.containsKey("target_audio_files") && wordData.get("target_audio_files") instanceof List) {
-            List<?> audioFiles = (List<?>) wordData.get("target_audio_files");
-            if (!audioFiles.isEmpty()) {
-                String audioFile = audioFiles.get(0).toString();
-                result = result.replace("[target-audio]", "[sound:" + audioFile + "]");
-            }
-        }
-
-        // Replace sentence placeholders
-        if (wordData.containsKey("sentence_data") && wordData.get("sentence_data") instanceof Map) {
-            Map<?, ?> sentenceData = (Map<?, ?>) wordData.get("sentence_data");
-            Object sourceSent = sentenceData.get("source_language_sentence");
-            Object targetSent = sentenceData.get("target_language_sentence");
-            Object latin = sentenceData.get("target_language_latin");
-            Object translit = sentenceData.get("target_language_transliteration");
-            Object structure = sentenceData.get("source_language_structure");
-
-            result = result.replace("[sentence-source]", sourceSent != null ? sourceSent.toString() : "");
-            result = result.replace("[sentence-target]", targetSent != null ? targetSent.toString() : "");
-            result = result.replace("[sentence-latin]", latin != null ? latin.toString() : "");
-            result = result.replace("[sentence-transliteration]", translit != null ? translit.toString() : "");
-            result = result.replace("[sentence-structure]", structure != null ? structure.toString() : "");
-        }
-
-        if (wordData.containsKey("sentence_audio_file")) {
-            String audioFile = wordData.get("sentence_audio_file").toString();
-            result = result.replace("[sentence-source-audio]", "[sound:" + audioFile + "]");
-        }
-
-        // Replace mnemonic placeholders
-        Object mnemonicKeyword = wordData.get("mnemonic_keyword");
-        Object mnemonicSentence = wordData.get("mnemonic_sentence");
-        result = result.replace("[mnemonic_keyword]", mnemonicKeyword != null ? mnemonicKeyword.toString() : "");
-        result = result.replace("[mnemonic_sentence]", mnemonicSentence != null ? mnemonicSentence.toString() : "");
-
-        if (wordData.containsKey("image_file") && wordData.get("image_file") != null) {
-            String imageFile = wordData.get("image_file").toString();
-            if (!imageFile.isEmpty()) {
-                result = result.replace("[image]", "<img src=\"" + imageFile + "\" />");
-            } else {
-                result = result.replace("[image]", "");
-            }
-        } else {
-            result = result.replace("[image]", "");
-        }
-
-        return result;
-    }
-
-    /**
-     * Process toggle placeholders in the format [toggle][placeholder]
-     * Converts them to collapsible HTML sections with inline CSS
-     */
-    private String processTogglePlaceholders(String text, Map<?, ?> wordData) {
-        String result = text;
-
-        // Generate unique ID prefix for each toggle to avoid conflicts across cards
-        String uniquePrefix = "toggle-" + System.currentTimeMillis() + "-" + Math.random();
-        int toggleId = 0;
-
-        // Map of placeholders to their actual values
-        Map<String, String> placeholderValues = new HashMap<>();
-        placeholderValues.put("[source-text]", wordData.get("source_word") != null ? wordData.get("source_word").toString() : "");
-        placeholderValues.put("[source_transliteration]", wordData.get("source_transliteration") != null ? wordData.get("source_transliteration").toString() : "");
-
-        // Handle translations
-        if (wordData.containsKey("translations")) {
-            List<?> translations = (List<?>) wordData.get("translations");
-            StringBuilder sb = new StringBuilder();
-            if (!translations.isEmpty()) {
-                for (Object trans : translations) {
-                    if (sb.length() > 0) sb.append(", ");
-                    sb.append(trans.toString());
-                }
-            }
-            placeholderValues.put("[target-text]", sb.toString());
-        }
-
-        // Handle sentence data
-        if (wordData.containsKey("sentence_data") && wordData.get("sentence_data") instanceof Map) {
-            Map<?, ?> sentenceData = (Map<?, ?>) wordData.get("sentence_data");
-            placeholderValues.put("[sentence-source]", sentenceData.get("source_language_sentence") != null ? sentenceData.get("source_language_sentence").toString() : "");
-            placeholderValues.put("[sentence-target]", sentenceData.get("target_language_sentence") != null ? sentenceData.get("target_language_sentence").toString() : "");
-            placeholderValues.put("[sentence-latin]", sentenceData.get("target_language_latin") != null ? sentenceData.get("target_language_latin").toString() : "");
-            placeholderValues.put("[sentence-transliteration]", sentenceData.get("target_language_transliteration") != null ? sentenceData.get("target_language_transliteration").toString() : "");
-            placeholderValues.put("[sentence-structure]", sentenceData.get("source_language_structure") != null ? sentenceData.get("source_language_structure").toString() : "");
-        }
-
-        // Handle mnemonic data
-        placeholderValues.put("[mnemonic_keyword]", wordData.get("mnemonic_keyword") != null ? wordData.get("mnemonic_keyword").toString() : "");
-        placeholderValues.put("[mnemonic_sentence]", wordData.get("mnemonic_sentence") != null ? wordData.get("mnemonic_sentence").toString() : "");
-
-        // Process each toggle placeholder
-        for (Map.Entry<String, String> entry : placeholderValues.entrySet()) {
-            String placeholder = entry.getKey();
-            String value = entry.getValue();
-            String togglePattern = "[toggle]" + placeholder;
-
-            if (result.contains(togglePattern)) {
-                // Extract a label from the placeholder name
-                String label = placeholder.replace("[", "").replace("]", "").replace("-", " ").replace("_", " ");
-                label = label.substring(0, 1).toUpperCase() + label.substring(1); // Capitalize first letter
-
-                // Create unique ID for this toggle
-                String uniqueId = uniquePrefix + "-" + toggleId++;
-
-                // Create the toggle HTML with inline CSS
-                String toggleHtml =
-                    "<div style=\"margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; padding: 5px;\">" +
-                        "<button onclick=\"var el = document.getElementById('" + uniqueId + "'); " +
-                                "if(el.style.display === 'none') { el.style.display = 'block'; this.textContent = 'Hide " + label + "'; } " +
-                                "else { el.style.display = 'none'; this.textContent = 'Show " + label + "'; }\" " +
-                                "style=\"background: #4CAF50; color: white; border: none; padding: 8px 16px; " +
-                                "cursor: pointer; border-radius: 4px; font-size: 14px; margin-bottom: 5px;\">" +
-                            "Show " + label +
-                        "</button>" +
-                        "<div id=\"" + uniqueId + "\" style=\"display: none; padding: 10px; background: #f9f9f9; border-radius: 4px; margin-top: 5px;\">" +
-                            value +
-                        "</div>" +
-                    "</div>";
-
-                result = result.replace(togglePattern, toggleHtml);
-            }
-        }
-
-        return result;
+        return ankiCardBuilderService.buildCardSide(
+                session.getAnkiFormat().getFormat().getBackCardItems(),
+                wordData
+        );
     }
 
     /**
@@ -1503,5 +1397,252 @@ public class TranslationSessionController {
             case "ja", "jp" -> LanguageAudioCodes.Japanese;
             default -> LanguageAudioCodes.English;
         };
+    }
+
+    @PostMapping("/{id}/regenerate-all-translations")
+    @SuppressWarnings("unchecked")
+    public String regenerateAllTranslations(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+        // Get words from session data
+        if (!sessionData.containsKey("words")) {
+            return "redirect:/sessions/" + id + "?error=no-words-in-session";
+        }
+
+        List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+        if (words.isEmpty()) {
+            return "redirect:/sessions/" + id + "?error=no-words-to-regenerate";
+        }
+
+        int successCount = 0;
+        int failureCount = 0;
+
+        // Process all words
+        for (Map<String, Object> wordData : words) {
+            String sourceWord = (String) wordData.get("source_word");
+
+            if (sourceWord == null || sourceWord.trim().isEmpty()) {
+                continue;
+            }
+
+            try {
+                // Regenerate translation using the service (skip cache to get fresh translation)
+                TranslationData translationData = translationService.translateText(
+                        sourceWord, session.getSourceLanguage(), session.getTargetLanguage(), true);
+
+                // Update word data with new translations
+                if (translationData.getTranslations() != null && !translationData.getTranslations().isEmpty()) {
+                    wordData.put("translations", new ArrayList<>(translationData.getTranslations()));
+                }
+
+                // Update transliteration if available
+                if (translationData.getTransliteration() != null && !translationData.getTransliteration().isEmpty()) {
+                    wordData.put("source_transliteration", translationData.getTransliteration());
+                }
+
+                // Update word entity in database
+                wordService.updateTranslation(sourceWord, session.getSourceLanguage(),
+                        session.getTargetLanguage(), translationData.getTranslations());
+
+                if (translationData.getTransliteration() != null && !translationData.getTransliteration().isEmpty()) {
+                    wordService.updateTransliteration(sourceWord, session.getSourceLanguage(),
+                            session.getTargetLanguage(), translationData.getTransliteration());
+                }
+
+                successCount++;
+                System.out.println("Regenerated translation for word: " + sourceWord);
+
+            } catch (Exception e) {
+                System.err.println("Failed to regenerate translation for word '" + sourceWord + "': " + e.getMessage());
+                failureCount++;
+            }
+        }
+
+        // Update session data
+        sessionData.put("words", words);
+        translationSessionService.updateSessionData(id, sessionData);
+
+        System.out.println("Regenerated translations for session " + id +
+                " - Success: " + successCount + ", Failed: " + failureCount);
+
+        if (failureCount > 0) {
+            return "redirect:/sessions/" + id + "?message=translations-regenerated-with-errors&success=" + successCount + "&failed=" + failureCount;
+        } else {
+            return "redirect:/sessions/" + id + "?message=all-translations-regenerated&count=" + successCount;
+        }
+    }
+
+    @PostMapping("/{id}/regenerate-all-mnemonics-and-images")
+    @SuppressWarnings("unchecked")
+    public String regenerateAllMnemonicsAndImages(@PathVariable Long id) {
+        Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+
+        if (sessionOpt.isEmpty()) {
+            return "redirect:/sessions?error=session-not-found";
+        }
+
+        TranslationSessionEntity session = sessionOpt.get();
+        Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+
+        // Get words from session data
+        if (!sessionData.containsKey("words")) {
+            return "redirect:/sessions/" + id + "?error=no-words-in-session";
+        }
+
+        List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+        if (words.isEmpty()) {
+            return "redirect:/sessions/" + id + "?error=no-words-to-regenerate";
+        }
+
+        int successCount = 0;
+        int failureCount = 0;
+        int skippedCount = 0;
+
+        // Process all words
+        for (Map<String, Object> wordData : words) {
+            String sourceWord = (String) wordData.get("source_word");
+
+            if (sourceWord == null || sourceWord.trim().isEmpty()) {
+                continue;
+            }
+
+            // Skip if word already has an image
+            if (wordData.containsKey("image_file") && wordData.get("image_file") != null) {
+                skippedCount++;
+                continue;
+            }
+
+            // Check if we have a translation
+            if (!wordData.containsKey("translations") ||
+                ((List<?>) wordData.get("translations")).isEmpty()) {
+                System.err.println("Skipping word '" + sourceWord + "': no translation available");
+                failureCount++;
+                continue;
+            }
+
+            try {
+                // Get first translation
+                List<String> translations = (List<String>) wordData.get("translations");
+                String targetWord = translations.get(0);
+
+                // Get transliteration
+                String transliteration = (String) wordData.get("source_transliteration");
+                if (transliteration == null || transliteration.trim().isEmpty()) {
+                    // Try to get it from OpenAI
+                    transliteration = translationService.getTransliteration(sourceWord, session.getSourceLanguage());
+                    if (transliteration != null) {
+                        wordData.put("source_transliteration", transliteration);
+                        wordService.updateTransliteration(sourceWord, session.getSourceLanguage(),
+                                session.getTargetLanguage(), transliteration);
+                    }
+                }
+
+                // Get image style from session's original request
+                Map<String, Object> originalRequest = sessionData.containsKey("original_request")
+                        ? (Map<String, Object>) sessionData.get("original_request")
+                        : new HashMap<>();
+
+                String imageStyleStr = (String) originalRequest.get("image_style");
+                com.raidrin.eme.image.ImageStyle imageStyle = imageStyleStr != null
+                        ? com.raidrin.eme.image.ImageStyle.valueOf(imageStyleStr)
+                        : com.raidrin.eme.image.ImageStyle.REALISTIC_CINEMATIC;
+
+                // Generate mnemonic and image prompt
+                com.raidrin.eme.mnemonic.MnemonicGenerationService.MnemonicData mnemonicData =
+                        mnemonicGenerationService.generateMnemonic(
+                                sourceWord, targetWord, session.getSourceLanguage(),
+                                session.getTargetLanguage(), transliteration, imageStyle);
+
+                // Update word data
+                wordData.put("mnemonic_keyword", mnemonicData.getMnemonicKeyword());
+                wordData.put("mnemonic_sentence", mnemonicData.getMnemonicSentence());
+                wordData.put("image_prompt", mnemonicData.getImagePrompt());
+
+                // Update word entity in database with mnemonic data
+                wordService.updateMnemonic(sourceWord, session.getSourceLanguage(),
+                        session.getTargetLanguage(), mnemonicData.getMnemonicKeyword(),
+                        mnemonicData.getMnemonicSentence(), mnemonicData.getImagePrompt());
+
+                // Generate image
+                String sanitizedPrompt = mnemonicGenerationService.sanitizeImagePrompt(mnemonicData.getImagePrompt());
+                String imageFileName = FileNameSanitizer.fromMnemonicSentence(
+                        mnemonicData.getMnemonicSentence() != null ? mnemonicData.getMnemonicSentence() : sourceWord,
+                        "jpg"
+                );
+
+                com.raidrin.eme.image.OpenAiImageService.GeneratedImage openAiImage =
+                        openAiImageService.generateImage(sanitizedPrompt, "1536x1024", "medium", null);
+
+                // Download image to local file
+                downloadImageToLocal(openAiImage.getImageUrl(), imageFileName);
+
+                // Upload to GCP
+                gcpStorageService.downloadAndUpload(openAiImage.getImageUrl(), imageFileName);
+
+                // Update word data with image file
+                wordData.put("image_file", imageFileName);
+                wordData.put("image_status", "success");
+
+                // Update word entity with image file
+                wordService.updateImage(sourceWord, session.getSourceLanguage(),
+                        session.getTargetLanguage(), imageFileName, mnemonicData.getImagePrompt());
+
+                successCount++;
+                System.out.println("Regenerated mnemonic and image for word: " + sourceWord);
+
+            } catch (Exception e) {
+                System.err.println("Failed to regenerate mnemonic/image for word '" + sourceWord + "': " + e.getMessage());
+                e.printStackTrace();
+                wordData.put("image_status", "failed");
+                wordData.put("image_error", e.getMessage());
+                failureCount++;
+            }
+        }
+
+        // Update session data
+        sessionData.put("words", words);
+        translationSessionService.updateSessionData(id, sessionData);
+
+        System.out.println("Regenerated mnemonics and images for session " + id +
+                " - Success: " + successCount + ", Failed: " + failureCount + ", Skipped (already has image): " + skippedCount);
+
+        if (failureCount > 0) {
+            return "redirect:/sessions/" + id + "?message=mnemonics-regenerated-with-errors&success=" + successCount + "&failed=" + failureCount;
+        } else {
+            return "redirect:/sessions/" + id + "?message=all-mnemonics-regenerated&count=" + successCount;
+        }
+    }
+
+    /**
+     * Download an image from a URL to the local image output directory
+     */
+    private Path downloadImageToLocal(String imageUrl, String fileName) throws IOException {
+        Files.createDirectories(Paths.get(imageOutputDirectory));
+        Path outputPath = Paths.get(imageOutputDirectory, fileName);
+
+        // Handle file:// URLs (local files from base64 conversion)
+        if (imageUrl.startsWith("file://")) {
+            Path sourcePath = Paths.get(java.net.URI.create(imageUrl));
+            Files.copy(sourcePath, outputPath, java.nio.file.StandardCopyOption.REPLACE_EXISTING);
+            System.out.println("Copied local file from: " + sourcePath + " to: " + outputPath);
+            return outputPath;
+        }
+
+        // Handle remote URLs (http/https)
+        try (FileOutputStream fos = new FileOutputStream(outputPath.toFile())) {
+            URL url = new URL(imageUrl);
+            url.openStream().transferTo(fos);
+        }
+
+        return outputPath;
     }
 }

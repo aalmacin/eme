@@ -3,6 +3,7 @@ package com.raidrin.eme.storage.service;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.raidrin.eme.storage.entity.AnkiFormatEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity.SessionStatus;
 import com.raidrin.eme.storage.entity.WordEntity;
@@ -27,7 +28,7 @@ public class TranslationSessionService {
                                                    boolean imageGenerationEnabled, boolean audioGenerationEnabled) {
         return createSession(word, sourceLanguage, targetLanguage,
                 imageGenerationEnabled, audioGenerationEnabled,
-                false, false, false, null, null, null);
+                false, false, false, null, null);
     }
 
     @Transactional
@@ -35,7 +36,7 @@ public class TranslationSessionService {
                                                    boolean imageGenerationEnabled, boolean audioGenerationEnabled,
                                                    boolean sentenceGenerationEnabled, boolean ankiEnabled,
                                                    boolean overrideTranslationEnabled,
-                                                   String ankiDeck, String ankiFrontTemplate, String ankiBackTemplate) {
+                                                   String ankiDeck, AnkiFormatEntity ankiFormat) {
         validateParameters(word, sourceLanguage, targetLanguage);
 
         TranslationSessionEntity session = new TranslationSessionEntity(
@@ -43,7 +44,7 @@ public class TranslationSessionService {
                 imageGenerationEnabled, audioGenerationEnabled,
                 sentenceGenerationEnabled, ankiEnabled,
                 overrideTranslationEnabled,
-                ankiDeck, ankiFrontTemplate, ankiBackTemplate
+                ankiDeck, ankiFormat
         );
 
         return sessionRepository.save(session);
@@ -98,6 +99,16 @@ public class TranslationSessionService {
                 .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
         session.setZipFilePath(zipFilePath);
+
+        sessionRepository.save(session);
+    }
+
+    @Transactional
+    public void updateAnkiEnabled(Long sessionId, boolean ankiEnabled) {
+        TranslationSessionEntity session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        session.setAnkiEnabled(ankiEnabled);
 
         sessionRepository.save(session);
     }

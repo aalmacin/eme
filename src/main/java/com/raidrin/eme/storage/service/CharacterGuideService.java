@@ -93,7 +93,7 @@ public class CharacterGuideService {
         // Strip accents and normalize (e.g., mā -> ma, é -> e)
         String normalizedWord = stripAccents(transliteration.toLowerCase().trim());
 
-        System.out.println("Character matching: original word='" + word + "', transliteration='" + transliteration + "', normalized='" + normalizedWord + "', language='" + language + "'");
+        // System.out.println("Character matching: original word='" + word + "', transliteration='" + transliteration + "', normalized='" + normalizedWord + "', language='" + language + "'");
 
         // Try 3 chars, then 2 chars, then 1 char
         Optional<CharacterGuideEntity> match = tryFindByStartSound(normalizedWord, language, 3);
@@ -105,7 +105,7 @@ public class CharacterGuideService {
         }
 
         if (match.isPresent()) {
-            System.out.println("Found character match: " + match.get().getCharacterName() + " from " + match.get().getCharacterContext() + " (start sound: " + match.get().getStartSound() + ")");
+            // System.out.println("Found character match: " + match.get().getCharacterName() + " from " + match.get().getCharacterContext() + " (start sound: " + match.get().getStartSound() + ")");
         } else {
             System.out.println("No character match found for '" + normalizedWord + "' in language '" + language + "' (tried 3, 2, 1 chars)");
         }
@@ -122,7 +122,7 @@ public class CharacterGuideService {
         }
 
         String prefix = normalizedWord.substring(0, chars);
-        System.out.println("Trying to find character with start sound: '" + prefix + "'");
+        // System.out.println("Trying to find character with start sound: '" + prefix + "'");
 
         return findByLanguageAndStartSound(language, prefix);
     }

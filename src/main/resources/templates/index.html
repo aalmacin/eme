@@ -80,6 +80,7 @@
         <a href="/character-guide">🎭 Character Guide</a>
         <a href="/sessions">📦 Translation Sessions</a>
         <a href="/presets">⚙️ Manage Presets</a>
+        <a href="/anki-formats">🎴 Anki Card Formats</a>
     </div>
 
     <div th:if="${not #lists.isEmpty(errors)}" class="alert alert-danger">
@@ -238,6 +239,19 @@
                                 <input type="text" class="form-control" id="deck" name="deck" v-model="deck"/>
                             </div>
                             <div class="mb-3">
+                                <label for="ankiFormatSelect" class="form-label">Card Format:</label>
+                                <select class="form-control" id="ankiFormatSelect" name="ankiFormatId" v-model="ankiFormatId">
+                                    <option :value="null">Select a format...</option>
+                                    <option v-for="format in ankiFormats" :key="format.id" :value="format.id">
+                                        {{ format.name }} <span v-if="format.isDefault">(Default)</span>
+                                    </option>
+                                </select>
+                                <div class="mt-2">
+                                    <a href="/anki-formats" target="_blank" class="btn btn-sm btn-outline-primary">Manage Formats</a>
+                                    <button v-if="ankiFormatId" type="button" class="btn btn-sm btn-outline-info" @click="previewAnkiFormat">Preview Format</button>
+                                </div>
+                            </div>
+                            <div v-if="false" class="mb-3">
                                 <label for="front" class="form-label">Front:</label>
                                 <textarea class="form-control" id="front" name="front" rows="3" v-model="front"></textarea>
                                 <div class="my-2">
@@ -308,7 +322,7 @@
                                     </button>
                                 </div>
                             </div>
-                            <div class="mb-3">
+                            <div v-if="false" class="mb-3">
                                 <label for="back" class="form-label">Back:</label>
                                 <textarea class="form-control" id="back" name="back" rows="3" v-model="back"></textarea>
                                 <div class="my-2">
@@ -432,8 +446,8 @@
             sentenceGeneration: false,
             imageGeneration: false,
             imageStyle: 'REALISTIC_CINEMATIC',
-            front: '',
-            back: '',
+            ankiFormatId: null,
+            ankiFormats: [],
             presets: [],
             selectedPreset: '',
             presetName: '',
@@ -445,6 +459,7 @@
         },
         mounted: function() {
             this.loadPresets();
+            this.loadAnkiFormats();
             this.checkForPresetConfig();
         },
         methods: {
@@ -575,8 +590,29 @@
                 this.imageStyle = preset.imageStyle || 'REALISTIC_CINEMATIC';
                 this.anki = !!preset.ankiEnabled;
                 this.deck = preset.ankiDeck || '';
-                this.front = preset.ankiFrontTemplate || '';
-                this.back = preset.ankiBackTemplate || '';
+                this.ankiFormatId = preset.ankiFormat ? preset.ankiFormat.id : null;
+            },
+            loadAnkiFormats: function() {
+                fetch('/anki-formats/all')
+                    .then(response => response.json())
+                    .then(data => {
+                        this.ankiFormats = data;
+                        // Auto-select default format if no format is selected
+                        if (!this.ankiFormatId && data.length > 0) {
+                            const defaultFormat = data.find(f => f.isDefault);
+                            if (defaultFormat) {
+                                this.ankiFormatId = defaultFormat.id;
+                            }
+                        }
+                    })
+                    .catch(error => console.error('Error loading Anki formats:', error));
+            },
+            previewAnkiFormat: function() {
+                if (!this.ankiFormatId) {
+                    alert('Please select a format first');
+                    return;
+                }
+                window.open('/anki-formats/' + this.ankiFormatId + '/edit', '_blank');
             },
             showSavePresetModal: function() {
                 this.presetName = '';
@@ -606,8 +642,7 @@
                     imageStyle: this.imageStyle,
                     ankiEnabled: this.anki,
                     ankiDeck: this.deck,
-                    ankiFrontTemplate: this.front,
-                    ankiBackTemplate: this.back
+                    ankiFormatId: this.ankiFormatId
                 };
 
                 console.log('Saving preset with data:', presetData);
@@ -655,8 +690,7 @@
                         this.imageStyle = presetConfig.imageStyle || 'REALISTIC_CINEMATIC';
                         this.anki = !!presetConfig.ankiEnabled;
                         this.deck = presetConfig.ankiDeck || '';
-                        this.front = presetConfig.ankiFrontTemplate || '';
-                        this.back = presetConfig.ankiBackTemplate || '';
+                        this.ankiFormatId = presetConfig.ankiFormatId || null;
 
                         // Clear the sessionStorage
                         sessionStorage.removeItem('loadPresetConfig');

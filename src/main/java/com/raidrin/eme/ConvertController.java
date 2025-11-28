@@ -50,6 +50,7 @@ public class ConvertController {
     private final SessionOrchestrationService sessionOrchestrationService;
     private final WordService wordService;
     private final CharacterGuideService characterGuideService;
+    private final com.raidrin.eme.storage.service.AnkiFormatService ankiFormatService;
 
     @GetMapping("/")
     public String index() {
@@ -65,9 +66,8 @@ public class ConvertController {
     public String generate(
             @RequestParam(name = "text", required = false) String userInput,
             @RequestParam(required = false) String lang,
-            @RequestParam(required = false) String front,
-            @RequestParam(required = false) String back,
             @RequestParam(required = false) String deck,
+            @RequestParam(required = false) Long ankiFormatId,
             @RequestParam(required = false) Boolean translation,
             @RequestParam(name = "override-translation", required = false) Boolean overrideTranslation,
             @RequestParam(name = "source-audio", required = false) Boolean sourceAudio,
@@ -102,6 +102,12 @@ public class ConvertController {
                 ? sourceWords.get(0)
                 : sourceWords.size() + " words";
 
+        // Fetch AnkiFormat if provided
+        com.raidrin.eme.storage.entity.AnkiFormatEntity ankiFormat = null;
+        if (ankiFormatId != null) {
+            ankiFormat = ankiFormatService.findById(ankiFormatId).orElse(null);
+        }
+
         TranslationSessionEntity session = translationSessionService.createSession(
                 sessionWord,
                 lang != null ? lang : "en",
@@ -112,8 +118,7 @@ public class ConvertController {
                 anki,
                 overrideTranslation,
                 deck,
-                front,
-                back
+                ankiFormat
         );
 
         System.out.println("Created session " + session.getId() + " for " + sourceWords.size() + " words");
@@ -166,8 +171,7 @@ public class ConvertController {
     public String generateReview(
             @RequestParam(name = "text", required = false) String userInput,
             @RequestParam(required = false) String lang,
-            @RequestParam(required = false) String front,
-            @RequestParam(required = false) String back,
+            @RequestParam(required = false) Long ankiFormatId,
             @RequestParam(required = false) String deck,
             @RequestParam(required = false) Boolean translation,
             @RequestParam(name = "override-translation", required = false) Boolean overrideTranslation,
@@ -210,8 +214,7 @@ public class ConvertController {
                     null, // translations - will be auto-generated
                     sourceWords.stream().map(w -> sourceLang).collect(Collectors.toList()), // sourceLanguages - all same
                     targetLang,
-                    front,
-                    back,
+                    ankiFormatId,
                     deck,
                     translation,
                     overrideTranslation,
@@ -289,8 +292,7 @@ public class ConvertController {
         model.addAttribute("targetLanguageName", getLanguageName(targetLanguage));
 
         // Pass through all the form parameters so they can be submitted in the confirm step
-        model.addAttribute("front", front);
-        model.addAttribute("back", back);
+        model.addAttribute("ankiFormatId", ankiFormatId);
         model.addAttribute("deck", deck);
         model.addAttribute("translation", translation);
         model.addAttribute("overrideTranslation", overrideTranslation);
@@ -311,8 +313,7 @@ public class ConvertController {
             @RequestParam(name = "translations", required = false) List<String> translations,
             @RequestParam(name = "sourceLanguages", required = false) List<String> sourceLanguages,
             @RequestParam(required = false) String targetLang,
-            @RequestParam(required = false) String front,
-            @RequestParam(required = false) String back,
+            @RequestParam(required = false) Long ankiFormatId,
             @RequestParam(required = false) String deck,
             @RequestParam(required = false) Boolean translation,
             @RequestParam(name = "override-translation", required = false) Boolean overrideTranslation,
@@ -404,6 +405,12 @@ public class ConvertController {
         // Use the first source language (they should all be the same from the review page)
         String lang = sourceLanguages != null && !sourceLanguages.isEmpty() ? sourceLanguages.get(0) : "en";
 
+        // Fetch AnkiFormat if provided
+        com.raidrin.eme.storage.entity.AnkiFormatEntity ankiFormat = null;
+        if (ankiFormatId != null) {
+            ankiFormat = ankiFormatService.findById(ankiFormatId).orElse(null);
+        }
+
         TranslationSessionEntity session = translationSessionService.createSession(
                 sessionWord,
                 lang,
@@ -414,8 +421,7 @@ public class ConvertController {
                 anki,
                 overrideTranslation,
                 deck,
-                front,
-                back
+                ankiFormat
         );
 
         System.out.println("Created session " + session.getId() + " for " + words.size() + " words");

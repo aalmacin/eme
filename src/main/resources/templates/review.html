@@ -123,8 +123,7 @@
     <form th:action="@{/generate/confirm}" method="post">
         <!-- Hidden fields for configuration -->
         <input type="hidden" name="targetLang" th:value="${targetLang}" />
-        <input type="hidden" name="front" th:value="${front}" />
-        <input type="hidden" name="back" th:value="${back}" />
+        <input type="hidden" name="ankiFormatId" th:value="${ankiFormatId}" />
         <input type="hidden" name="deck" th:value="${deck}" />
         <input type="hidden" name="translation" th:value="${translation}" />
         <input type="hidden" name="override-translation" th:value="${overrideTranslation}" />
