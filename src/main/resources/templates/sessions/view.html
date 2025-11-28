@@ -370,6 +370,23 @@
         </div>
     </div>
 
+    <!-- Success/Error Messages -->
+    <div th:if="${param.message}" class="alert alert-success" style="margin-bottom: 20px;">
+        <span th:switch="${param.message[0]}">
+            <span th:case="'all-audio-regenerated'">✓ Audio files have been successfully regenerated for all words in this session.</span>
+            <span th:case="'all-mnemonics-regenerated'">✓ Mnemonics and images have been successfully regenerated for all words.</span>
+            <span th:case="*" th:text="${param.message}">Success</span>
+        </span>
+    </div>
+
+    <div th:if="${param.error}" class="alert alert-danger" style="margin-bottom: 20px;">
+        <span th:switch="${param.error[0]}">
+            <span th:case="'audio-regeneration-failed'">✗ Failed to regenerate audio files. Please try again or check the logs for details.</span>
+            <span th:case="'session-not-found'">✗ Session not found.</span>
+            <span th:case="*" th:text="${param.error}">An error occurred</span>
+        </span>
+    </div>
+
     <div class="info-card">
         <h2>Session Information</h2>
         <div class="info-row">
@@ -1008,7 +1025,7 @@
         </div>
     </div>
 
-    <div class="info-card" th:if="${translationSession.status.name() == 'COMPLETED'}">
+    <div class="info-card">
         <h2>Generated Assets</h2>
         <div class="info-row" th:if="${sessionData.containsKey('mnemonic_keyword')}">
             <div class="info-label">Mnemonic Keyword:</div>
@@ -1039,7 +1056,7 @@
             <a th:href="@{/sessions/{id}/download(id=${translationSession.id})}" class="btn btn-success">Download Assets (ZIP)</a>
 
             <!-- Anki Card Creation Button -->
-            <div th:if="${translationSession.ankiEnabled}" style="display: inline-block; margin-left: 10px;">
+            <div style="display: inline-block; margin-left: 10px;">
                 <button type="button" class="btn btn-primary" onclick="showAnkiCardPreview()">Create Anki Cards</button>
             </div>
         </div>
@@ -1051,22 +1068,40 @@
     </div>
 
     <!-- Regeneration Actions -->
-    <div class="info-card" th:if="${translationSession.status.name() == 'COMPLETED'}">
+    <div class="info-card">
         <h2>Regeneration Actions</h2>
-        <p style="color: #856404; margin-bottom: 15px;">Regenerate content for all words in this session.</p>
+        <p style="color: #856404; margin-bottom: 15px;">Generate or regenerate content for all words in this session.</p>
 
         <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <!-- Regenerate All Sentences Button -->
-            <div th:if="${translationSession.sentenceGenerationEnabled}">
-                <form th:action="@{/sessions/{id}/regenerate-all-sentences(id=${translationSession.id})}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-warning" onclick="return confirm('This will regenerate sentences for all words in this session. This may take a while. Continue?');">🔄 Regenerate All Sentences</button>
+            <!-- Generate Translations + Transliterations Button -->
+            <div>
+                <form th:action="@{/sessions/{id}/regenerate-all-translations(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('This will regenerate translations and transliterations for all words in this session. This may take a while. Continue?');">🔄 Generate Translations + Transliterations</button>
                 </form>
             </div>
 
-            <!-- Regenerate All Audio Button -->
-            <div th:if="${translationSession.audioGenerationEnabled}">
-                <form th:action="@{/sessions/{id}/regenerate-all-audio(id=${translationSession.id})}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-warning" onclick="return confirm('This will regenerate audio for all words in this session. Continue?');">🔄 Regenerate All Audio</button>
+            <!-- Generate Mnemonics + Images Button -->
+            <div>
+                <form th:action="@{/sessions/{id}/regenerate-all-mnemonics-and-images(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-primary"
+                            th:disabled="${!sessionData.containsKey('words') || sessionData.get('words').isEmpty()}"
+                            onclick="return confirm('This will regenerate mnemonics and images for all words in this session. This may take a while. Continue?');">🔄 Generate Mnemonics + Images</button>
+                </form>
+            </div>
+
+            <!-- Generate Audio Button -->
+            <div>
+                <form id="regenerate-audio-form" th:action="@{/sessions/{id}/regenerate-all-audio(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-primary"
+                            th:disabled="${!sessionData.containsKey('words') || sessionData.get('words').isEmpty()}"
+                            onclick="if(!confirm('This will regenerate audio for all words in this session. Continue?')) return false; var form=document.getElementById('regenerate-audio-form'); this.disabled=true; this.innerHTML='⏳ Generating Audio...'; form.submit(); return false;">🔄 Generate Audio</button>
+                </form>
+            </div>
+
+            <!-- Generate Example Sentences Button -->
+            <div>
+                <form th:action="@{/sessions/{id}/regenerate-all-sentences(id=${translationSession.id})}" method="post" style="display: inline;">
+                    <button type="submit" class="btn btn-primary" onclick="return confirm('This will regenerate example sentences for all words in this session. This may take a while. Continue?');">🔄 Generate Example Sentences</button>
                 </form>
             </div>
         </div>
@@ -2343,6 +2378,11 @@
 
         async function showAnkiCardPreview() {
             try {
+                // Enable anki for this session
+                await fetch(`/sessions/${currentSessionId}/enable-anki`, {
+                    method: 'POST'
+                });
+
                 // Load available formats
                 const formatsResponse = await fetch('/anki-formats/all');
                 availableFormats = await formatsResponse.json();
@@ -2695,7 +2735,7 @@
                         'cursor: pointer; border-radius: 4px; font-size: 14px; margin-bottom: 5px;">' +
                         'Show ' + label +
                     '</button>' +
-                    '<div id="' + uniqueId + '" style="display: none; padding: 10px; background: #f9f9f9; border-radius: 4px; margin-top: 5px;">' +
+                    '<div id="' + uniqueId + '" style="display: none; padding: 10px; background: #2c3e50; color: #ecf0f1; border-radius: 4px; margin-top: 5px;">' +
                         placeholderValue +
                     '</div>' +
                 '</div>';
@@ -2855,7 +2895,7 @@
                     style="background: #4CAF50; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px;">
                     Toggle ${label}
                 </button>
-                <div id="${uniqueId}" style="display: none; padding: 10px; background: #f9f9f9; margin-top: 5px;">
+                <div id="${uniqueId}" style="display: none; padding: 10px; background: #2c3e50; color: #ecf0f1; margin-top: 5px;">
                     ${content}
                 </div>
             </div>`;

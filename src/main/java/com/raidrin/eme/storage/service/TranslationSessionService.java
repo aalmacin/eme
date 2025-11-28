@@ -104,6 +104,16 @@ public class TranslationSessionService {
     }
 
     @Transactional
+    public void updateAnkiEnabled(Long sessionId, boolean ankiEnabled) {
+        TranslationSessionEntity session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        session.setAnkiEnabled(ankiEnabled);
+
+        sessionRepository.save(session);
+    }
+
+    @Transactional
     public void markAsCompleted(Long sessionId, String zipFilePath) {
         TranslationSessionEntity session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
