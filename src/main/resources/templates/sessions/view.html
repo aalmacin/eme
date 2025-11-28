@@ -2873,11 +2873,11 @@
                 case 'SOURCE_TRANSLITERATION': return wordData.source_transliteration || '';
                 case 'SOURCE_AUDIO': return wordData.source_audio_file ? `[sound:${wordData.source_audio_file}]` : '';
                 case 'TARGET_AUDIO': return (wordData.target_audio_files && wordData.target_audio_files[0]) ? `[sound:${wordData.target_audio_files[0]}]` : '';
-                case 'SENTENCE_LATIN': return wordData.sentence_latin || '';
-                case 'SENTENCE_TARGET': return wordData.sentence_target || '';
-                case 'SENTENCE_TRANSLITERATION': return wordData.sentence_transliteration || '';
-                case 'SENTENCE_SOURCE': return wordData.sentence_source || '';
-                case 'SENTENCE_STRUCTURE': return wordData.sentence_structure || '';
+                case 'SENTENCE_LATIN': return (wordData.sentence_data && wordData.sentence_data.target_language_latin) || '';
+                case 'SENTENCE_TARGET': return (wordData.sentence_data && wordData.sentence_data.target_language_sentence) || '';
+                case 'SENTENCE_TRANSLITERATION': return (wordData.sentence_data && wordData.sentence_data.target_language_transliteration) || '';
+                case 'SENTENCE_SOURCE': return (wordData.sentence_data && wordData.sentence_data.source_language_sentence) || '';
+                case 'SENTENCE_STRUCTURE': return (wordData.sentence_data && wordData.sentence_data.source_language_structure) || '';
                 case 'SENTENCE_SOURCE_AUDIO': return wordData.sentence_source_audio_file ? `[sound:${wordData.sentence_source_audio_file}]` : '';
                 case 'IMAGE': return wordData.image_file ? `<img src="${wordData.image_file}" style="max-width: 300px;" />` : '';
                 case 'MNEMONIC_KEYWORD': return wordData.mnemonic_keyword || '';
