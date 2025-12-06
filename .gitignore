@@ -42,3 +42,7 @@ generated_images/
 generated_audio/
 session_zips/
 .DS_Store
+
+### Database Backups and Remote Config ###
+backups/
+.env.remote
