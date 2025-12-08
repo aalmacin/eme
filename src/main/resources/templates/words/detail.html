@@ -184,6 +184,51 @@
                 </button>
             </div>
         </div>
+
+        <!-- Variant History Section -->
+        <div class="card">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0">📚 Variant History</h5>
+                <button class="btn btn-sm btn-outline-primary" onclick="loadAllVariants()">
+                    🔄 Load History
+                </button>
+            </div>
+            <div class="card-body">
+                <p class="text-muted mb-3">View and switch between previously generated variants.</p>
+
+                <!-- Variant Counts -->
+                <div id="variantCounts" class="mb-3" style="display: none;">
+                    <span class="badge bg-secondary me-2">Images: <span id="imageCount">0</span></span>
+                    <span class="badge bg-secondary me-2">Mnemonics: <span id="mnemonicCount">0</span></span>
+                    <span class="badge bg-secondary me-2">Translations: <span id="translationCount">0</span></span>
+                    <span class="badge bg-secondary">Sentences: <span id="sentenceCount">0</span></span>
+                </div>
+
+                <!-- Image Variants -->
+                <div id="imageVariantsSection" style="display: none;" class="mb-4">
+                    <h6>🖼️ Image Variants</h6>
+                    <div id="imageVariantsList" class="row g-2"></div>
+                </div>
+
+                <!-- Mnemonic Variants -->
+                <div id="mnemonicVariantsSection" style="display: none;" class="mb-4">
+                    <h6>💡 Mnemonic Variants</h6>
+                    <div id="mnemonicVariantsList" class="list-group"></div>
+                </div>
+
+                <!-- Translation Variants -->
+                <div id="translationVariantsSection" style="display: none;" class="mb-4">
+                    <h6>🌐 Translation Variants</h6>
+                    <div id="translationVariantsList" class="list-group"></div>
+                </div>
+
+                <!-- Sentence Variants -->
+                <div id="sentenceVariantsSection" style="display: none;" class="mb-4">
+                    <h6>📝 Sentence Variants</h6>
+                    <div id="sentenceVariantsList" class="list-group"></div>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- Update Translation Modal -->
@@ -533,6 +578,202 @@
                 closeUpdateMnemonicKeywordModal();
             }
         });
+
+        // ==================== Variant History Functions ====================
+
+        const wordId = [[${word.id}]];
+
+        async function loadAllVariants() {
+            try {
+                // Load counts
+                const countsResponse = await fetch(`/api/words/${wordId}/variants/counts`);
+                const counts = await countsResponse.json();
+
+                document.getElementById('imageCount').textContent = counts.images;
+                document.getElementById('mnemonicCount').textContent = counts.mnemonics;
+                document.getElementById('translationCount').textContent = counts.translations;
+                document.getElementById('sentenceCount').textContent = counts.sentences;
+                document.getElementById('variantCounts').style.display = 'block';
+
+                // Load each variant type
+                if (counts.images > 0) await loadImageVariants();
+                if (counts.mnemonics > 0) await loadMnemonicVariants();
+                if (counts.translations > 0) await loadTranslationVariants();
+                if (counts.sentences > 0) await loadSentenceVariants();
+
+            } catch (error) {
+                console.error('Error loading variants:', error);
+                alert('Failed to load variant history');
+            }
+        }
+
+        async function loadImageVariants() {
+            const response = await fetch(`/api/words/${wordId}/variants/images`);
+            const images = await response.json();
+
+            const container = document.getElementById('imageVariantsList');
+            container.innerHTML = '';
+
+            images.forEach(img => {
+                const col = document.createElement('div');
+                col.className = 'col-md-4 col-sm-6';
+                col.innerHTML = `
+                    <div class="card ${img.isCurrent ? 'border-primary' : ''}">
+                        <img src="/generated_images/${img.imageFile}" class="card-img-top" alt="Variant" style="height: 150px; object-fit: cover;">
+                        <div class="card-body p-2">
+                            <small class="text-muted d-block">${img.createdAt ? new Date(img.createdAt).toLocaleDateString() : 'Unknown'}</small>
+                            ${img.imageStyle ? `<span class="badge bg-info">${img.imageStyle}</span>` : ''}
+                            ${img.isCurrent ? '<span class="badge bg-primary ms-1">Current</span>' : ''}
+                            ${!img.isCurrent ? `<button class="btn btn-sm btn-outline-primary mt-1" onclick="setCurrentImage(${img.id})">Use This</button>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(col);
+            });
+
+            document.getElementById('imageVariantsSection').style.display = 'block';
+        }
+
+        async function loadMnemonicVariants() {
+            const response = await fetch(`/api/words/${wordId}/variants/mnemonics`);
+            const mnemonics = await response.json();
+
+            const container = document.getElementById('mnemonicVariantsList');
+            container.innerHTML = '';
+
+            mnemonics.forEach(m => {
+                const item = document.createElement('div');
+                item.className = `list-group-item ${m.isCurrent ? 'list-group-item-primary' : ''}`;
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${m.mnemonicKeyword || 'No keyword'}</strong>
+                            ${m.isUserCreated ? '<span class="badge bg-warning ms-1">User Created</span>' : ''}
+                            ${m.isCurrent ? '<span class="badge bg-primary ms-1">Current</span>' : ''}
+                            <p class="mb-1 small">${m.mnemonicSentence || 'No sentence'}</p>
+                            <small class="text-muted">${m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Unknown'}</small>
+                        </div>
+                        ${!m.isCurrent ? `<button class="btn btn-sm btn-outline-primary" onclick="setCurrentMnemonic(${m.id})">Use</button>` : ''}
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+
+            document.getElementById('mnemonicVariantsSection').style.display = 'block';
+        }
+
+        async function loadTranslationVariants() {
+            const response = await fetch(`/api/words/${wordId}/variants/translations`);
+            const translations = await response.json();
+
+            const container = document.getElementById('translationVariantsList');
+            container.innerHTML = '';
+
+            translations.forEach(t => {
+                const item = document.createElement('div');
+                item.className = `list-group-item ${t.isCurrent ? 'list-group-item-primary' : ''}`;
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <strong>${t.translation}</strong>
+                            ${t.source ? `<span class="badge bg-secondary ms-1">${t.source}</span>` : ''}
+                            ${t.isUserCreated ? '<span class="badge bg-warning ms-1">User Created</span>' : ''}
+                            ${t.isCurrent ? '<span class="badge bg-primary ms-1">Current</span>' : ''}
+                            ${t.transliteration ? `<p class="mb-1 small">Transliteration: ${t.transliteration}</p>` : ''}
+                            <small class="text-muted">${t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Unknown'}</small>
+                        </div>
+                        ${!t.isCurrent ? `<button class="btn btn-sm btn-outline-primary" onclick="setCurrentTranslation(${t.id})">Use</button>` : ''}
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+
+            document.getElementById('translationVariantsSection').style.display = 'block';
+        }
+
+        async function loadSentenceVariants() {
+            const response = await fetch(`/api/words/${wordId}/variants/sentences`);
+            const sentences = await response.json();
+
+            const container = document.getElementById('sentenceVariantsList');
+            container.innerHTML = '';
+
+            sentences.forEach(s => {
+                const item = document.createElement('div');
+                item.className = `list-group-item ${s.isCurrent ? 'list-group-item-primary' : ''}`;
+                item.innerHTML = `
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div style="flex: 1;">
+                            <strong>${s.sentenceSource || 'No source sentence'}</strong>
+                            ${s.isCurrent ? '<span class="badge bg-primary ms-1">Current</span>' : ''}
+                            ${s.sentenceTarget ? `<p class="mb-1 small">${s.sentenceTarget}</p>` : ''}
+                            ${s.audioFile ? `<audio controls class="mt-1" style="height: 30px;"><source src="/generated_audio/${s.audioFile}" type="audio/mpeg"></audio>` : ''}
+                            <br><small class="text-muted">${s.createdAt ? new Date(s.createdAt).toLocaleDateString() : 'Unknown'}</small>
+                        </div>
+                        ${!s.isCurrent ? `<button class="btn btn-sm btn-outline-primary ms-2" onclick="setCurrentSentence(${s.id})">Use</button>` : ''}
+                    </div>
+                `;
+                container.appendChild(item);
+            });
+
+            document.getElementById('sentenceVariantsSection').style.display = 'block';
+        }
+
+        async function setCurrentImage(imageId) {
+            try {
+                const response = await fetch(`/api/words/${wordId}/variants/images/${imageId}/set-current`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Failed to set image: ' + error.message);
+            }
+        }
+
+        async function setCurrentMnemonic(mnemonicId) {
+            try {
+                const response = await fetch(`/api/words/${wordId}/variants/mnemonics/${mnemonicId}/set-current`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Failed to set mnemonic: ' + error.message);
+            }
+        }
+
+        async function setCurrentTranslation(translationId) {
+            try {
+                const response = await fetch(`/api/words/${wordId}/variants/translations/${translationId}/set-current`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Failed to set translation: ' + error.message);
+            }
+        }
+
+        async function setCurrentSentence(sentenceId) {
+            try {
+                const response = await fetch(`/api/words/${wordId}/variants/sentences/${sentenceId}/set-current`, { method: 'POST' });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + result.error);
+                }
+            } catch (error) {
+                alert('Failed to set sentence: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>

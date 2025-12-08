@@ -7,6 +7,18 @@ import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * @deprecated This entity is deprecated. Use {@link WordTranslationEntity} instead.
+ * <p>
+ * The new WordTranslationEntity provides:
+ * - Proper foreign key relationship to WordEntity
+ * - Support for multiple translation variants per word
+ * - is_current flag to mark active translation
+ * - is_user_created flag to track manual overrides
+ * <p>
+ * This entity is kept for backward compatibility and will be removed in a future release.
+ */
+@Deprecated(since = "2.0", forRemoval = true)
 @Entity
 @Table(name = "translations")
 @Data

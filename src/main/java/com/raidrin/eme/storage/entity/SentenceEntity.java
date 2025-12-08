@@ -7,6 +7,17 @@ import lombok.AllArgsConstructor;
 
 import java.time.LocalDateTime;
 
+/**
+ * @deprecated This entity is deprecated. Use {@link WordSentenceEntity} instead.
+ * <p>
+ * The new WordSentenceEntity provides:
+ * - Proper foreign key relationship to WordEntity
+ * - Support for multiple sentence variants per word
+ * - is_current flag to mark active sentence
+ * <p>
+ * This entity is kept for backward compatibility and will be removed in a future release.
+ */
+@Deprecated(since = "2.0", forRemoval = true)
 @Entity
 @Table(name = "sentences")
 @Data

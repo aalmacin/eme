@@ -14,6 +14,17 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated This service is deprecated. Use {@link WordVariantService} for translation management.
+ * <p>
+ * The new WordVariantService provides:
+ * - addTranslation() to add new translation variants
+ * - setCurrentTranslation() to switch active translation
+ * - getTranslationHistory() to view all variants
+ * <p>
+ * This service is kept for backward compatibility during the transition period.
+ */
+@Deprecated(since = "2.0", forRemoval = true)
 @Service
 @RequiredArgsConstructor
 public class TranslationStorageService {

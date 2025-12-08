@@ -21,6 +21,7 @@ public class TranslationSessionService {
 
     private final TranslationSessionRepository sessionRepository;
     private final WordService wordService;
+    private final WordVariantService wordVariantService;
     private final ObjectMapper objectMapper;
 
     @Transactional
@@ -173,62 +174,15 @@ public class TranslationSessionService {
     }
 
     /**
-     * Find existing word data from WordEntity (preferred) or a previous completed session
-     * Returns the word data if found, or null if not found
+     * Find existing word data from WordEntity.
+     * WordEntity is the single source of truth for word data.
+     * Returns the word data if found, or null if not found.
      */
-    @SuppressWarnings("unchecked")
     public Map<String, Object> findExistingWordData(String sourceWord, String sourceLanguage, String targetLanguage) {
-        // First, check WordEntity (centralized word storage)
-        Optional<WordEntity> wordEntity = wordService.findWord(sourceWord, sourceLanguage, targetLanguage);
-        if (wordEntity.isPresent()) {
-            WordEntity word = wordEntity.get();
-            // Only return if the word has translation (minimum requirement)
-            if (word.getTranslation() != null && !word.getTranslation().isEmpty()) {
-                return convertWordEntityToMap(word);
-            }
-        }
-
-        // Fallback: Find completed sessions with matching languages (for backward compatibility)
-        List<TranslationSessionEntity> completedSessions = sessionRepository.findByStatusOrderByCreatedAtDesc(SessionStatus.COMPLETED);
-
-        for (TranslationSessionEntity session : completedSessions) {
-            // Check if session has matching languages
-            if (!session.getSourceLanguage().equals(sourceLanguage) ||
-                !session.getTargetLanguage().equals(targetLanguage)) {
-                continue;
-            }
-
-            // Parse session data
-            Map<String, Object> sessionData = deserializeData(session.getSessionData());
-
-            if (!sessionData.containsKey("words")) {
-                continue;
-            }
-
-            List<?> words = (List<?>) sessionData.get("words");
-            for (Object wordObj : words) {
-                if (!(wordObj instanceof Map)) {
-                    continue;
-                }
-
-                Map<?, ?> wordData = (Map<?, ?>) wordObj;
-                String word = (String) wordData.get("source_word");
-
-                // Check if this is the word we're looking for
-                if (sourceWord.equals(word)) {
-                    // Check if all required processes succeeded
-                    boolean translationSuccess = "success".equals(wordData.get("translation_status"));
-
-                    // Only return if translation succeeded (core requirement)
-                    if (translationSuccess) {
-                        // Convert to mutable map
-                        return new java.util.HashMap<>((Map<String, Object>) wordData);
-                    }
-                }
-            }
-        }
-
-        return null; // No existing data found
+        return wordService.findWord(sourceWord, sourceLanguage, targetLanguage)
+            .filter(word -> word.getTranslation() != null && !word.getTranslation().isEmpty())
+            .map(this::convertWordEntityToMap)
+            .orElse(null);
     }
 
     /**
@@ -280,8 +234,9 @@ public class TranslationSessionService {
     }
 
     /**
-     * Save word data to WordEntity for future reuse
-     * This is called after word data is generated in a session
+     * Save word data to WordEntity for future reuse.
+     * This is called after word data is generated in a session.
+     * Also saves variants to the new variant tables.
      */
     @Transactional
     public void saveWordDataToEntity(Map<String, Object> wordData, String sourceLanguage, String targetLanguage) {
@@ -292,16 +247,26 @@ public class TranslationSessionService {
 
         // Ensure word entity exists
         WordEntity wordEntity = wordService.saveOrUpdateWord(sourceWord, sourceLanguage, targetLanguage);
+        Long wordId = wordEntity.getId();
 
         // Update translation if available and not manually overridden
+        String transliteration = (String) wordData.get("source_transliteration");
         if (wordData.containsKey("translations") && "success".equals(wordData.get("translation_status"))) {
             // Check if translation has been manually overridden
-            if (wordEntity.getTranslationOverrideAt() == null) {
+            boolean isUserOverridden = wordEntity.getTranslationOverrideAt() != null;
+            if (!isUserOverridden) {
                 @SuppressWarnings("unchecked")
                 List<String> translationsList = (List<String>) wordData.get("translations");
                 if (translationsList != null && !translationsList.isEmpty()) {
                     Set<String> translations = new HashSet<>(translationsList);
+                    // Update legacy field
                     wordService.updateTranslation(sourceWord, sourceLanguage, targetLanguage, translations);
+
+                    // Add to variant table - store as JSON for multiple translations
+                    String translationJson = String.join(", ", translations);
+                    wordVariantService.addTranslation(
+                        wordId, translationJson, transliteration, "openai", true, false
+                    );
                 }
             } else {
                 System.out.println("Skipping automated translation update for manually overridden word: " + sourceWord +
@@ -309,15 +274,12 @@ public class TranslationSessionService {
             }
         }
 
-        // Update transliteration if available
-        if (wordData.containsKey("source_transliteration")) {
-            String transliteration = (String) wordData.get("source_transliteration");
-            if (transliteration != null && !transliteration.isEmpty()) {
-                wordService.updateTransliteration(sourceWord, sourceLanguage, targetLanguage, transliteration);
-            }
+        // Update transliteration if available (legacy field)
+        if (transliteration != null && !transliteration.isEmpty()) {
+            wordService.updateTransliteration(sourceWord, sourceLanguage, targetLanguage, transliteration);
         }
 
-        // Update audio files if available
+        // Update audio files if available (legacy fields - no variants for audio)
         String audioSourceFile = (String) wordData.get("source_audio_file");
         String audioTargetFile = null;
         if (wordData.containsKey("target_audio_files")) {
@@ -331,15 +293,16 @@ public class TranslationSessionService {
             wordService.updateAudio(sourceWord, sourceLanguage, targetLanguage, audioSourceFile, audioTargetFile);
         }
 
-        // Update mnemonic and image if available
+        // Update mnemonic if available
         String mnemonicKeyword = (String) wordData.get("mnemonic_keyword");
         String mnemonicSentence = (String) wordData.get("mnemonic_sentence");
         String imagePrompt = (String) wordData.get("image_prompt");
         String imageFile = (String) wordData.get("image_file");
 
-        if (mnemonicKeyword != null || mnemonicSentence != null || imagePrompt != null) {
+        if (mnemonicKeyword != null || mnemonicSentence != null) {
             // Check if mnemonic keyword has been manually updated
-            if (wordEntity.getMnemonicKeywordUpdatedAt() != null && mnemonicKeyword != null) {
+            boolean isUserOverridden = wordEntity.getMnemonicKeywordUpdatedAt() != null;
+            if (isUserOverridden && mnemonicKeyword != null) {
                 // Skip updating mnemonic keyword if it was manually overridden
                 System.out.println("Skipping automated mnemonic keyword update for manually overridden word: " + sourceWord +
                         " (updated at: " + wordEntity.getMnemonicKeywordUpdatedAt() + ")");
@@ -348,11 +311,45 @@ public class TranslationSessionService {
             } else {
                 // No manual override, update everything normally
                 wordService.updateMnemonic(sourceWord, sourceLanguage, targetLanguage, mnemonicKeyword, mnemonicSentence, imagePrompt);
+
+                // Add mnemonic variant
+                wordVariantService.addMnemonic(
+                    wordId, mnemonicKeyword, mnemonicSentence,
+                    wordEntity.getCharacterGuideId(), true, false
+                );
             }
         }
 
+        // Update image if available
         if (imageFile != null && "success".equals(wordData.get("image_status"))) {
+            // Update legacy field
             wordService.updateImage(sourceWord, sourceLanguage, targetLanguage, imageFile, imagePrompt);
+
+            // Add image variant
+            String imageGcsUrl = (String) wordData.get("image_gcs_url");
+            String imageStyle = (String) wordData.get("image_style");
+            wordVariantService.addImage(
+                wordId, imageFile, imageGcsUrl, imagePrompt, imageStyle, true
+            );
+        }
+
+        // Handle sentence data if available
+        if (wordData.containsKey("sentence_data") && "success".equals(wordData.get("sentence_status"))) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> sentenceDataMap = (Map<String, Object>) wordData.get("sentence_data");
+            if (sentenceDataMap != null) {
+                String sentenceAudioFile = (String) wordData.get("sentence_audio_file");
+                wordVariantService.addSentence(
+                    wordId,
+                    (String) sentenceDataMap.get("source_language_sentence"),
+                    (String) sentenceDataMap.get("target_language_transliteration"),
+                    (String) sentenceDataMap.get("target_language_sentence"),
+                    (String) sentenceDataMap.get("source_language_structure"),
+                    (String) sentenceDataMap.get("target_language_latin"),
+                    sentenceAudioFile,
+                    true
+                );
+            }
         }
     }
 

@@ -11,6 +11,17 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated This service is deprecated. Use {@link WordVariantService} for sentence management.
+ * <p>
+ * The new WordVariantService provides:
+ * - addSentence() to add new sentence variants
+ * - setCurrentSentence() to switch active sentence
+ * - getSentenceHistory() to view all variants
+ * <p>
+ * This service is kept for backward compatibility during the transition period.
+ */
+@Deprecated(since = "2.0", forRemoval = true)
 @Service
 @RequiredArgsConstructor
 public class SentenceStorageService {

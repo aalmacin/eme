@@ -4,11 +4,11 @@ import com.raidrin.eme.image.ImageProvider;
 import com.raidrin.eme.image.ImageStyle;
 import com.raidrin.eme.image.OpenAiImageService;
 import com.raidrin.eme.mnemonic.MnemonicGenerationService;
-import com.raidrin.eme.storage.entity.CharacterGuideEntity;
-import com.raidrin.eme.storage.entity.WordEntity;
+import com.raidrin.eme.storage.entity.*;
 import com.raidrin.eme.storage.service.CharacterGuideService;
 import com.raidrin.eme.storage.service.GcpStorageService;
 import com.raidrin.eme.storage.service.WordService;
+import com.raidrin.eme.storage.service.WordVariantService;
 import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.util.FileNameSanitizer;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +34,7 @@ import java.util.*;
 public class WordController {
 
     private final WordService wordService;
+    private final WordVariantService wordVariantService;
     private final OpenAiImageService openAiImageService;
     private final GcpStorageService gcpStorageService;
     private final MnemonicGenerationService mnemonicGenerationService;
@@ -772,6 +773,233 @@ public class WordController {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body(response);
         }
+    }
+
+    // ==================== Variant Management Endpoints ====================
+
+    /**
+     * Get all image variants for a word
+     */
+    @GetMapping("/{wordId}/variants/images")
+    public ResponseEntity<List<Map<String, Object>>> getImageVariants(@PathVariable Long wordId) {
+        List<WordImageEntity> images = wordVariantService.getImageHistory(wordId);
+        List<Map<String, Object>> result = images.stream().map(img -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", img.getId());
+            map.put("imageFile", img.getImageFile());
+            map.put("imageGcsUrl", img.getImageGcsUrl());
+            map.put("imagePrompt", img.getImagePrompt());
+            map.put("imageStyle", img.getImageStyle());
+            map.put("isCurrent", img.getIsCurrent());
+            map.put("createdAt", img.getCreatedAt() != null ? img.getCreatedAt().toString() : null);
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Set current image variant
+     */
+    @PostMapping("/{wordId}/variants/images/{imageId}/set-current")
+    public ResponseEntity<Map<String, Object>> setCurrentImage(
+            @PathVariable Long wordId,
+            @PathVariable Long imageId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            wordVariantService.setCurrentImage(wordId, imageId);
+
+            // Also update the legacy field on WordEntity
+            WordImageEntity image = wordVariantService.getCurrentImage(wordId).orElse(null);
+            if (image != null) {
+                Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                        .filter(w -> w.getId().equals(wordId))
+                        .findFirst();
+                if (wordOpt.isPresent()) {
+                    WordEntity word = wordOpt.get();
+                    wordService.updateImage(word.getWord(), word.getSourceLanguage(),
+                            word.getTargetLanguage(), image.getImageFile(), image.getImagePrompt());
+                }
+            }
+
+            response.put("success", true);
+            response.put("message", "Current image updated");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Get all mnemonic variants for a word
+     */
+    @GetMapping("/{wordId}/variants/mnemonics")
+    public ResponseEntity<List<Map<String, Object>>> getMnemonicVariants(@PathVariable Long wordId) {
+        List<WordMnemonicEntity> mnemonics = wordVariantService.getMnemonicHistory(wordId);
+        List<Map<String, Object>> result = mnemonics.stream().map(m -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", m.getId());
+            map.put("mnemonicKeyword", m.getMnemonicKeyword());
+            map.put("mnemonicSentence", m.getMnemonicSentence());
+            map.put("isCurrent", m.getIsCurrent());
+            map.put("isUserCreated", m.getIsUserCreated());
+            map.put("createdAt", m.getCreatedAt() != null ? m.getCreatedAt().toString() : null);
+            if (m.getCharacterGuide() != null) {
+                map.put("characterGuideName", m.getCharacterGuide().getCharacterName());
+            }
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Set current mnemonic variant
+     */
+    @PostMapping("/{wordId}/variants/mnemonics/{mnemonicId}/set-current")
+    public ResponseEntity<Map<String, Object>> setCurrentMnemonic(
+            @PathVariable Long wordId,
+            @PathVariable Long mnemonicId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            wordVariantService.setCurrentMnemonic(wordId, mnemonicId);
+
+            // Also update the legacy field on WordEntity
+            WordMnemonicEntity mnemonic = wordVariantService.getCurrentMnemonic(wordId).orElse(null);
+            if (mnemonic != null) {
+                Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                        .filter(w -> w.getId().equals(wordId))
+                        .findFirst();
+                if (wordOpt.isPresent()) {
+                    WordEntity word = wordOpt.get();
+                    wordService.updateMnemonic(word.getWord(), word.getSourceLanguage(),
+                            word.getTargetLanguage(), mnemonic.getMnemonicKeyword(),
+                            mnemonic.getMnemonicSentence(), null);
+                }
+            }
+
+            response.put("success", true);
+            response.put("message", "Current mnemonic updated");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Get all translation variants for a word
+     */
+    @GetMapping("/{wordId}/variants/translations")
+    public ResponseEntity<List<Map<String, Object>>> getTranslationVariants(@PathVariable Long wordId) {
+        List<WordTranslationEntity> translations = wordVariantService.getTranslationHistory(wordId);
+        List<Map<String, Object>> result = translations.stream().map(t -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", t.getId());
+            map.put("translation", t.getTranslation());
+            map.put("transliteration", t.getTransliteration());
+            map.put("source", t.getSource());
+            map.put("isCurrent", t.getIsCurrent());
+            map.put("isUserCreated", t.getIsUserCreated());
+            map.put("createdAt", t.getCreatedAt() != null ? t.getCreatedAt().toString() : null);
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Set current translation variant
+     */
+    @PostMapping("/{wordId}/variants/translations/{translationId}/set-current")
+    public ResponseEntity<Map<String, Object>> setCurrentTranslation(
+            @PathVariable Long wordId,
+            @PathVariable Long translationId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            wordVariantService.setCurrentTranslation(wordId, translationId);
+
+            // Also update the legacy field on WordEntity
+            WordTranslationEntity translation = wordVariantService.getCurrentTranslation(wordId).orElse(null);
+            if (translation != null) {
+                Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                        .filter(w -> w.getId().equals(wordId))
+                        .findFirst();
+                if (wordOpt.isPresent()) {
+                    WordEntity word = wordOpt.get();
+                    Set<String> translations = new HashSet<>(Arrays.asList(translation.getTranslation().split(", ")));
+                    wordService.updateTranslation(word.getWord(), word.getSourceLanguage(),
+                            word.getTargetLanguage(), translations);
+                    if (translation.getTransliteration() != null) {
+                        wordService.updateTransliteration(word.getWord(), word.getSourceLanguage(),
+                                word.getTargetLanguage(), translation.getTransliteration());
+                    }
+                }
+            }
+
+            response.put("success", true);
+            response.put("message", "Current translation updated");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Get all sentence variants for a word
+     */
+    @GetMapping("/{wordId}/variants/sentences")
+    public ResponseEntity<List<Map<String, Object>>> getSentenceVariants(@PathVariable Long wordId) {
+        List<WordSentenceEntity> sentences = wordVariantService.getSentenceHistory(wordId);
+        List<Map<String, Object>> result = sentences.stream().map(s -> {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", s.getId());
+            map.put("sentenceSource", s.getSentenceSource());
+            map.put("sentenceTransliteration", s.getSentenceTransliteration());
+            map.put("sentenceTarget", s.getSentenceTarget());
+            map.put("wordStructure", s.getWordStructure());
+            map.put("audioFile", s.getAudioFile());
+            map.put("isCurrent", s.getIsCurrent());
+            map.put("createdAt", s.getCreatedAt() != null ? s.getCreatedAt().toString() : null);
+            return map;
+        }).toList();
+        return ResponseEntity.ok(result);
+    }
+
+    /**
+     * Set current sentence variant
+     */
+    @PostMapping("/{wordId}/variants/sentences/{sentenceId}/set-current")
+    public ResponseEntity<Map<String, Object>> setCurrentSentence(
+            @PathVariable Long wordId,
+            @PathVariable Long sentenceId) {
+        Map<String, Object> response = new HashMap<>();
+        try {
+            wordVariantService.setCurrentSentence(wordId, sentenceId);
+            response.put("success", true);
+            response.put("message", "Current sentence updated");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Get variant counts for a word
+     */
+    @GetMapping("/{wordId}/variants/counts")
+    public ResponseEntity<Map<String, Object>> getVariantCounts(@PathVariable Long wordId) {
+        WordVariantService.VariantCounts counts = wordVariantService.getVariantCounts(wordId);
+        Map<String, Object> response = new HashMap<>();
+        response.put("translations", counts.translations());
+        response.put("mnemonics", counts.mnemonics());
+        response.put("images", counts.images());
+        response.put("sentences", counts.sentences());
+        return ResponseEntity.ok(response);
     }
 
     private Path downloadImageToLocal(String imageUrl, String fileName) throws IOException {
