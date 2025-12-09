@@ -1,0 +1,584 @@
+/* EME Application - Main Stylesheet */
+/* This is the centralized CSS file with design tokens and custom styles */
+
+/* ================================================
+   1. CSS Custom Properties (Design Tokens)
+   ================================================ */
+:root {
+  /* Colors - Override Bulma defaults */
+  --bulma-primary: #3273dc;
+  --bulma-link: #3259a8;
+  --bulma-info: #3080c0;
+  --bulma-success: #257953;
+  --bulma-warning: #946b00;
+  --bulma-danger: #cc0f35;
+
+  /* EME Custom Colors - Improved contrast */
+  --eme-bg: #f5f5f5;
+  --eme-card-bg: #ffffff;
+  --eme-text: #2d2d2d;
+  --eme-text-light: #4a4a4a;
+  --eme-text-muted: #666666;
+  --eme-border: #d0d0d0;
+
+  /* Spacing */
+  --spacing-xs: 0.25rem;
+  --spacing-sm: 0.5rem;
+  --spacing-md: 1rem;
+  --spacing-lg: 1.5rem;
+  --spacing-xl: 2rem;
+
+  /* Border Radius */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+
+  /* Shadows */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.1);
+  --shadow-modal: 0 4px 20px rgba(0, 0, 0, 0.15);
+  --shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.15);
+
+  /* Typography */
+  --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.25rem;
+}
+
+/* ================================================
+   2. Dark Mode Support
+   ================================================ */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --eme-bg: #1a1a2e;
+    --eme-card-bg: #16213e;
+    --eme-text: #f0f0f0;
+    --eme-text-light: #d0d0d0;
+    --eme-text-muted: #a8a8a8;
+    --eme-border: #4d4d6c;
+  }
+
+  body {
+    background-color: var(--eme-bg);
+    color: var(--eme-text);
+  }
+
+  .box, .card {
+    background-color: var(--eme-card-bg);
+  }
+
+  .table {
+    background-color: var(--eme-card-bg);
+    color: var(--eme-text);
+  }
+
+  .table thead th {
+    color: var(--eme-text);
+  }
+
+  .input, .textarea, .select select {
+    background-color: var(--eme-card-bg);
+    border-color: var(--eme-border);
+    color: var(--eme-text);
+  }
+
+  .navbar {
+    background-color: var(--eme-card-bg);
+  }
+
+  .label {
+    color: var(--eme-text);
+  }
+
+  /* Dark mode contrast fixes for Bulma classes */
+  .has-text-grey {
+    color: #c0c0c0 !important;
+  }
+
+  .has-text-grey-light {
+    color: #a0a0a0 !important;
+  }
+
+  .help {
+    color: #a8a8a8;
+  }
+
+  .notification.is-light {
+    background-color: #2a2a4e;
+    color: #f0f0f0;
+  }
+}
+
+/* ================================================
+   2b. Light Mode Contrast Improvements
+   ================================================ */
+
+/* Override Bulma's grey text for better contrast */
+.has-text-grey {
+  color: #4a4a4a !important;
+}
+
+.has-text-grey-light {
+  color: #666666 !important;
+}
+
+.has-text-grey-dark {
+  color: #363636 !important;
+}
+
+/* Help text - ensure readable */
+.help {
+  color: #555555;
+}
+
+/* Subtitle text */
+.subtitle {
+  color: #4a4a4a;
+}
+
+/* Placeholder text - darker for readability */
+::placeholder {
+  color: #767676;
+  opacity: 1;
+}
+
+/* Tags on light backgrounds */
+.tag.is-light {
+  background-color: #e8e8e8;
+  color: #363636;
+}
+
+.tag.is-info.is-light {
+  background-color: #d6eaf8;
+  color: #1a5276;
+}
+
+.tag.is-success.is-light {
+  background-color: #d4efdf;
+  color: #186a3b;
+}
+
+.tag.is-warning.is-light {
+  background-color: #fef5e7;
+  color: #7d5a00;
+}
+
+.tag.is-danger.is-light {
+  background-color: #fadbd8;
+  color: #922b21;
+}
+
+.tag.is-primary.is-light {
+  background-color: #d6e4f5;
+  color: #1a4a7a;
+}
+
+/* Notification light variants - ensure text is readable */
+.notification.is-light {
+  color: #363636;
+}
+
+.notification.is-info.is-light {
+  background-color: #d6eaf8;
+  color: #154360;
+}
+
+.notification.is-success.is-light {
+  background-color: #d4efdf;
+  color: #145a32;
+}
+
+.notification.is-warning.is-light {
+  background-color: #fef5e7;
+  color: #6e5000;
+}
+
+.notification.is-danger.is-light {
+  background-color: #fadbd8;
+  color: #78281f;
+}
+
+.notification.is-primary.is-light {
+  background-color: #d6e4f5;
+  color: #1a4a7a;
+}
+
+/* Table text */
+.table td, .table th {
+  color: #2d2d2d;
+}
+
+/* Breadcrumb links */
+.breadcrumb a {
+  color: #3259a8;
+}
+
+.breadcrumb li.is-active a {
+  color: #4a4a4a;
+}
+
+/* ================================================
+   3. Base Styles
+   ================================================ */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: var(--font-family);
+  background-color: var(--eme-bg);
+  min-height: 100vh;
+}
+
+/* ================================================
+   4. Layout Components
+   ================================================ */
+
+/* Main content wrapper */
+.eme-main {
+  padding-top: var(--spacing-lg);
+  padding-bottom: var(--spacing-xl);
+}
+
+/* Page header */
+.eme-page-header {
+  margin-bottom: var(--spacing-lg);
+}
+
+.eme-page-header .title {
+  margin-bottom: var(--spacing-sm);
+}
+
+.eme-page-header .subtitle {
+  color: var(--eme-text-light);
+}
+
+/* ================================================
+   5. Navigation Enhancements
+   ================================================ */
+.navbar {
+  box-shadow: var(--shadow-card);
+}
+
+/* Ensure navbar text is readable on primary background */
+.navbar.is-primary {
+  background-color: #1a4a8a;
+}
+
+.navbar.is-primary .navbar-item,
+.navbar.is-primary .navbar-link {
+  color: #ffffff;
+}
+
+.navbar.is-primary .navbar-item:hover,
+.navbar.is-primary .navbar-link:hover,
+.navbar.is-primary .navbar-item:focus,
+.navbar.is-primary .navbar-link:focus {
+  background-color: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+}
+
+.navbar.is-primary .navbar-item.is-active {
+  background-color: rgba(255, 255, 255, 0.2);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+.navbar.is-primary .navbar-burger span {
+  background-color: #ffffff;
+}
+
+.navbar.is-primary .navbar-dropdown {
+  background-color: #ffffff;
+  border-top: 2px solid #1a4a8a;
+}
+
+.navbar.is-primary .navbar-dropdown .navbar-item {
+  color: #2d2d2d;
+}
+
+.navbar.is-primary .navbar-dropdown .navbar-item:hover {
+  background-color: #f5f5f5;
+  color: #1a4a8a;
+}
+
+.navbar-item.is-active {
+  font-weight: 600;
+}
+
+/* ================================================
+   6. Card Enhancements
+   ================================================ */
+.box {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease;
+}
+
+.box:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+.card {
+  box-shadow: var(--shadow-card);
+  transition: box-shadow 0.2s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-hover);
+}
+
+/* Stat card for dashboard */
+.stat-card {
+  text-align: center;
+  padding: var(--spacing-lg);
+}
+
+.stat-card .stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.stat-card .stat-label {
+  color: var(--eme-text-muted);
+  font-size: var(--font-size-sm);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+/* ================================================
+   7. Table Enhancements
+   ================================================ */
+.table-container {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+}
+
+.table th {
+  white-space: nowrap;
+}
+
+.table td {
+  vertical-align: middle;
+}
+
+/* Sortable table headers */
+.table th.is-sortable {
+  cursor: pointer;
+  user-select: none;
+}
+
+.table th.is-sortable:hover {
+  background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* Action buttons in tables */
+.table .buttons {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+}
+
+/* ================================================
+   8. Form Enhancements
+   ================================================ */
+.field {
+  margin-bottom: var(--spacing-md);
+}
+
+.label {
+  font-weight: 600;
+  margin-bottom: var(--spacing-xs);
+}
+
+.input:focus, .textarea:focus, .select select:focus {
+  border-color: var(--bulma-primary);
+  box-shadow: 0 0 0 0.125em rgba(50, 115, 220, 0.25);
+}
+
+/* Form card wrapper */
+.form-card {
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+/* ================================================
+   9. Button Enhancements
+   ================================================ */
+.button {
+  transition: all 0.2s ease;
+}
+
+.button:not(.is-loading):hover {
+  transform: translateY(-1px);
+}
+
+.button:not(.is-loading):active {
+  transform: translateY(0);
+}
+
+/* Button groups */
+.buttons.are-small .button {
+  padding: 0.25em 0.5em;
+}
+
+/* ================================================
+   10. Notification/Alert Styles
+   ================================================ */
+.notification {
+  margin-bottom: var(--spacing-md);
+}
+
+/* Toast notifications container */
+.toast-container {
+  position: fixed;
+  bottom: var(--spacing-lg);
+  right: var(--spacing-lg);
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-sm);
+}
+
+.toast-container .notification {
+  min-width: 300px;
+  margin-bottom: 0;
+}
+
+/* ================================================
+   11. Tags/Badges
+   ================================================ */
+.tag {
+  font-weight: 500;
+}
+
+.tags.has-addons .tag {
+  margin-bottom: 0;
+}
+
+/* Language tags */
+.tag.is-language {
+  font-size: var(--font-size-sm);
+}
+
+/* ================================================
+   12. Modal Enhancements
+   ================================================ */
+.modal-card {
+  max-width: 500px;
+  width: 90vw;
+}
+
+.modal-card-head {
+  background-color: var(--eme-card-bg);
+  border-bottom: 1px solid var(--eme-border);
+}
+
+.modal-card-foot {
+  background-color: var(--eme-card-bg);
+  border-top: 1px solid var(--eme-border);
+}
+
+/* ================================================
+   13. Loading States
+   ================================================ */
+.htmx-request .button,
+.htmx-request.button {
+  pointer-events: none;
+}
+
+.htmx-request .button::after,
+.htmx-request.button::after {
+  animation: spinAround 500ms infinite linear;
+  border: 2px solid #dbdbdb;
+  border-radius: 9999px;
+  border-right-color: transparent;
+  border-top-color: transparent;
+  content: "";
+  display: block;
+  height: 1em;
+  width: 1em;
+  position: absolute;
+}
+
+/* Skeleton loading */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+  border-radius: var(--radius-sm);
+}
+
+@keyframes shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+/* ================================================
+   14. Utility Classes
+   ================================================ */
+
+/* Gap utilities */
+.gap-1 { gap: var(--spacing-xs); }
+.gap-2 { gap: var(--spacing-sm); }
+.gap-3 { gap: var(--spacing-md); }
+.gap-4 { gap: var(--spacing-lg); }
+.gap-5 { gap: var(--spacing-xl); }
+
+/* Truncate text */
+.is-truncated {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Clickable row */
+.is-clickable {
+  cursor: pointer;
+}
+
+.is-clickable:hover {
+  background-color: rgba(0, 0, 0, 0.02);
+}
+
+/* No wrap */
+.is-nowrap {
+  white-space: nowrap;
+}
+
+/* ================================================
+   15. Responsive Adjustments
+   ================================================ */
+@media screen and (max-width: 768px) {
+  .eme-main {
+    padding-top: var(--spacing-md);
+    padding-bottom: var(--spacing-lg);
+  }
+
+  .table-container {
+    margin: 0 calc(-1 * var(--spacing-md));
+  }
+
+  .buttons .button {
+    padding: 0.375em 0.625em;
+  }
+}
+
+/* ================================================
+   16. Print Styles
+   ================================================ */
+@media print {
+  .navbar,
+  .toast-container,
+  .buttons {
+    display: none !important;
+  }
+
+  .box, .card {
+    box-shadow: none;
+    border: 1px solid #ddd;
+  }
+}

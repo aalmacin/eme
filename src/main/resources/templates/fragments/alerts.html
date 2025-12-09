@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Flash Messages (Success/Error) -->
+<div th:fragment="flash-messages">
+    <!-- Success Message -->
+    <div th:if="${successMessage}" class="notification is-success is-light" x-data="{ show: true }" x-show="show" x-transition>
+        <button class="delete" @click="show = false"></button>
+        <span th:text="${successMessage}"></span>
+    </div>
+
+    <!-- Error Message -->
+    <div th:if="${errorMessage}" class="notification is-danger is-light" x-data="{ show: true }" x-show="show" x-transition>
+        <button class="delete" @click="show = false"></button>
+        <span th:text="${errorMessage}"></span>
+    </div>
+
+    <!-- Warning Message -->
+    <div th:if="${warningMessage}" class="notification is-warning is-light" x-data="{ show: true }" x-show="show" x-transition>
+        <button class="delete" @click="show = false"></button>
+        <span th:text="${warningMessage}"></span>
+    </div>
+
+    <!-- Info Message -->
+    <div th:if="${infoMessage}" class="notification is-info is-light" x-data="{ show: true }" x-show="show" x-transition>
+        <button class="delete" @click="show = false"></button>
+        <span th:text="${infoMessage}"></span>
+    </div>
+</div>
+
+<!-- Single Notification -->
+<div th:fragment="notification(type, message)" class="notification" th:classappend="'is-' + ${type} + ' is-light'"
+     x-data="{ show: true }" x-show="show" x-transition>
+    <button class="delete" @click="show = false"></button>
+    <span th:text="${message}"></span>
+</div>
+
+<!-- Alert with Title -->
+<article th:fragment="alert-with-title(type, title, message)" class="message" th:classappend="'is-' + ${type}">
+    <div class="message-header">
+        <p th:text="${title}"></p>
+        <button class="delete" aria-label="delete"></button>
+    </div>
+    <div class="message-body" th:text="${message}"></div>
+</article>
+
+<!-- Empty State -->
+<div th:fragment="empty-state(icon, title, message)" class="has-text-centered py-6">
+    <span class="icon is-large has-text-grey-light">
+        <i class="fas fa-3x" th:classappend="${icon}"></i>
+    </span>
+    <p class="title is-5 has-text-grey mt-4" th:text="${title}"></p>
+    <p class="subtitle is-6 has-text-grey-light" th:text="${message}"></p>
+</div>
+
+<!-- Loading Spinner -->
+<div th:fragment="loading" class="has-text-centered py-6">
+    <span class="icon is-large">
+        <i class="fas fa-spinner fa-pulse fa-2x"></i>
+    </span>
+    <p class="has-text-grey mt-2">Loading...</p>
+</div>
+
+</html>

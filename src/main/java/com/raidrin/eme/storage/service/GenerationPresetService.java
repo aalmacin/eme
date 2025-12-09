@@ -3,6 +3,8 @@ package com.raidrin.eme.storage.service;
 import com.raidrin.eme.storage.entity.GenerationPresetEntity;
 import com.raidrin.eme.storage.repository.GenerationPresetRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +19,10 @@ public class GenerationPresetService {
 
     public List<GenerationPresetEntity> findAll() {
         return presetRepository.findAllOrderByUsageCountAndUpdatedAt();
+    }
+
+    public Page<GenerationPresetEntity> findAll(Pageable pageable) {
+        return presetRepository.findAll(pageable);
     }
 
     public List<GenerationPresetEntity> findAllByCreatedDate() {

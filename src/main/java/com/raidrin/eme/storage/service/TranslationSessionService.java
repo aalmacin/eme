@@ -9,6 +9,8 @@ import com.raidrin.eme.storage.entity.TranslationSessionEntity.SessionStatus;
 import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.repository.TranslationSessionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,8 +61,16 @@ public class TranslationSessionService {
         return sessionRepository.findAllOrderedByCreatedAtDesc();
     }
 
+    public Page<TranslationSessionEntity> findAll(Pageable pageable) {
+        return sessionRepository.findAll(pageable);
+    }
+
     public List<TranslationSessionEntity> findByStatus(SessionStatus status) {
         return sessionRepository.findByStatusOrderByCreatedAtDesc(status);
+    }
+
+    public Page<TranslationSessionEntity> findByStatus(SessionStatus status, Pageable pageable) {
+        return sessionRepository.findByStatus(status, pageable);
     }
 
     public List<TranslationSessionEntity> findRecentSessions(int days) {

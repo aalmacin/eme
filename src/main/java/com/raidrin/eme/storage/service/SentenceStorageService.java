@@ -4,6 +4,8 @@ import com.raidrin.eme.sentence.SentenceData;
 import com.raidrin.eme.storage.entity.SentenceEntity;
 import com.raidrin.eme.storage.repository.SentenceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -73,6 +75,11 @@ public class SentenceStorageService {
         return sentenceRepository.findAll().stream()
                 .map(this::entityToSentenceData)
                 .collect(Collectors.toList());
+    }
+
+    public Page<SentenceData> getAllSentences(Pageable pageable) {
+        return sentenceRepository.findAll(pageable)
+                .map(this::entityToSentenceData);
     }
     
     public Map<String, Object> getStorageInfo() {

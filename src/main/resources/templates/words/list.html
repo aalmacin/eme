@@ -3,323 +3,392 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Words Management</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .page-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        .filter-bar {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .words-table-container {
-            background: white;
-            border-radius: 8px;
-            padding: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .words-table {
-            width: 100%;
-            margin-top: 20px;
-        }
-        .words-table th {
-            background-color: #f8f9fa;
-            position: sticky;
-            top: 0;
-            cursor: pointer;
-            user-select: none;
-        }
-        .words-table th:hover {
-            background-color: #e9ecef;
-        }
-        .words-table th .sort-icon {
-            margin-left: 5px;
-            font-size: 12px;
-            opacity: 0.5;
-        }
-        .words-table th.sorted .sort-icon {
-            opacity: 1;
-        }
-        .words-table tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-        .action-btn {
-            padding: 4px 8px;
-            margin: 0 2px;
-            font-size: 12px;
-        }
-        .word-cell {
-            font-weight: bold;
-            font-size: 16px;
-        }
-        .translation-cell {
-            max-width: 300px;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-        }
-        .language-badge {
-            display: inline-block;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 11px;
-            font-weight: bold;
-            margin: 2px;
-        }
-        .has-image {
-            color: #28a745;
-        }
-        .no-image {
-            color: #6c757d;
-        }
-        .stats-bar {
-            background: white;
-            padding: 15px 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-        .stat-item {
-            text-align: center;
-        }
-        .stat-value {
-            font-size: 24px;
-            font-weight: bold;
-            color: #007bff;
-        }
-        .stat-label {
-            font-size: 12px;
-            color: #6c757d;
-            text-transform: uppercase;
-        }
-    </style>
+    <title>Words Management - EME</title>
+
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- EME Custom Styles -->
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="page-header">
-            <h1>Words Management</h1>
-            <div>
-                <a href="/" class="btn btn-secondary">Home</a>
-                <button onclick="showCreateModal()" class="btn btn-primary">+ Add New Word</button>
+    <!-- Navigation -->
+    <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                    <span class="icon mr-2">
+                        <i class="fas fa-language"></i>
+                    </span>
+                    <span>EME</span>
+                </a>
             </div>
-        </div>
-
-        <!-- Stats Bar -->
-        <div class="stats-bar">
-            <div class="stat-item">
-                <div class="stat-value" id="totalWordsCount">0</div>
-                <div class="stat-label">Total Words</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="filteredWordsCount">0</div>
-                <div class="stat-label">Filtered</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="withImagesCount">0</div>
-                <div class="stat-label">With Images</div>
-            </div>
-            <div class="stat-item">
-                <div class="stat-value" id="languagePairsCount">0</div>
-                <div class="stat-label">Language Pairs</div>
-            </div>
-        </div>
-
-        <!-- Filter Bar -->
-        <div class="filter-bar">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Search</label>
-                    <input type="text" id="searchInput" class="form-control" placeholder="Search word or translation...">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Source Language</label>
-                    <select id="sourceLanguageFilter" class="form-select">
-                        <option value="">All</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Target Language</label>
-                    <select id="targetLanguageFilter" class="form-select">
-                        <option value="">All</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Has Image</label>
-                    <select id="imageFilter" class="form-select">
-                        <option value="">All</option>
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label">Has Translation</label>
-                    <select id="translationFilter" class="form-select">
-                        <option value="">All</option>
-                        <option value="yes">Yes</option>
-                        <option value="no">No</option>
-                    </select>
-                </div>
-                <div class="col-md-1">
-                    <label class="form-label">&nbsp;</label>
-                    <button onclick="clearFilters()" class="btn btn-outline-secondary w-100">Clear</button>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" th:href="@{/}">Home</a>
+                    <a class="navbar-item is-active" th:href="@{/words}">Words</a>
+                    <a class="navbar-item" th:href="@{/translations}">Translations</a>
+                    <a class="navbar-item" th:href="@{/sentences}">Sentences</a>
+                    <a class="navbar-item" th:href="@{/character-guide}">Characters</a>
                 </div>
             </div>
         </div>
+    </nav>
 
-        <!-- Words Table -->
-        <div class="words-table-container">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5>All Words</h5>
-                <div>
-                    <button onclick="exportToCSV()" class="btn btn-sm btn-outline-primary">Export CSV</button>
+    <!-- Main Content -->
+    <main class="eme-main">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title">Words Management</h1>
+                            <p class="subtitle has-text-grey">Manage your vocabulary words</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <div class="buttons">
+                            <a th:href="@{/}" class="button is-light">
+                                <span class="icon"><i class="fas fa-home"></i></span>
+                                <span>Home</span>
+                            </a>
+                            <button onclick="showCreateModal()" class="button is-primary">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>Add New Word</span>
+                            </button>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <table class="table table-hover words-table">
-                <thead>
-                    <tr>
-                        <th onclick="sortTable('id')" style="width: 80px;">
-                            ID <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable('word')" style="width: 200px;">
-                            Word <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable('sourceLanguage')" style="width: 120px;">
-                            Source <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable('targetLanguage')" style="width: 120px;">
-                            Target <span class="sort-icon">↕</span>
-                        </th>
-                        <th style="width: 250px;">Translation</th>
-                        <th style="width: 150px;">Transliteration</th>
-                        <th onclick="sortTable('hasImage')" style="width: 80px;" class="text-center">
-                            Image <span class="sort-icon">↕</span>
-                        </th>
-                        <th onclick="sortTable('createdAt')" style="width: 140px;">
-                            Created <span class="sort-icon">↕</span>
-                        </th>
-                        <th style="width: 200px;">Actions</th>
-                    </tr>
-                </thead>
-                <tbody id="wordsTableBody">
-                    <tr>
-                        <td colspan="9" class="text-center">Loading...</td>
-                    </tr>
-                </tbody>
-            </table>
+            <!-- Stats Bar -->
+            <div class="columns is-multiline mb-5">
+                <div class="column is-3">
+                    <div class="box stat-card">
+                        <span class="icon is-large has-text-primary">
+                            <i class="fas fa-2x fa-book"></i>
+                        </span>
+                        <p class="stat-value has-text-primary" id="totalWordsCount">0</p>
+                        <p class="stat-label">Total Words</p>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="box stat-card">
+                        <span class="icon is-large has-text-info">
+                            <i class="fas fa-2x fa-filter"></i>
+                        </span>
+                        <p class="stat-value has-text-info" id="filteredWordsCount">0</p>
+                        <p class="stat-label">Filtered</p>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="box stat-card">
+                        <span class="icon is-large has-text-success">
+                            <i class="fas fa-2x fa-image"></i>
+                        </span>
+                        <p class="stat-value has-text-success" id="withImagesCount">0</p>
+                        <p class="stat-label">With Images</p>
+                    </div>
+                </div>
+                <div class="column is-3">
+                    <div class="box stat-card">
+                        <span class="icon is-large has-text-warning">
+                            <i class="fas fa-2x fa-globe"></i>
+                        </span>
+                        <p class="stat-value has-text-warning" id="languagePairsCount">0</p>
+                        <p class="stat-label">Language Pairs</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filter Bar -->
+            <div class="box mb-5">
+                <div class="columns is-multiline is-vcentered">
+                    <div class="column is-3">
+                        <div class="field">
+                            <label class="label is-small">Search</label>
+                            <div class="control has-icons-left">
+                                <input type="text" id="searchInput" class="input" placeholder="Search word or translation...">
+                                <span class="icon is-small is-left">
+                                    <i class="fas fa-search"></i>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-2">
+                        <div class="field">
+                            <label class="label is-small">Source Language</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="sourceLanguageFilter">
+                                        <option value="">All</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-2">
+                        <div class="field">
+                            <label class="label is-small">Target Language</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="targetLanguageFilter">
+                                        <option value="">All</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-2">
+                        <div class="field">
+                            <label class="label is-small">Has Image</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="imageFilter">
+                                        <option value="">All</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-2">
+                        <div class="field">
+                            <label class="label is-small">Has Translation</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="translationFilter">
+                                        <option value="">All</option>
+                                        <option value="yes">Yes</option>
+                                        <option value="no">No</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column is-1">
+                        <div class="field">
+                            <label class="label is-small">&nbsp;</label>
+                            <div class="control">
+                                <button onclick="clearFilters()" class="button is-light is-fullwidth" title="Clear Filters">
+                                    <span class="icon"><i class="fas fa-times"></i></span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Words Table -->
+            <div class="box">
+                <div class="level mb-4">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <h2 class="title is-5 mb-0">All Words</h2>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <button onclick="exportToCSV()" class="button is-small is-outlined is-primary">
+                                <span class="icon"><i class="fas fa-download"></i></span>
+                                <span>Export CSV</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th onclick="sortTable('id')" class="is-sortable" style="width: 60px;">
+                                    ID <span class="icon is-small sort-icon"><i class="fas fa-sort"></i></span>
+                                </th>
+                                <th onclick="sortTable('word')" class="is-sortable" style="width: 180px;">
+                                    Word <span class="icon is-small sort-icon"><i class="fas fa-sort"></i></span>
+                                </th>
+                                <th onclick="sortTable('sourceLanguage')" class="is-sortable" style="width: 100px;">
+                                    Source <span class="icon is-small sort-icon"><i class="fas fa-sort"></i></span>
+                                </th>
+                                <th onclick="sortTable('targetLanguage')" class="is-sortable" style="width: 100px;">
+                                    Target <span class="icon is-small sort-icon"><i class="fas fa-sort"></i></span>
+                                </th>
+                                <th style="width: 220px;">Translation</th>
+                                <th style="width: 140px;">Transliteration</th>
+                                <th onclick="sortTable('hasImage')" class="is-sortable has-text-centered" style="width: 70px;">
+                                    Image <span class="icon is-small sort-icon"><i class="fas fa-sort"></i></span>
+                                </th>
+                                <th onclick="sortTable('createdAt')" class="is-sortable" style="width: 130px;">
+                                    Created <span class="icon is-small sort-icon"><i class="fas fa-sort"></i></span>
+                                </th>
+                                <th style="width: 160px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="wordsTableBody">
+                            <tr>
+                                <td colspan="9" class="has-text-centered py-5">
+                                    <span class="icon"><i class="fas fa-spinner fa-pulse"></i></span>
+                                    <span>Loading...</span>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
         </div>
-    </div>
+    </main>
 
     <!-- Create/Edit Word Modal -->
-    <div id="wordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; margin: 50px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <h3 style="margin-top: 0;" id="modalTitle">Add New Word</h3>
-
-            <div class="mb-3">
-                <label class="form-label">Word *</label>
-                <input type="text" id="modalWord" class="form-control" placeholder="Enter word">
-            </div>
-
-            <div class="row mb-3">
-                <div class="col-md-6">
-                    <label class="form-label">Source Language *</label>
-                    <select id="modalSourceLanguage" class="form-select">
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                        <option value="cafr">Canadian French</option>
-                        <option value="kr">Korean</option>
-                        <option value="jp">Japanese</option>
-                        <option value="hi">Hindi</option>
-                        <option value="pa">Punjabi</option>
-                        <option value="tl">Tagalog</option>
-                    </select>
-                </div>
-                <div class="col-md-6">
-                    <label class="form-label">Target Language *</label>
-                    <select id="modalTargetLanguage" class="form-select">
-                        <option value="en">English</option>
-                        <option value="es">Spanish</option>
-                        <option value="fr">French</option>
-                        <option value="cafr">Canadian French</option>
-                        <option value="kr">Korean</option>
-                        <option value="jp">Japanese</option>
-                        <option value="hi">Hindi</option>
-                        <option value="pa">Punjabi</option>
-                        <option value="tl">Tagalog</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Translation (comma-separated)</label>
-                <input type="text" id="modalTranslation" class="form-control" placeholder="translation1, translation2">
-            </div>
-
-            <div class="mb-3">
-                <label class="form-label">Transliteration</label>
-                <input type="text" id="modalTransliteration" class="form-control" placeholder="Enter transliteration">
-            </div>
-
-            <div id="editOnlyFields" style="display: none;">
-                <div class="mb-3">
-                    <label class="form-label">Mnemonic Keyword</label>
-                    <input type="text" id="modalMnemonicKeyword" class="form-control">
+    <div id="wordModal" class="modal" x-data="{ open: false }">
+        <div class="modal-background" onclick="closeWordModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" id="modalTitle">Add New Word</p>
+                <button class="delete" aria-label="close" onclick="closeWordModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <div class="field">
+                    <label class="label">Word *</label>
+                    <div class="control has-icons-left">
+                        <input type="text" id="modalWord" class="input" placeholder="Enter word">
+                        <span class="icon is-small is-left">
+                            <i class="fas fa-language"></i>
+                        </span>
+                    </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Mnemonic Sentence</label>
-                    <textarea id="modalMnemonicSentence" class="form-control" rows="3"></textarea>
+                <div class="columns">
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Source Language *</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="modalSourceLanguage">
+                                        <option value="en">English</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="fr">French</option>
+                                        <option value="cafr">Canadian French</option>
+                                        <option value="kr">Korean</option>
+                                        <option value="jp">Japanese</option>
+                                        <option value="hi">Hindi</option>
+                                        <option value="pa">Punjabi</option>
+                                        <option value="tl">Tagalog</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="column">
+                        <div class="field">
+                            <label class="label">Target Language *</label>
+                            <div class="control">
+                                <div class="select is-fullwidth">
+                                    <select id="modalTargetLanguage">
+                                        <option value="en">English</option>
+                                        <option value="es">Spanish</option>
+                                        <option value="fr">French</option>
+                                        <option value="cafr">Canadian French</option>
+                                        <option value="kr">Korean</option>
+                                        <option value="jp">Japanese</option>
+                                        <option value="hi">Hindi</option>
+                                        <option value="pa">Punjabi</option>
+                                        <option value="tl">Tagalog</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="mb-3">
-                    <label class="form-label">Image Prompt</label>
-                    <textarea id="modalImagePrompt" class="form-control" rows="3"></textarea>
+                <div class="field">
+                    <label class="label">Translation (comma-separated)</label>
+                    <div class="control">
+                        <input type="text" id="modalTranslation" class="input" placeholder="translation1, translation2">
+                    </div>
                 </div>
-            </div>
 
-            <div id="modalStatus" class="alert" style="display: none;"></div>
+                <div class="field">
+                    <label class="label">Transliteration</label>
+                    <div class="control">
+                        <input type="text" id="modalTransliteration" class="input" placeholder="Enter transliteration">
+                    </div>
+                </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 20px;">
-                <button onclick="closeWordModal()" class="btn btn-secondary">Cancel</button>
-                <button onclick="saveWord()" class="btn btn-primary" id="saveWordBtn">Save</button>
-            </div>
+                <div id="editOnlyFields" style="display: none;">
+                    <hr>
+                    <div class="field">
+                        <label class="label">Mnemonic Keyword</label>
+                        <div class="control">
+                            <input type="text" id="modalMnemonicKeyword" class="input">
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Mnemonic Sentence</label>
+                        <div class="control">
+                            <textarea id="modalMnemonicSentence" class="textarea" rows="3"></textarea>
+                        </div>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Image Prompt</label>
+                        <div class="control">
+                            <textarea id="modalImagePrompt" class="textarea" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="modalStatus" class="notification" style="display: none;"></div>
+            </section>
+            <footer class="modal-card-foot">
+                <div class="buttons">
+                    <button onclick="saveWord()" class="button is-primary" id="saveWordBtn">
+                        <span class="icon"><i class="fas fa-check"></i></span>
+                        <span>Save</span>
+                    </button>
+                    <button onclick="closeWordModal()" class="button">Cancel</button>
+                </div>
+            </footer>
         </div>
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div id="deleteModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1001; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 500px; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <h4 style="margin-top: 0;">Confirm Delete</h4>
-            <p id="deleteMessage">Are you sure you want to delete this word?</p>
-            <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
-                <button onclick="closeDeleteModal()" class="btn btn-secondary">Cancel</button>
-                <button onclick="confirmDelete()" class="btn btn-danger" id="confirmDeleteBtn">Delete</button>
-            </div>
+    <div id="deleteModal" class="modal">
+        <div class="modal-background" onclick="closeDeleteModal()"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Confirm Delete</p>
+                <button class="delete" aria-label="close" onclick="closeDeleteModal()"></button>
+            </header>
+            <section class="modal-card-body">
+                <p id="deleteMessage">Are you sure you want to delete this word?</p>
+                <p class="has-text-danger mt-3">
+                    <span class="icon"><i class="fas fa-exclamation-triangle"></i></span>
+                    This action cannot be undone.
+                </p>
+            </section>
+            <footer class="modal-card-foot">
+                <div class="buttons">
+                    <button onclick="confirmDelete()" class="button is-danger" id="confirmDeleteBtn">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                        <span>Delete</span>
+                    </button>
+                    <button onclick="closeDeleteModal()" class="button">Cancel</button>
+                </div>
+            </footer>
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
         let allWords = [];
         let filteredWords = [];
@@ -513,21 +582,21 @@
             });
 
             // Update sort indicators
-            document.querySelectorAll('.words-table th').forEach(th => {
-                th.classList.remove('sorted');
-                const icon = th.querySelector('.sort-icon');
+            document.querySelectorAll('.is-sortable').forEach(th => {
+                th.classList.remove('is-sorted');
+                const icon = th.querySelector('.sort-icon i');
                 if (icon) {
-                    icon.textContent = '↕';
+                    icon.className = 'fas fa-sort';
                 }
             });
 
-            const sortedTh = Array.from(document.querySelectorAll('.words-table th'))
-                .find(th => th.textContent.toLowerCase().includes(currentSort.field.toLowerCase()));
+            const sortedTh = Array.from(document.querySelectorAll('.is-sortable'))
+                .find(th => th.textContent.toLowerCase().includes(currentSort.field.toLowerCase().replace('hasiImage', 'image')));
             if (sortedTh) {
-                sortedTh.classList.add('sorted');
-                const icon = sortedTh.querySelector('.sort-icon');
+                sortedTh.classList.add('is-sorted');
+                const icon = sortedTh.querySelector('.sort-icon i');
                 if (icon) {
-                    icon.textContent = currentSort.direction === 'asc' ? '↑' : '↓';
+                    icon.className = currentSort.direction === 'asc' ? 'fas fa-sort-up' : 'fas fa-sort-down';
                 }
             }
         }
@@ -536,30 +605,50 @@
             const tbody = document.getElementById('wordsTableBody');
 
             if (filteredWords.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="9" class="text-center">No words found</td></tr>';
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="9" class="has-text-centered py-6">
+                            <span class="icon is-large has-text-grey-light">
+                                <i class="fas fa-3x fa-inbox"></i>
+                            </span>
+                            <p class="has-text-grey mt-3">No words found</p>
+                        </td>
+                    </tr>
+                `;
                 return;
             }
 
             tbody.innerHTML = filteredWords.map(word => {
                 const translations = word.translation ? parseTranslations(word.translation) : [];
                 const translationText = translations.join(', ');
-                const hasImage = word.imageFile ? 'has-image' : 'no-image';
-                const imageIcon = word.imageFile ? '✓' : '✗';
 
                 return `
                     <tr>
                         <td>${word.id}</td>
-                        <td class="word-cell">${escapeHtml(word.word)}</td>
-                        <td><span class="language-badge bg-primary text-white">${languageNames[word.sourceLanguage] || word.sourceLanguage}</span></td>
-                        <td><span class="language-badge bg-success text-white">${languageNames[word.targetLanguage] || word.targetLanguage}</span></td>
-                        <td class="translation-cell" title="${escapeHtml(translationText)}">${escapeHtml(translationText) || '-'}</td>
-                        <td>${escapeHtml(word.sourceTransliteration) || '-'}</td>
-                        <td class="text-center ${hasImage}">${imageIcon}</td>
-                        <td>${formatDate(word.createdAt)}</td>
+                        <td><strong>${escapeHtml(word.word)}</strong></td>
+                        <td><span class="tag is-primary is-light">${languageNames[word.sourceLanguage] || word.sourceLanguage}</span></td>
+                        <td><span class="tag is-success is-light">${languageNames[word.targetLanguage] || word.targetLanguage}</span></td>
+                        <td class="is-truncated" style="max-width: 200px;" title="${escapeHtml(translationText)}">${escapeHtml(translationText) || '<span class="has-text-grey">-</span>'}</td>
+                        <td>${escapeHtml(word.sourceTransliteration) || '<span class="has-text-grey">-</span>'}</td>
+                        <td class="has-text-centered">
+                            ${word.imageFile
+                                ? '<span class="icon has-text-success"><i class="fas fa-check-circle"></i></span>'
+                                : '<span class="icon has-text-grey-light"><i class="fas fa-times-circle"></i></span>'
+                            }
+                        </td>
+                        <td class="is-size-7">${formatDate(word.createdAt)}</td>
                         <td>
-                            <a href="/words/${word.id}" class="btn btn-sm btn-info action-btn" title="View Details">View</a>
-                            <button onclick="showEditModal(${word.id})" class="btn btn-sm btn-primary action-btn" title="Edit">Edit</button>
-                            <button onclick="showDeleteModal(${word.id}, '${escapeHtml(word.word)}')" class="btn btn-sm btn-danger action-btn" title="Delete">Delete</button>
+                            <div class="buttons are-small">
+                                <a href="/words/${word.id}" class="button is-info is-outlined" title="View Details">
+                                    <span class="icon"><i class="fas fa-eye"></i></span>
+                                </a>
+                                <button onclick="showEditModal(${word.id})" class="button is-warning is-outlined" title="Edit">
+                                    <span class="icon"><i class="fas fa-edit"></i></span>
+                                </button>
+                                <button onclick="showDeleteModal(${word.id}, '${escapeHtml(word.word)}')" class="button is-danger is-outlined" title="Delete">
+                                    <span class="icon"><i class="fas fa-trash"></i></span>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -612,7 +701,7 @@
             document.getElementById('modalTransliteration').value = '';
             document.getElementById('editOnlyFields').style.display = 'none';
             document.getElementById('modalStatus').style.display = 'none';
-            document.getElementById('wordModal').style.display = 'block';
+            document.getElementById('wordModal').classList.add('is-active');
         }
 
         function showEditModal(wordId) {
@@ -638,11 +727,11 @@
             document.getElementById('modalImagePrompt').value = word.imagePrompt || '';
 
             document.getElementById('modalStatus').style.display = 'none';
-            document.getElementById('wordModal').style.display = 'block';
+            document.getElementById('wordModal').classList.add('is-active');
         }
 
         function closeWordModal() {
-            document.getElementById('wordModal').style.display = 'none';
+            document.getElementById('wordModal').classList.remove('is-active');
             currentWordId = null;
         }
 
@@ -665,7 +754,7 @@
 
             const saveBtn = document.getElementById('saveWordBtn');
             saveBtn.disabled = true;
-            saveBtn.textContent = 'Saving...';
+            saveBtn.classList.add('is-loading');
 
             try {
                 const requestBody = {
@@ -710,33 +799,33 @@
                 showModalError('An error occurred while saving');
             } finally {
                 saveBtn.disabled = false;
-                saveBtn.textContent = 'Save';
+                saveBtn.classList.remove('is-loading');
             }
         }
 
         function showModalError(message) {
             const statusEl = document.getElementById('modalStatus');
-            statusEl.className = 'alert alert-danger';
-            statusEl.textContent = message;
+            statusEl.className = 'notification is-danger is-light';
+            statusEl.innerHTML = `<button class="delete" onclick="this.parentElement.style.display='none'"></button>${message}`;
             statusEl.style.display = 'block';
         }
 
         function showModalSuccess(message) {
             const statusEl = document.getElementById('modalStatus');
-            statusEl.className = 'alert alert-success';
-            statusEl.textContent = message;
+            statusEl.className = 'notification is-success is-light';
+            statusEl.innerHTML = `<button class="delete" onclick="this.parentElement.style.display='none'"></button>${message}`;
             statusEl.style.display = 'block';
         }
 
         function showDeleteModal(wordId, word) {
             deleteWordId = wordId;
-            document.getElementById('deleteMessage').textContent =
-                `Are you sure you want to delete the word "${word}"? This action cannot be undone.`;
-            document.getElementById('deleteModal').style.display = 'flex';
+            document.getElementById('deleteMessage').innerHTML =
+                `Are you sure you want to delete the word "<strong>${escapeHtml(word)}</strong>"?`;
+            document.getElementById('deleteModal').classList.add('is-active');
         }
 
         function closeDeleteModal() {
-            document.getElementById('deleteModal').style.display = 'none';
+            document.getElementById('deleteModal').classList.remove('is-active');
             deleteWordId = null;
         }
 
@@ -745,7 +834,7 @@
 
             const confirmBtn = document.getElementById('confirmDeleteBtn');
             confirmBtn.disabled = true;
-            confirmBtn.textContent = 'Deleting...';
+            confirmBtn.classList.add('is-loading');
 
             try {
                 const response = await fetch(`/api/words/${deleteWordId}`, {
@@ -766,7 +855,7 @@
                 showError('An error occurred while deleting');
             } finally {
                 confirmBtn.disabled = false;
-                confirmBtn.textContent = 'Delete';
+                confirmBtn.classList.remove('is-loading');
             }
         }
 
@@ -810,10 +899,11 @@
             document.body.removeChild(link);
         }
 
-        // Close modals on background click
-        document.getElementById('wordModal').addEventListener('click', function(e) {
-            if (e.target === this) {
+        // Close modals on Escape key
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
                 closeWordModal();
+                closeDeleteModal();
             }
         });
     </script>

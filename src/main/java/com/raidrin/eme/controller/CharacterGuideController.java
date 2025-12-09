@@ -3,6 +3,10 @@ package com.raidrin.eme.controller;
 import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.service.CharacterGuideService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -19,14 +23,22 @@ public class CharacterGuideController {
     private final CharacterGuideService characterGuideService;
 
     @GetMapping
-    public String listCharacters(Model model, @RequestParam(required = false) String language) {
-        List<CharacterGuideEntity> characters;
+    public String listCharacters(
+            @RequestParam(required = false) String language,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Model model) {
         if (language != null && !language.trim().isEmpty()) {
-            characters = characterGuideService.findByLanguage(language);
+            // For filtered results, keep using the non-paginated version for now
+            List<CharacterGuideEntity> characters = characterGuideService.findByLanguage(language);
+            model.addAttribute("characters", characters);
+            model.addAttribute("selectedLanguage", language);
         } else {
-            characters = characterGuideService.findAll();
+            Pageable pageable = PageRequest.of(page, size, Sort.by("language").ascending().and(Sort.by("startSound").ascending()));
+            Page<CharacterGuideEntity> characterPage = characterGuideService.findAll(pageable);
+            model.addAttribute("characters", characterPage.getContent());
+            model.addAttribute("page", characterPage);
         }
-        model.addAttribute("characters", characters);
         model.addAttribute("selectedLanguage", language);
         return "character-guide/list";
     }

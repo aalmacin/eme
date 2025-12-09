@@ -1,5 +1,6 @@
 package com.raidrin.eme.storage.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +21,7 @@ public class WordImageEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "word_id", nullable = false)
+    @JsonIgnore
     private WordEntity word;
 
     @Column(name = "image_file", columnDefinition = "TEXT")

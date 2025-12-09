@@ -1,13 +1,69 @@
 <!DOCTYPE html>
-<html lang="en">
+<html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Title</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Generated Audio - EME</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
 </head>
 <body>
-Generated audio file:
-<h1 th:text="${text}"></h1>
-<p th:text="${lang}"></p>
-<p th:text="${multiMP3}"></p>
+    <nav class="navbar is-primary" role="navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                    <span class="icon mr-2"><i class="fas fa-language"></i></span>
+                    <span>EME</span>
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" th:href="@{/}">Home</a>
+                    <a class="navbar-item" th:href="@{/words}">Words</a>
+                    <a class="navbar-item" th:href="@{/translations}">Translations</a>
+                    <a class="navbar-item" th:href="@{/sentences}">Sentences</a>
+                    <a class="navbar-item" th:href="@{/character-guide}">Characters</a>
+                    <a class="navbar-item" th:href="@{/sessions}">Sessions</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="eme-main">
+        <div class="container">
+            <div class="box">
+                <h1 class="title is-4">
+                    <span class="icon mr-2"><i class="fas fa-file-audio"></i></span>
+                    Generated Audio File
+                </h1>
+
+                <div class="content">
+                    <div class="field">
+                        <label class="label">Text</label>
+                        <p class="is-size-4 has-text-weight-bold" th:text="${text}"></p>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Language</label>
+                        <p th:text="${lang}"></p>
+                    </div>
+
+                    <div class="field">
+                        <label class="label">Audio File</label>
+                        <p th:text="${multiMP3}"></p>
+                    </div>
+                </div>
+
+                <div class="buttons mt-5">
+                    <a th:href="@{/}" class="button is-primary">
+                        <span class="icon"><i class="fas fa-home"></i></span>
+                        <span>Back to Home</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </main>
 </body>
 </html>

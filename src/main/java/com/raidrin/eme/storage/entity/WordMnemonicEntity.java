@@ -1,5 +1,6 @@
 package com.raidrin.eme.storage.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -20,6 +21,7 @@ public class WordMnemonicEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "word_id", nullable = false)
+    @JsonIgnore
     private WordEntity word;
 
     @Column(name = "mnemonic_keyword", columnDefinition = "TEXT")
@@ -30,6 +32,7 @@ public class WordMnemonicEntity {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "character_guide_id")
+    @JsonIgnore
     private CharacterGuideEntity characterGuide;
 
     @Column(name = "is_current", nullable = false)

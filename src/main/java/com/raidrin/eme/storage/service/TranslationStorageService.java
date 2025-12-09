@@ -7,6 +7,8 @@ import com.raidrin.eme.storage.entity.TranslationEntity;
 import com.raidrin.eme.storage.repository.TranslationRepository;
 import com.raidrin.eme.translator.TranslationData;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -79,6 +81,11 @@ public class TranslationStorageService {
         return translationRepository.findAll().stream()
                 .map(this::entityToTranslationData)
                 .collect(Collectors.toList());
+    }
+
+    public Page<TranslationData> getAllTranslations(Pageable pageable) {
+        return translationRepository.findAll(pageable)
+                .map(this::entityToTranslationData);
     }
     
     public Map<String, Object> getStorageInfo() {

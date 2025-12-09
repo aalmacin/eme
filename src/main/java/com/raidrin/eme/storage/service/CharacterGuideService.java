@@ -3,6 +3,8 @@ package com.raidrin.eme.storage.service;
 import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.repository.CharacterGuideRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +33,10 @@ public class CharacterGuideService {
 
     public List<CharacterGuideEntity> findAll() {
         return characterGuideRepository.findAllOrderedByLanguageAndSound();
+    }
+
+    public Page<CharacterGuideEntity> findAll(Pageable pageable) {
+        return characterGuideRepository.findAll(pageable);
     }
 
     @Transactional

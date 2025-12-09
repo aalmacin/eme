@@ -2,211 +2,208 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Translation Sessions - Eme</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Translation Sessions - EME</title>
+
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- EME Custom Styles -->
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1400px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .nav-links {
-            margin-bottom: 20px;
-        }
-        .nav-links a {
-            margin-right: 15px;
-            text-decoration: none;
-            color: #007bff;
-        }
-        .nav-links a:hover {
-            text-decoration: underline;
-        }
-        .btn {
-            display: inline-block;
-            padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-        .btn-success {
-            background-color: #28a745;
-        }
-        .btn-success:hover {
-            background-color: #218838;
-        }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .table th, .table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        .table tr:hover {
-            background-color: #f8f9fa;
-        }
-        .alert {
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-            background: white;
-            border-radius: 8px;
-        }
-        .filter-bar {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .filter-bar select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
-        .status-badge {
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 12px;
-            font-weight: bold;
-        }
-        .status-pending {
-            background-color: #ffc107;
-            color: #000;
-        }
-        .status-in-progress {
-            background-color: #17a2b8;
-            color: #fff;
-        }
-        .status-completed {
-            background-color: #28a745;
-            color: #fff;
-        }
-        .status-failed {
-            background-color: #dc3545;
-            color: #fff;
-        }
+        .status-tag.is-pending { background-color: #ffe08a; color: #000; }
+        .status-tag.is-in_progress { background-color: #3e8ed0; color: #fff; }
+        .status-tag.is-completed { background-color: #48c78e; color: #fff; }
+        .status-tag.is-failed { background-color: #f14668; color: #fff; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Translation Sessions</h1>
-        <p>View and download assets from your translation sessions</p>
-        <div class="nav-links">
-            <a href="/">← Back to Home</a>
-            <a href="/words">📖 Words Library</a>
-            <a href="/translations">📚 Translations</a>
-            <a href="/sentences">📝 Sentences</a>
-            <a href="/character-guide">🎭 Character Guide</a>
-            <a href="/anki-formats">🎴 Anki Card Formats</a>
+    <!-- Navigation -->
+    <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                    <span class="icon mr-2">
+                        <i class="fas fa-language"></i>
+                    </span>
+                    <span>EME</span>
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" th:href="@{/}">Home</a>
+                    <a class="navbar-item" th:href="@{/words}">Words</a>
+                    <a class="navbar-item" th:href="@{/translations}">Translations</a>
+                    <a class="navbar-item" th:href="@{/sentences}">Sentences</a>
+                    <a class="navbar-item" th:href="@{/character-guide}">Characters</a>
+                    <a class="navbar-item is-active" th:href="@{/sessions}">Sessions</a>
+                </div>
+            </div>
         </div>
-    </div>
+    </nav>
 
-    <!-- Flash Messages -->
-    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+    <!-- Main Content -->
+    <main class="eme-main">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title">Translation Sessions</h1>
+                            <p class="subtitle has-text-grey">View and download assets from your translation sessions</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <a th:href="@{/}" class="button is-light">
+                            <span class="icon"><i class="fas fa-home"></i></span>
+                            <span>Home</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
 
-    <div class="filter-bar">
-        <form method="get" action="/sessions" style="display: inline;">
-            <label for="status">Filter by Status:</label>
-            <select name="status" id="status" onchange="this.form.submit()">
-                <option value="">All Statuses</option>
-                <option value="pending" th:selected="${selectedStatus == 'pending'}">Pending</option>
-                <option value="in_progress" th:selected="${selectedStatus == 'in_progress'}">In Progress</option>
-                <option value="completed" th:selected="${selectedStatus == 'completed'}">Completed</option>
-                <option value="failed" th:selected="${selectedStatus == 'failed'}">Failed</option>
-            </select>
-        </form>
-        <form method="post" action="/sessions/fix-stuck-sessions" style="display: inline; margin-left: 20px;">
-            <button type="submit" class="btn" onclick="return confirm('Fix all stuck IN_PROGRESS sessions?')">Fix Stuck Sessions</button>
-        </form>
-    </div>
+            <!-- Flash Messages -->
+            <div th:if="${error}" class="notification is-danger is-light" x-data="{ show: true }" x-show="show" x-transition>
+                <button class="delete" @click="show = false"></button>
+                <span th:text="${error}"></span>
+            </div>
 
-    <div th:if="${#lists.isEmpty(sessions)}" class="empty-state">
-        <h3>No translation sessions found</h3>
-        <p>Sessions will appear here when you generate images for your translations.</p>
-        <a href="/" class="btn btn-success">Go to Main Page</a>
-    </div>
+            <!-- Filter Bar -->
+            <div class="box mb-5">
+                <div class="columns is-vcentered">
+                    <div class="column is-narrow">
+                        <form method="get" action="/sessions" class="field has-addons">
+                            <div class="control">
+                                <label class="label is-small">Filter by Status</label>
+                                <div class="select">
+                                    <select name="status" id="status" onchange="this.form.submit()">
+                                        <option value="">All Statuses</option>
+                                        <option value="pending" th:selected="${selectedStatus == 'pending'}">Pending</option>
+                                        <option value="in_progress" th:selected="${selectedStatus == 'in_progress'}">In Progress</option>
+                                        <option value="completed" th:selected="${selectedStatus == 'completed'}">Completed</option>
+                                        <option value="failed" th:selected="${selectedStatus == 'failed'}">Failed</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="column">
+                        <form method="post" action="/sessions/fix-stuck-sessions" class="is-pulled-right">
+                            <button type="submit" class="button is-warning is-outlined"
+                                    onclick="return confirm('Fix all stuck IN_PROGRESS sessions?')">
+                                <span class="icon"><i class="fas fa-wrench"></i></span>
+                                <span>Fix Stuck Sessions</span>
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
 
-    <table th:if="${!#lists.isEmpty(sessions)}" class="table">
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Word</th>
-                <th>Languages</th>
-                <th>Status</th>
-                <th>Image Gen</th>
-                <th>Audio Gen</th>
-                <th>Created</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="translationSession : ${sessions}">
-                <td th:text="${translationSession.id}"></td>
-                <td>
-                    <strong th:text="${translationSession.word}"></strong>
-                    <span th:if="${transliterations.containsKey(translationSession.id)}"
-                          th:text="' (' + ${transliterations.get(translationSession.id)} + ')'"
-                          style="font-size: 12px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 4px;"></span>
-                </td>
-                <td th:text="${translationSession.sourceLanguage} + ' → ' + ${translationSession.targetLanguage}"></td>
-                <td>
-                    <span th:class="'status-badge status-' + ${#strings.toLowerCase(translationSession.status)}"
-                          th:text="${translationSession.status}"></span>
-                </td>
-                <td th:text="${translationSession.imageGenerationEnabled ? 'Yes' : 'No'}"></td>
-                <td th:text="${translationSession.audioGenerationEnabled ? 'Yes' : 'No'}"></td>
-                <td th:text="${#temporals.format(translationSession.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
-                <td>
-                    <a th:href="@{/sessions/{id}(id=${translationSession.id})}" class="btn">View</a>
-                    <a th:if="${translationSession.status.name() == 'COMPLETED'}"
-                       th:href="@{/sessions/{id}/download(id=${translationSession.id})}"
-                       class="btn btn-success">Download</a>
-                    <form th:if="${translationSession.status.name() == 'PENDING' || translationSession.status.name() == 'IN_PROGRESS'}"
-                          th:action="@{/sessions/{id}/cancel(id=${translationSession.id})}"
-                          method="post"
-                          style="display: inline;"
-                          onsubmit="return confirm('Are you sure you want to cancel this session?');">
-                        <button type="submit" class="btn" style="background-color: #dc3545;">Cancel</button>
-                    </form>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+            <!-- Empty State -->
+            <div th:if="${#lists.isEmpty(sessions)}" class="box has-text-centered py-6">
+                <span class="icon is-large has-text-grey-light">
+                    <i class="fas fa-3x fa-clock"></i>
+                </span>
+                <p class="title is-5 has-text-grey mt-4">No translation sessions found</p>
+                <p class="subtitle is-6 has-text-grey-light">Sessions will appear here when you generate images for your translations.</p>
+                <a th:href="@{/}" class="button is-primary mt-3">
+                    <span class="icon"><i class="fas fa-magic"></i></span>
+                    <span>Go to Main Page</span>
+                </a>
+            </div>
+
+            <!-- Sessions Table -->
+            <div th:if="${!#lists.isEmpty(sessions)}" class="box">
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th style="width: 60px;">ID</th>
+                                <th>Word</th>
+                                <th>Languages</th>
+                                <th>Status</th>
+                                <th class="has-text-centered">Image Gen</th>
+                                <th class="has-text-centered">Audio Gen</th>
+                                <th>Created</th>
+                                <th style="width: 200px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="translationSession : ${sessions}">
+                                <td th:text="${translationSession.id}"></td>
+                                <td>
+                                    <strong th:text="${translationSession.word}"></strong>
+                                    <span th:if="${transliterations.containsKey(translationSession.id)}"
+                                          class="has-text-link is-size-7 is-italic ml-1"
+                                          th:text="'(' + ${transliterations.get(translationSession.id)} + ')'"></span>
+                                </td>
+                                <td>
+                                    <span class="tag is-primary is-light" th:text="${translationSession.sourceLanguage}"></span>
+                                    <span class="icon has-text-grey is-small"><i class="fas fa-arrow-right"></i></span>
+                                    <span class="tag is-success is-light" th:text="${translationSession.targetLanguage}"></span>
+                                </td>
+                                <td>
+                                    <span class="tag status-tag"
+                                          th:classappend="'is-' + ${#strings.toLowerCase(translationSession.status)}"
+                                          th:text="${translationSession.status}"></span>
+                                </td>
+                                <td class="has-text-centered">
+                                    <span th:if="${translationSession.imageGenerationEnabled}" class="icon has-text-success">
+                                        <i class="fas fa-check-circle"></i>
+                                    </span>
+                                    <span th:unless="${translationSession.imageGenerationEnabled}" class="icon has-text-grey-light">
+                                        <i class="fas fa-times-circle"></i>
+                                    </span>
+                                </td>
+                                <td class="has-text-centered">
+                                    <span th:if="${translationSession.audioGenerationEnabled}" class="icon has-text-success">
+                                        <i class="fas fa-check-circle"></i>
+                                    </span>
+                                    <span th:unless="${translationSession.audioGenerationEnabled}" class="icon has-text-grey-light">
+                                        <i class="fas fa-times-circle"></i>
+                                    </span>
+                                </td>
+                                <td class="is-size-7" th:text="${#temporals.format(translationSession.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                                <td>
+                                    <div class="buttons are-small">
+                                        <a th:href="@{/sessions/{id}(id=${translationSession.id})}" class="button is-info is-outlined" title="View">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                        </a>
+                                        <a th:if="${translationSession.status.name() == 'COMPLETED'}"
+                                           th:href="@{/sessions/{id}/download(id=${translationSession.id})}"
+                                           class="button is-success is-outlined" title="Download">
+                                            <span class="icon"><i class="fas fa-download"></i></span>
+                                        </a>
+                                        <form th:if="${translationSession.status.name() == 'PENDING' || translationSession.status.name() == 'IN_PROGRESS'}"
+                                              th:action="@{/sessions/{id}/cancel(id=${translationSession.id})}"
+                                              method="post"
+                                              style="display: inline;"
+                                              onsubmit="return confirm('Are you sure you want to cancel this session?');">
+                                            <button type="submit" class="button is-danger is-outlined" title="Cancel">
+                                                <span class="icon"><i class="fas fa-ban"></i></span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div th:replace="~{fragments/pagination :: pagination(${page}, ${selectedStatus != null ? '/sessions?status=' + selectedStatus : '/sessions'})}"></div>
+            </div>
+        </div>
+    </main>
 </body>
 </html>

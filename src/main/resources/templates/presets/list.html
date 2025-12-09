@@ -2,253 +2,208 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Generation Presets - Eme</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Generation Presets - EME</title>
 
-    <!-- Bootstrap CSS -->
-    <link rel="stylesheet" th:href="@{/webjars/bootstrap/5.1.3/css/bootstrap.min.css}">
-
-    <style>
-        body {
-            background-color: #f8f9fa;
-        }
-
-        h1, h2 {
-            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-            font-weight: 600;
-        }
-
-        .nav-links {
-            margin-bottom: 20px;
-            padding: 15px;
-            background: #f8f9fa;
-            border-radius: 8px;
-        }
-        .nav-links a {
-            margin-right: 15px;
-            text-decoration: none;
-            color: #007bff;
-            padding: 8px 12px;
-            border-radius: 4px;
-            transition: background-color 0.2s;
-        }
-        .nav-links a:hover {
-            background-color: #e9ecef;
-        }
-
-        .preset-card {
-            margin-bottom: 20px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
-            padding: 20px;
-            background: white;
-        }
-
-        .preset-card.default {
-            border-left: 4px solid #28a745;
-        }
-
-        .preset-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .preset-title {
-            font-size: 20px;
-            font-weight: bold;
-        }
-
-        .default-badge {
-            background: #28a745;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-left: 10px;
-        }
-
-        .usage-badge {
-            background: #6c757d;
-            color: white;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 14px;
-            margin-left: 10px;
-        }
-
-        .preset-info {
-            margin-bottom: 10px;
-            color: #6c757d;
-            font-size: 14px;
-        }
-
-        .preset-actions {
-            margin-top: 15px;
-            padding-top: 15px;
-            border-top: 1px solid #dee2e6;
-        }
-
-        .config-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 10px;
-            margin-bottom: 10px;
-        }
-
-        .config-item {
-            padding: 8px;
-            background: #f8f9fa;
-            border-radius: 4px;
-            font-size: 13px;
-        }
-
-        .config-item strong {
-            color: #495057;
-        }
-
-        .feature-enabled {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .feature-disabled {
-            color: #dc3545;
-        }
-    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-<div class="container mt-5">
-    <h1 class="mb-4">Generation Presets</h1>
-
-    <div class="nav-links">
-        <a href="/">← Back to Home</a>
-        <a href="/words">📖 Words Library</a>
-        <a href="/sessions">📦 Translation Sessions</a>
-        <a href="/character-guide">🎭 Character Guide</a>
-        <a href="/anki-formats">🎴 Anki Card Formats</a>
-    </div>
-
-    <div th:if="${#lists.isEmpty(presets)}" class="alert alert-info">
-        <h4>No presets found</h4>
-        <p>You haven't created any presets yet. Go to the home page and use "Save Current Settings as Preset" to create your first preset.</p>
-        <a href="/" class="btn btn-primary">Go to Home Page</a>
-    </div>
-
-    <div th:each="preset : ${presets}" th:class="${preset.isDefault ? 'preset-card default' : 'preset-card'}">
-        <div class="preset-header">
-            <div>
-                <span class="preset-title" th:text="${preset.presetName}"></span>
-                <span th:if="${preset.isDefault}" class="default-badge">Default</span>
-                <span class="usage-badge" th:text="'Used ' + ${preset.usageCount} + ' times'"></span>
+    <nav class="navbar is-primary" role="navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                    <span class="icon mr-2"><i class="fas fa-language"></i></span>
+                    <span>EME</span>
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" th:href="@{/}">Home</a>
+                    <a class="navbar-item" th:href="@{/words}">Words</a>
+                    <a class="navbar-item" th:href="@{/translations}">Translations</a>
+                    <a class="navbar-item" th:href="@{/sessions}">Sessions</a>
+                    <a class="navbar-item" th:href="@{/character-guide}">Characters</a>
+                    <a class="navbar-item is-active" th:href="@{/presets}">Presets</a>
+                </div>
             </div>
         </div>
+    </nav>
 
-        <div class="preset-info" th:if="${preset.description != null && !preset.description.isEmpty()}">
-            <strong>Description:</strong> <span th:text="${preset.description}"></span>
+    <main class="eme-main">
+        <div class="container">
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title">Generation Presets</h1>
+                            <p class="subtitle has-text-grey">Manage your saved generation configurations</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <a th:href="@{/}" class="button is-light">
+                            <span class="icon"><i class="fas fa-home"></i></span>
+                            <span>Home</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div th:if="${#lists.isEmpty(presets)}" class="box has-text-centered py-6">
+                <span class="icon is-large has-text-grey-light">
+                    <i class="fas fa-3x fa-cog"></i>
+                </span>
+                <p class="title is-5 has-text-grey mt-4">No presets found</p>
+                <p class="subtitle is-6 has-text-grey-light">Go to the home page and use "Save Current Settings as Preset" to create your first preset.</p>
+                <a th:href="@{/}" class="button is-primary mt-3">
+                    <span class="icon"><i class="fas fa-home"></i></span>
+                    <span>Go to Home Page</span>
+                </a>
+            </div>
+
+            <div th:each="preset : ${presets}" class="box mb-4"
+                 th:classappend="${preset.isDefault} ? 'has-background-success-light'">
+                <div class="level mb-3">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <span class="title is-5" th:text="${preset.presetName}">Preset Name</span>
+                            <span th:if="${preset.isDefault}" class="tag is-success ml-3">Default</span>
+                            <span class="tag is-light ml-2" th:text="'Used ' + ${preset.usageCount} + ' times'"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <p th:if="${preset.description != null && !preset.description.isEmpty()}" class="has-text-grey mb-4">
+                    <strong>Description:</strong> <span th:text="${preset.description}"></span>
+                </p>
+
+                <div class="columns is-multiline">
+                    <div class="column is-3">
+                        <div class="notification is-light py-2 px-3">
+                            <strong>Source:</strong> <span th:text="${preset.sourceLanguage}"></span>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="notification is-light py-2 px-3">
+                            <strong>Target:</strong> <span th:text="${preset.targetLanguage}"></span>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="notification is-light py-2 px-3">
+                            <strong>Source Audio:</strong>
+                            <span th:if="${preset.enableSourceAudio}" class="has-text-success has-text-weight-bold">Enabled</span>
+                            <span th:unless="${preset.enableSourceAudio}" class="has-text-danger">Disabled</span>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="notification is-light py-2 px-3">
+                            <strong>Target Audio:</strong>
+                            <span th:if="${preset.enableTargetAudio}" class="has-text-success has-text-weight-bold">Enabled</span>
+                            <span th:unless="${preset.enableTargetAudio}" class="has-text-danger">Disabled</span>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="notification is-light py-2 px-3">
+                            <strong>Translation:</strong>
+                            <span th:if="${preset.enableTranslation}" class="has-text-success has-text-weight-bold">Enabled</span>
+                            <span th:unless="${preset.enableTranslation}" class="has-text-danger">Disabled</span>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="notification is-light py-2 px-3">
+                            <strong>Sentence Gen:</strong>
+                            <span th:if="${preset.enableSentenceGeneration}" class="has-text-success has-text-weight-bold">Enabled</span>
+                            <span th:unless="${preset.enableSentenceGeneration}" class="has-text-danger">Disabled</span>
+                        </div>
+                    </div>
+                    <div class="column is-3">
+                        <div class="notification is-light py-2 px-3">
+                            <strong>Image Gen:</strong>
+                            <span th:if="${preset.enableImageGeneration}" class="has-text-success has-text-weight-bold">Enabled</span>
+                            <span th:unless="${preset.enableImageGeneration}" class="has-text-danger">Disabled</span>
+                        </div>
+                    </div>
+                    <div class="column is-3" th:if="${preset.ankiEnabled}">
+                        <div class="notification is-light py-2 px-3">
+                            <strong>Anki Deck:</strong> <span th:text="${preset.ankiDeck}"></span>
+                        </div>
+                    </div>
+                </div>
+
+                <hr>
+
+                <div class="level">
+                    <div class="level-left">
+                        <div class="level-item">
+                            <div class="buttons">
+                                <button th:if="${!preset.isDefault}" type="button" class="button is-success is-outlined"
+                                        th:data-preset-id="${preset.id}"
+                                        onclick="setAsDefault(this.dataset.presetId)">
+                                    <span class="icon"><i class="fas fa-star"></i></span>
+                                    <span>Set as Default</span>
+                                </button>
+                                <button type="button" class="button is-danger is-outlined"
+                                        th:data-preset-id="${preset.id}"
+                                        th:data-preset-name="${preset.presetName}"
+                                        onclick="deletePreset(this.dataset.presetId, this.dataset.presetName)">
+                                    <span class="icon"><i class="fas fa-trash"></i></span>
+                                    <span>Delete</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="level-right">
+                        <div class="level-item">
+                            <span class="is-size-7 has-text-grey">
+                                Created: <span th:text="${#temporals.format(preset.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
+                                | Updated: <span th:text="${#temporals.format(preset.updatedAt, 'yyyy-MM-dd HH:mm')}"></span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div th:replace="~{fragments/pagination :: pagination(${page}, '/presets')}"></div>
         </div>
+    </main>
 
-        <div class="config-grid">
-            <div class="config-item">
-                <strong>Source:</strong> <span th:text="${preset.sourceLanguage}"></span>
-            </div>
-            <div class="config-item">
-                <strong>Target:</strong> <span th:text="${preset.targetLanguage}"></span>
-            </div>
-            <div class="config-item">
-                <strong>Source Audio:</strong>
-                <span th:class="${preset.enableSourceAudio ? 'feature-enabled' : 'feature-disabled'}"
-                      th:text="${preset.enableSourceAudio ? 'Enabled' : 'Disabled'}"></span>
-            </div>
-            <div class="config-item">
-                <strong>Target Audio:</strong>
-                <span th:class="${preset.enableTargetAudio ? 'feature-enabled' : 'feature-disabled'}"
-                      th:text="${preset.enableTargetAudio ? 'Enabled' : 'Disabled'}"></span>
-            </div>
-            <div class="config-item">
-                <strong>Translation:</strong>
-                <span th:class="${preset.enableTranslation ? 'feature-enabled' : 'feature-disabled'}"
-                      th:text="${preset.enableTranslation ? 'Enabled' : 'Disabled'}"></span>
-            </div>
-            <div class="config-item">
-                <strong>Sentence Gen:</strong>
-                <span th:class="${preset.enableSentenceGeneration ? 'feature-enabled' : 'feature-disabled'}"
-                      th:text="${preset.enableSentenceGeneration ? 'Enabled' : 'Disabled'}"></span>
-            </div>
-            <div class="config-item">
-                <strong>Image Gen:</strong>
-                <span th:class="${preset.enableImageGeneration ? 'feature-enabled' : 'feature-disabled'}"
-                      th:text="${preset.enableImageGeneration ? 'Enabled' : 'Disabled'}"></span>
-            </div>
-            <div class="config-item" th:if="${preset.ankiEnabled}">
-                <strong>Anki Deck:</strong> <span th:text="${preset.ankiDeck}"></span>
-            </div>
-        </div>
-
-        <div class="preset-actions">
-            <button type="button" class="btn btn-sm btn-outline-success" th:if="${!preset.isDefault}"
-                    th:data-preset-id="${preset.id}"
-                    onclick="setAsDefault(this.dataset.presetId)">
-                ⭐ Set as Default
-            </button>
-            <button type="button" class="btn btn-sm btn-outline-danger"
-                    th:data-preset-id="${preset.id}"
-                    th:data-preset-name="${preset.presetName}"
-                    onclick="deletePreset(this.dataset.presetId, this.dataset.presetName)">
-                🗑️ Delete
-            </button>
-            <span style="font-size: 12px; color: #6c757d; margin-left: 15px;">
-                Created: <span th:text="${#temporals.format(preset.createdAt, 'yyyy-MM-dd HH:mm')}"></span>
-                | Updated: <span th:text="${#temporals.format(preset.updatedAt, 'yyyy-MM-dd HH:mm')}"></span>
-            </span>
-        </div>
-    </div>
-</div>
-
-<!-- jQuery and Bootstrap Bundle JS -->
-<script th:src="@{/webjars/jquery/3.6.0/jquery.min.js}" type="application/javascript"></script>
-<script th:src="@{/webjars/bootstrap/5.1.3/js/bootstrap.bundle.min.js}" type="application/javascript"></script>
-
-<script>
-    function setAsDefault(presetId) {
-        if (confirm('Set this preset as the default?')) {
-            fetch(`/presets/${presetId}/set-default`, {
-                method: 'POST'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    window.location.reload();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            })
-            .catch(error => {
-                alert('Error: ' + error);
-            });
+    <script>
+        function setAsDefault(presetId) {
+            if (confirm('Set this preset as the default?')) {
+                fetch(`/presets/${presetId}/set-default`, { method: 'POST' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message);
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                    })
+                    .catch(error => alert('Error: ' + error));
+            }
         }
-    }
 
-    function deletePreset(presetId, presetName) {
-        if (confirm(`Are you sure you want to delete the preset "${presetName}"?`)) {
-            fetch(`/presets/${presetId}`, {
-                method: 'DELETE'
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    alert(data.message);
-                    window.location.reload();
-                } else {
-                    alert('Error: ' + data.error);
-                }
-            })
-            .catch(error => {
-                alert('Error: ' + error);
-            });
+        function deletePreset(presetId, presetName) {
+            if (confirm(`Are you sure you want to delete the preset "${presetName}"?`)) {
+                fetch(`/presets/${presetId}`, { method: 'DELETE' })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            alert(data.message);
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + data.error);
+                        }
+                    })
+                    .catch(error => alert('Error: ' + error));
+            }
         }
-    }
-</script>
+    </script>
 </body>
 </html>

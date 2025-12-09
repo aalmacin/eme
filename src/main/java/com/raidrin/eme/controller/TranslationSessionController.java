@@ -26,6 +26,10 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -64,22 +68,28 @@ public class TranslationSessionController {
     private String imageOutputDirectory;
 
     @GetMapping
-    public String listSessions(Model model,
-                              @RequestParam(required = false) String status) {
-        List<TranslationSessionEntity> sessions;
+    public String listSessions(
+            @RequestParam(required = false) String status,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Model model) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        Page<TranslationSessionEntity> sessionPage;
 
         if (status != null && !status.trim().isEmpty()) {
             try {
                 TranslationSessionEntity.SessionStatus sessionStatus =
                         TranslationSessionEntity.SessionStatus.valueOf(status.toUpperCase());
-                sessions = translationSessionService.findByStatus(sessionStatus);
+                sessionPage = translationSessionService.findByStatus(sessionStatus, pageable);
                 model.addAttribute("selectedStatus", status);
             } catch (IllegalArgumentException e) {
-                sessions = translationSessionService.findAll();
+                sessionPage = translationSessionService.findAll(pageable);
             }
         } else {
-            sessions = translationSessionService.findAll();
+            sessionPage = translationSessionService.findAll(pageable);
         }
+
+        List<TranslationSessionEntity> sessions = sessionPage.getContent();
 
         // Enrich sessions with transliteration data
         Map<Long, String> transliterations = new HashMap<>();
@@ -96,6 +106,7 @@ public class TranslationSessionController {
 
         model.addAttribute("sessions", sessions);
         model.addAttribute("transliterations", transliterations);
+        model.addAttribute("page", sessionPage);
         return "sessions/list";
     }
 

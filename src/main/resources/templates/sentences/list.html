@@ -2,170 +2,157 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Sentences - Eme</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .nav-links {
-            margin-bottom: 20px;
-        }
-        .nav-links a {
-            margin-right: 15px;
-            text-decoration: none;
-            color: #007bff;
-        }
-        .nav-links a:hover {
-            text-decoration: underline;
-        }
-        .btn {
-            display: inline-block;
-            padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-        }
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-        .btn-success {
-            background-color: #28a745;
-        }
-        .btn-success:hover {
-            background-color: #218838;
-        }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .table th, .table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-            vertical-align: top;
-        }
-        .table td {
-            max-width: 200px;
-            word-wrap: break-word;
-        }
-        .table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-            white-space: nowrap;
-        }
-        .table tr:hover {
-            background-color: #f8f9fa;
-        }
-        .alert {
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Sentences - EME</title>
+
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- EME Custom Styles -->
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-    <div class="header">
-        <h1>Sentences Management</h1>
-        <div class="nav-links">
-            <a href="/">← Back to Home</a>
-            <a href="/words">📖 Words Library</a>
-            <a href="/translations">📚 Translations</a>
-            <a href="/character-guide">🎭 Character Guide</a>
-            <a href="/sessions">📦 Sessions</a>
-            <a href="/anki-formats">🎴 Anki Card Formats</a>
+    <!-- Navigation -->
+    <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                    <span class="icon mr-2">
+                        <i class="fas fa-language"></i>
+                    </span>
+                    <span>EME</span>
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" th:href="@{/}">Home</a>
+                    <a class="navbar-item" th:href="@{/words}">Words</a>
+                    <a class="navbar-item" th:href="@{/translations}">Translations</a>
+                    <a class="navbar-item is-active" th:href="@{/sentences}">Sentences</a>
+                    <a class="navbar-item" th:href="@{/character-guide}">Characters</a>
+                    <a class="navbar-item" th:href="@{/sessions}">Sessions</a>
+                </div>
+            </div>
         </div>
-    </div>
+    </nav>
 
-    <!-- Flash Messages -->
-    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
-    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+    <!-- Main Content -->
+    <main class="eme-main">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title">Sentences Management</h1>
+                            <p class="subtitle has-text-grey">Manage example sentences</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <div class="buttons">
+                            <a th:href="@{/}" class="button is-light">
+                                <span class="icon"><i class="fas fa-home"></i></span>
+                                <span>Home</span>
+                            </a>
+                            <a th:href="@{/sentences/create}" class="button is-primary">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>Create Sentence</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <div style="margin-bottom: 20px;">
-        <a href="/sentences/create" class="btn btn-success">+ Create New Sentence</a>
-    </div>
+            <!-- Flash Messages -->
+            <div th:if="${success}" class="notification is-success is-light" x-data="{ show: true }" x-show="show" x-transition>
+                <button class="delete" @click="show = false"></button>
+                <span th:text="${success}"></span>
+            </div>
+            <div th:if="${error}" class="notification is-danger is-light" x-data="{ show: true }" x-show="show" x-transition>
+                <button class="delete" @click="show = false"></button>
+                <span th:text="${error}"></span>
+            </div>
 
-    <div th:if="${#lists.isEmpty(sentences)}" class="empty-state">
-        <h3>No sentences found</h3>
-        <p>Start by creating your first sentence.</p>
-        <a href="/sentences/create" class="btn btn-success">Create Sentence</a>
-    </div>
+            <!-- Empty State -->
+            <div th:if="${#lists.isEmpty(sentences)}" class="box has-text-centered py-6">
+                <span class="icon is-large has-text-grey-light">
+                    <i class="fas fa-3x fa-comment"></i>
+                </span>
+                <p class="title is-5 has-text-grey mt-4">No sentences found</p>
+                <p class="subtitle is-6 has-text-grey-light">Start by creating your first sentence.</p>
+                <a th:href="@{/sentences/create}" class="button is-primary mt-3">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>Create Sentence</span>
+                </a>
+            </div>
 
-    <table th:if="${!#lists.isEmpty(sentences)}" class="table">
-        <thead>
-            <tr>
-                <th>Word</th>
-                <th>Romanized</th>
-                <th>Sentence (Source)</th>
-                <th>Transliteration</th>
-                <th>Translation</th>
-                <th>Structure</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="sentence : ${sentences}">
-                <td>
-                    <strong th:text="${sentence.word}"></strong>
-                    <br><small th:text="${sentence.sourceLanguage} + ' → ' + ${sentence.targetLanguage}"></small>
-                </td>
-                <td th:text="${sentence.targetLanguageLatinCharacters}"></td>
-                <td th:text="${sentence.targetLanguageSentence}"></td>
-                <td th:text="${sentence.targetLanguageTransliteration}"></td>
-                <td th:text="${sentence.sourceLanguageSentence}"></td>
-                <td th:text="${sentence.sourceLanguageStructure}"></td>
-                <td>
-                    <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
-                       class="btn">View</a>
-                    <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}/edit(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
-                       class="btn">Edit</a>
-                    <form th:action="@{/sentences/{word}/{sourceLang}/{targetLang}/delete(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}" 
-                          method="post" style="display: inline;">
-                        <button type="submit" class="btn btn-danger" 
-                                onclick="return confirm('Are you sure you want to delete this sentence?')">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+            <!-- Sentences Table -->
+            <div th:if="${!#lists.isEmpty(sentences)}" class="box">
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th style="width: 140px;">Word</th>
+                                <th style="width: 120px;">Romanized</th>
+                                <th>Sentence (Source)</th>
+                                <th>Transliteration</th>
+                                <th>Translation</th>
+                                <th>Structure</th>
+                                <th style="width: 160px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="sentence : ${sentences}">
+                                <td>
+                                    <strong th:text="${sentence.word}"></strong>
+                                    <br>
+                                    <small class="has-text-grey">
+                                        <span th:text="${sentence.sourceLanguage}"></span>
+                                        <span class="icon is-small"><i class="fas fa-arrow-right"></i></span>
+                                        <span th:text="${sentence.targetLanguage}"></span>
+                                    </small>
+                                </td>
+                                <td class="is-size-7" th:text="${sentence.targetLanguageLatinCharacters}"></td>
+                                <td class="is-size-7" th:text="${sentence.targetLanguageSentence}"></td>
+                                <td class="is-size-7" th:text="${sentence.targetLanguageTransliteration}"></td>
+                                <td class="is-size-7" th:text="${sentence.sourceLanguageSentence}"></td>
+                                <td class="is-size-7" th:text="${sentence.sourceLanguageStructure}"></td>
+                                <td>
+                                    <div class="buttons are-small">
+                                        <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}"
+                                           class="button is-info is-outlined" title="View">
+                                            <span class="icon"><i class="fas fa-eye"></i></span>
+                                        </a>
+                                        <a th:href="@{/sentences/{word}/{sourceLang}/{targetLang}/edit(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}"
+                                           class="button is-warning is-outlined" title="Edit">
+                                            <span class="icon"><i class="fas fa-edit"></i></span>
+                                        </a>
+                                        <form th:action="@{/sentences/{word}/{sourceLang}/{targetLang}/delete(word=${sentence.word}, sourceLang=${sentence.sourceLanguage}, targetLang=${sentence.targetLanguage})}"
+                                              method="post" style="display: inline;">
+                                            <button type="submit" class="button is-danger is-outlined" title="Delete"
+                                                    onclick="return confirm('Are you sure you want to delete this sentence?')">
+                                                <span class="icon"><i class="fas fa-trash"></i></span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination -->
+                <div th:replace="~{fragments/pagination :: pagination(${page}, '/sentences')}"></div>
+            </div>
+        </div>
+    </main>
 </body>
 </html>

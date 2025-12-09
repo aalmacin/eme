@@ -4,6 +4,8 @@ import com.raidrin.eme.anki.AnkiFormat;
 import com.raidrin.eme.storage.entity.AnkiFormatEntity;
 import com.raidrin.eme.storage.repository.AnkiFormatRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -82,6 +84,10 @@ public class AnkiFormatService {
 
     public List<AnkiFormatEntity> findAll() {
         return ankiFormatRepository.findAllOrderedByDefaultAndName();
+    }
+
+    public Page<AnkiFormatEntity> findAll(Pageable pageable) {
+        return ankiFormatRepository.findAll(pageable);
     }
 
     public Optional<AnkiFormatEntity> findDefault() {

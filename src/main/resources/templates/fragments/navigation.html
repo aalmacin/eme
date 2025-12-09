@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Main Navigation Bar -->
+<nav th:fragment="navbar" class="navbar is-primary" role="navigation" aria-label="main navigation">
+    <div class="container">
+        <div class="navbar-brand">
+            <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                <span class="icon mr-2">
+                    <i class="fas fa-language"></i>
+                </span>
+                <span>EME</span>
+            </a>
+
+            <a role="button" class="navbar-burger" aria-label="menu" aria-expanded="false" data-target="mainNavbar"
+               x-data="{ open: false }"
+               @click="open = !open; $refs.menu.classList.toggle('is-active')"
+               :class="{ 'is-active': open }">
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+                <span aria-hidden="true"></span>
+            </a>
+        </div>
+
+        <div id="mainNavbar" class="navbar-menu" x-ref="menu">
+            <div class="navbar-start">
+                <a class="navbar-item" th:href="@{/}"
+                   th:classappend="${currentPage == 'home'} ? 'is-active'">
+                    <span class="icon">
+                        <i class="fas fa-home"></i>
+                    </span>
+                    <span>Home</span>
+                </a>
+
+                <a class="navbar-item" th:href="@{/words}"
+                   th:classappend="${currentPage == 'words'} ? 'is-active'">
+                    <span class="icon">
+                        <i class="fas fa-book"></i>
+                    </span>
+                    <span>Words</span>
+                </a>
+
+                <a class="navbar-item" th:href="@{/translations}"
+                   th:classappend="${currentPage == 'translations'} ? 'is-active'">
+                    <span class="icon">
+                        <i class="fas fa-exchange-alt"></i>
+                    </span>
+                    <span>Translations</span>
+                </a>
+
+                <a class="navbar-item" th:href="@{/sentences}"
+                   th:classappend="${currentPage == 'sentences'} ? 'is-active'">
+                    <span class="icon">
+                        <i class="fas fa-comment"></i>
+                    </span>
+                    <span>Sentences</span>
+                </a>
+
+                <a class="navbar-item" th:href="@{/character-guide}"
+                   th:classappend="${currentPage == 'character-guide'} ? 'is-active'">
+                    <span class="icon">
+                        <i class="fas fa-font"></i>
+                    </span>
+                    <span>Characters</span>
+                </a>
+
+                <div class="navbar-item has-dropdown is-hoverable">
+                    <a class="navbar-link">
+                        <span class="icon">
+                            <i class="fas fa-ellipsis-h"></i>
+                        </span>
+                        <span>More</span>
+                    </a>
+
+                    <div class="navbar-dropdown">
+                        <a class="navbar-item" th:href="@{/sessions}"
+                           th:classappend="${currentPage == 'sessions'} ? 'is-active'">
+                            <span class="icon">
+                                <i class="fas fa-clock"></i>
+                            </span>
+                            <span>Sessions</span>
+                        </a>
+                        <a class="navbar-item" th:href="@{/anki-formats}"
+                           th:classappend="${currentPage == 'anki-formats'} ? 'is-active'">
+                            <span class="icon">
+                                <i class="fas fa-layer-group"></i>
+                            </span>
+                            <span>Anki Formats</span>
+                        </a>
+                        <a class="navbar-item" th:href="@{/presets}"
+                           th:classappend="${currentPage == 'presets'} ? 'is-active'">
+                            <span class="icon">
+                                <i class="fas fa-cog"></i>
+                            </span>
+                            <span>Presets</span>
+                        </a>
+                        <hr class="navbar-divider">
+                        <a class="navbar-item" th:href="@{/review}">
+                            <span class="icon">
+                                <i class="fas fa-eye"></i>
+                            </span>
+                            <span>Review</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="navbar-end">
+                <div class="navbar-item">
+                    <div class="buttons">
+                        <a class="button is-light" th:href="@{/}">
+                            <span class="icon">
+                                <i class="fas fa-plus"></i>
+                            </span>
+                            <span>Generate</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<!-- Breadcrumb Component -->
+<nav th:fragment="breadcrumb(items)" class="breadcrumb has-arrow-separator" aria-label="breadcrumbs">
+    <ul>
+        <li><a th:href="@{/}">Home</a></li>
+        <li th:each="item, stat : ${items}" th:classappend="${stat.last} ? 'is-active'">
+            <a th:href="${item.url}" th:text="${item.label}"
+               th:attr="aria-current=${stat.last} ? 'page' : null"></a>
+        </li>
+    </ul>
+</nav>
+
+<!-- Simple back link -->
+<div th:fragment="back-link(url, text)" class="mb-4">
+    <a th:href="${url}" class="button is-light is-small">
+        <span class="icon">
+            <i class="fas fa-arrow-left"></i>
+        </span>
+        <span th:text="${text}">Back</span>
+    </a>
+</div>
+
+</html>

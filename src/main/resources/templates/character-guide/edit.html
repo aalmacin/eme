@@ -2,126 +2,105 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Edit Character Guide - Eme</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .nav-links a {
-            margin-right: 15px;
-            text-decoration: none;
-            color: #007bff;
-        }
-        .form-container {
-            background: white;
-            padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        label {
-            display: block;
-            margin-bottom: 5px;
-            font-weight: bold;
-            color: #333;
-        }
-        input[type="text"], select {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            box-sizing: border-box;
-            font-size: 14px;
-        }
-        input[readonly] {
-            background-color: #e9ecef;
-            cursor: not-allowed;
-        }
-        .btn {
-            display: inline-block;
-            padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-        .btn-secondary {
-            background-color: #6c757d;
-        }
-        .btn-secondary:hover {
-            background-color: #5a6268;
-        }
-        .help-text {
-            font-size: 12px;
-            color: #6c757d;
-            margin-top: 5px;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Edit Character Guide - EME</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-    <div class="header">
-        <h1>Edit Character Guide</h1>
-        <div class="nav-links">
-            <a href="/character-guide">← Back to Character Guide</a>
-            <a href="/">Home</a>
-            <a href="/translations">📚 Translations</a>
-            <a href="/sentences">📝 Sentences</a>
-            <a href="/sessions">📦 Sessions</a>
+    <nav class="navbar is-primary" role="navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                    <span class="icon mr-2"><i class="fas fa-language"></i></span>
+                    <span>EME</span>
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" th:href="@{/}">Home</a>
+                    <a class="navbar-item" th:href="@{/words}">Words</a>
+                    <a class="navbar-item" th:href="@{/translations}">Translations</a>
+                    <a class="navbar-item" th:href="@{/sentences}">Sentences</a>
+                    <a class="navbar-item is-active" th:href="@{/character-guide}">Characters</a>
+                </div>
+            </div>
         </div>
-    </div>
+    </nav>
 
-    <div class="form-container">
-        <form th:action="@{/character-guide/{language}/{startSound}/edit(language=${character.language}, startSound=${character.startSound})}"
-              th:object="${character}" method="post">
+    <main class="eme-main">
+        <div class="container">
+            <div class="columns is-centered">
+                <div class="column is-8">
+                    <a th:href="@{/character-guide}" class="button is-light is-small mb-4">
+                        <span class="icon"><i class="fas fa-arrow-left"></i></span>
+                        <span>Back to Character Guide</span>
+                    </a>
 
-            <div class="form-group">
-                <label for="language">Language *</label>
-                <input type="text" th:field="*{language}" id="language" readonly>
-                <div class="help-text">Language cannot be changed</div>
+                    <div class="box">
+                        <h1 class="title is-4">Edit Character Guide</h1>
+
+                        <form th:action="@{/character-guide/{language}/{startSound}/edit(language=${character.language}, startSound=${character.startSound})}"
+                              th:object="${character}" method="post">
+
+                            <div class="columns">
+                                <div class="column">
+                                    <div class="field">
+                                        <label class="label">Language</label>
+                                        <div class="control">
+                                            <input class="input" type="text" th:field="*{language}" readonly>
+                                        </div>
+                                        <p class="help has-text-grey">Language cannot be changed</p>
+                                    </div>
+                                </div>
+                                <div class="column">
+                                    <div class="field">
+                                        <label class="label">Start Sound</label>
+                                        <div class="control">
+                                            <input class="input" type="text" th:field="*{startSound}" readonly>
+                                        </div>
+                                        <p class="help has-text-grey">Start sound cannot be changed</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">Character Name *</label>
+                                <div class="control has-icons-left">
+                                    <input class="input" type="text" th:field="*{characterName}" required>
+                                    <span class="icon is-small is-left"><i class="fas fa-user"></i></span>
+                                </div>
+                                <p class="help">The name of the character to associate with this sound</p>
+                            </div>
+
+                            <div class="field">
+                                <label class="label">Character Context (Show/Movie) *</label>
+                                <div class="control has-icons-left">
+                                    <input class="input" type="text" th:field="*{characterContext}" required>
+                                    <span class="icon is-small is-left"><i class="fas fa-film"></i></span>
+                                </div>
+                                <p class="help">The show, movie, or source the character is from</p>
+                            </div>
+
+                            <div class="field is-grouped mt-5">
+                                <div class="control">
+                                    <button type="submit" class="button is-primary">
+                                        <span class="icon"><i class="fas fa-check"></i></span>
+                                        <span>Update Character Guide</span>
+                                    </button>
+                                </div>
+                                <div class="control">
+                                    <a th:href="@{/character-guide}" class="button is-light">Cancel</a>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             </div>
-
-            <div class="form-group">
-                <label for="startSound">Start Sound *</label>
-                <input type="text" th:field="*{startSound}" id="startSound" readonly>
-                <div class="help-text">Start sound cannot be changed</div>
-            </div>
-
-            <div class="form-group">
-                <label for="characterName">Character Name *</label>
-                <input type="text" th:field="*{characterName}" id="characterName" required>
-                <div class="help-text">The name of the character to associate with this sound</div>
-            </div>
-
-            <div class="form-group">
-                <label for="characterContext">Character Context (Show/Movie) *</label>
-                <input type="text" th:field="*{characterContext}" id="characterContext" required>
-                <div class="help-text">The show, movie, or source the character is from</div>
-            </div>
-
-            <div class="form-group">
-                <button type="submit" class="btn">Update Character Guide</button>
-                <a href="/character-guide" class="btn btn-secondary">Cancel</a>
-            </div>
-        </form>
-    </div>
+        </div>
+    </main>
 </body>
 </html>
