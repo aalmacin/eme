@@ -416,7 +416,6 @@
                   style="display: inline;">
                 <button type="submit" class="btn btn-warning">🔄 Retry Entire Session</button>
             </form>
-            <button th:if="${sessionData.containsKey('original_request')}" type="button" class="btn btn-success" onclick="generateWithPreset()">⚙️ Generate with Same Preset</button>
         </div>
     </div>
 
@@ -1007,12 +1006,8 @@
         </div>
 
         <div style="margin-top: 20px;">
-            <a th:href="@{/sessions/{id}/download(id=${translationSession.id})}" class="btn btn-success">Download Assets (ZIP)</a>
-
             <!-- Anki Card Creation Button -->
-            <div style="display: inline-block; margin-left: 10px;">
-                <button type="button" class="btn btn-primary" onclick="showAnkiCardPreview()">Create Anki Cards</button>
-            </div>
+            <button type="button" class="btn btn-primary" onclick="showAnkiCardPreview()">Create Anki Cards</button>
         </div>
 
         <div class="data-section" th:if="${sessionData.containsKey('image_prompt')}">
@@ -1089,22 +1084,6 @@
         <h2>⏸️ Session Pending</h2>
         <p>This session is pending and will start processing soon.</p>
         <button onclick="window.location.reload()" class="btn">Refresh Page</button>
-    </div>
-
-    <!-- Full Session Data (JSON) - Collapsible for debugging -->
-    <div class="info-card" th:if="${!sessionData.isEmpty()}">
-        <div class="collapsible-header collapsed" onclick="toggleCollapse('session-data-content', this)" aria-expanded="false">
-            <h2 style="margin: 0; display: inline-block;">Full Session Data (JSON)</h2>
-            <span style="font-size: 14px; margin-left: 15px; color: var(--eme-text-secondary);">For debugging purposes</span>
-            <span class="arrow">▼</span>
-        </div>
-        <div id="session-data-content" style="display: none;">
-            <div class="collapse-content">
-                <div class="data-section">
-                    <pre th:text="${sessionData}"></pre>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- Regenerate Image Modal -->
@@ -2244,26 +2223,6 @@
                 closeBatchRegenerateModal();
             }
         });
-
-        // Generate with same preset function
-        function generateWithPreset() {
-            // Store the session configuration in sessionStorage
-            const presetConfig = {
-                sourceLanguage: /*[[${translationSession.sourceLanguage}]]*/ 'hi',
-                targetLanguage: /*[[${translationSession.targetLanguage}]]*/ 'en',
-                enableSourceAudio: /*[[${translationSession.audioGenerationEnabled}]]*/ false,
-                enableTranslation: true,
-                enableSentenceGeneration: /*[[${translationSession.sentenceGenerationEnabled}]]*/ false,
-                enableImageGeneration: /*[[${translationSession.imageGenerationEnabled}]]*/ false,
-                imageStyle: /*[[${sessionData.containsKey('original_request') && sessionData.get('original_request').containsKey('image_style') ? sessionData.get('original_request').get('image_style') : 'REALISTIC_CINEMATIC'}]]*/ 'REALISTIC_CINEMATIC',
-                ankiEnabled: /*[[${translationSession.ankiEnabled}]]*/ false,
-                ankiDeck: /*[[${translationSession.ankiDeck != null ? translationSession.ankiDeck : ''}]]*/ '',
-                ankiFormatId: /*[[${translationSession.ankiFormat != null ? translationSession.ankiFormat.id : null}]]*/ null
-            };
-
-            sessionStorage.setItem('loadPresetConfig', JSON.stringify(presetConfig));
-            window.location.href = '/';
-        }
 
         // Character Guide Modal Functions
         function showAddCharacterModal(dataset) {
