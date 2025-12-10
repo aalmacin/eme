@@ -74,21 +74,7 @@ public class TranslationSessionController {
             @RequestParam(defaultValue = "20") int size,
             Model model) {
         Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
-        Page<TranslationSessionEntity> sessionPage;
-
-        if (status != null && !status.trim().isEmpty()) {
-            try {
-                TranslationSessionEntity.SessionStatus sessionStatus =
-                        TranslationSessionEntity.SessionStatus.valueOf(status.toUpperCase());
-                sessionPage = translationSessionService.findByStatus(sessionStatus, pageable);
-                model.addAttribute("selectedStatus", status);
-            } catch (IllegalArgumentException e) {
-                sessionPage = translationSessionService.findAll(pageable);
-            }
-        } else {
-            sessionPage = translationSessionService.findAll(pageable);
-        }
-
+        Page<TranslationSessionEntity> sessionPage = translationSessionService.findAll(pageable);
         List<TranslationSessionEntity> sessions = sessionPage.getContent();
 
         // Enrich sessions with transliteration data
@@ -185,43 +171,39 @@ public class TranslationSessionController {
         TranslationSessionEntity session = sessionOpt.get();
 
         // Always regenerate ZIP to include latest images and assets
-        if (session.getStatus() == TranslationSessionEntity.SessionStatus.COMPLETED) {
-            try {
-                Map<String, Object> sessionData = translationSessionService.getSessionData(id);
+        try {
+            Map<String, Object> sessionData = translationSessionService.getSessionData(id);
 
-                // Merge with latest WordEntity data to include regenerated images
-                if (sessionData.containsKey("words")) {
-                    @SuppressWarnings("unchecked")
-                    List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
-                    for (Map<String, Object> wordData : words) {
-                        String sourceWord = (String) wordData.get("source_word");
-                        if (sourceWord != null) {
-                            Map<String, Object> mergedData = mergeWithLatestWordData(
-                                    wordData,
-                                    session.getSourceLanguage(),
-                                    session.getTargetLanguage()
-                            );
-                            wordData.putAll(mergedData);
+            // Merge with latest WordEntity data to include regenerated images
+            if (sessionData.containsKey("words")) {
+                @SuppressWarnings("unchecked")
+                List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+                for (Map<String, Object> wordData : words) {
+                    String sourceWord = (String) wordData.get("source_word");
+                    if (sourceWord != null) {
+                        Map<String, Object> mergedData = mergeWithLatestWordData(
+                                wordData,
+                                session.getSourceLanguage(),
+                                session.getTargetLanguage()
+                        );
+                        wordData.putAll(mergedData);
 
-                            // Update image_local_path if we have a new image file
-                            if (mergedData.containsKey("image_file")) {
-                                String imageFile = (String) mergedData.get("image_file");
-                                wordData.put("image_local_path", "./generated_images/" + imageFile);
-                            }
+                        // Update image_local_path if we have a new image file
+                        if (mergedData.containsKey("image_file")) {
+                            String imageFile = (String) mergedData.get("image_file");
+                            wordData.put("image_local_path", "./generated_images/" + imageFile);
                         }
                     }
                 }
-
-                String zipPath = zipFileGenerator.createSessionZip(session, sessionData);
-                translationSessionService.updateZipFilePath(id, zipPath);
-                session.setZipFilePath(zipPath);
-            } catch (Exception e) {
-                System.err.println("Failed to generate ZIP: " + e.getMessage());
-                e.printStackTrace();
-                return ResponseEntity.internalServerError().build();
             }
-        } else {
-            return ResponseEntity.badRequest().build();
+
+            String zipPath = zipFileGenerator.createSessionZip(session, sessionData);
+            translationSessionService.updateZipFilePath(id, zipPath);
+            session.setZipFilePath(zipPath);
+        } catch (Exception e) {
+            System.err.println("Failed to generate ZIP: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
         }
 
         // Serve the ZIP file
@@ -546,29 +528,8 @@ public class TranslationSessionController {
             return "redirect:/sessions?error=session-not-found";
         }
 
-        TranslationSessionEntity session = sessionOpt.get();
-
-        // Only allow cancellation of PENDING or IN_PROGRESS sessions
-        if (session.getStatus() != TranslationSessionEntity.SessionStatus.PENDING &&
-            session.getStatus() != TranslationSessionEntity.SessionStatus.IN_PROGRESS) {
-            return "redirect:/sessions/" + id + "?error=cannot-cancel-" + session.getStatus().name().toLowerCase();
-        }
-
-        try {
-            String cancellationReason = (reason != null && !reason.trim().isEmpty())
-                    ? reason
-                    : "Cancelled by user";
-
-            translationSessionService.markAsCancelled(id, cancellationReason);
-
-            System.out.println("Cancelled session " + id + ": " + cancellationReason);
-            return "redirect:/sessions/" + id + "?message=session-cancelled";
-
-        } catch (Exception e) {
-            System.err.println("Failed to cancel session: " + e.getMessage());
-            e.printStackTrace();
-            return "redirect:/sessions/" + id + "?error=cancel-failed";
-        }
+        // Session cancellation is no longer supported (status tracking removed)
+        return "redirect:/sessions/" + id + "?message=cancellation-not-supported";
     }
 
     @PostMapping("/{id}/retry")
@@ -578,14 +539,6 @@ public class TranslationSessionController {
 
         if (sessionOpt.isEmpty()) {
             return "redirect:/sessions?error=session-not-found";
-        }
-
-        TranslationSessionEntity session = sessionOpt.get();
-
-        // Only allow retry of FAILED or CANCELLED sessions
-        if (session.getStatus() != TranslationSessionEntity.SessionStatus.FAILED &&
-            session.getStatus() != TranslationSessionEntity.SessionStatus.CANCELLED) {
-            return "redirect:/sessions/" + id + "?error=cannot-retry-" + session.getStatus().name().toLowerCase();
         }
 
         // Get session data
@@ -601,20 +554,12 @@ public class TranslationSessionController {
             SessionOrchestrationService.BatchProcessingRequest request =
                     sessionOrchestrationService.reconstructRequestFromSessionData(sessionData);
 
-            // Reset session status to IN_PROGRESS
-            translationSessionService.updateStatus(id, TranslationSessionEntity.SessionStatus.IN_PROGRESS);
-
             // Clear error/cancellation data from previous attempt
             Map<String, Object> updatedSessionData = new HashMap<>(sessionData);
 
             // Clear error data
             updatedSessionData.remove("error");
             updatedSessionData.remove("errorTime");
-
-            // Clear cancellation data
-            updatedSessionData.remove("cancelled");
-            updatedSessionData.remove("cancellationTime");
-            updatedSessionData.remove("cancellationReason");
 
             // Clear process summary errors
             if (updatedSessionData.containsKey("process_summary")) {
@@ -630,15 +575,13 @@ public class TranslationSessionController {
             updatedSessionData.put("retry_count",
                 ((Integer) updatedSessionData.getOrDefault("retry_count", 0)) + 1);
             updatedSessionData.put("last_retry_time", LocalDateTime.now().toString());
-            updatedSessionData.put("retried_from_status", session.getStatus().name());
 
             translationSessionService.updateSessionData(id, updatedSessionData);
 
             // Start async processing
             sessionOrchestrationService.processTranslationBatchAsync(id, request);
 
-            System.out.println("Started retry processing for session " + id +
-                " (retrying from " + session.getStatus() + ")");
+            System.out.println("Started retry processing for session " + id);
             return "redirect:/sessions/" + id + "?message=retry-started";
 
         } catch (Exception e) {
@@ -967,25 +910,6 @@ public class TranslationSessionController {
         }
     }
 
-    @PostMapping("/fix-stuck-sessions")
-    public String fixStuckSessions() {
-        List<TranslationSessionEntity> inProgressSessions = translationSessionService.findByStatus(
-                TranslationSessionEntity.SessionStatus.IN_PROGRESS);
-
-        int fixed = 0;
-        for (TranslationSessionEntity session : inProgressSessions) {
-            Map<String, Object> sessionData = translationSessionService.getSessionData(session.getId());
-
-            // If session has image data, it actually completed successfully
-            if (sessionData.containsKey("image_file") || sessionData.containsKey("gcs_url") || sessionData.containsKey("local_path")) {
-                translationSessionService.updateStatus(session.getId(), TranslationSessionEntity.SessionStatus.COMPLETED);
-                fixed++;
-            }
-        }
-
-        return "redirect:/sessions?message=fixed-" + fixed + "-sessions";
-    }
-
     @GetMapping("/{id}/anki-cards-preview")
     @ResponseBody
     public ResponseEntity<?> getAnkiCardsPreview(@PathVariable Long id) {
@@ -996,11 +920,6 @@ public class TranslationSessionController {
         }
 
         TranslationSessionEntity session = sessionOpt.get();
-
-        // Check if session is completed
-        if (session.getStatus() != TranslationSessionEntity.SessionStatus.COMPLETED) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Session not completed"));
-        }
 
         // Check if Anki is enabled
         if (!Boolean.TRUE.equals(session.getAnkiEnabled())) {
@@ -1083,11 +1002,6 @@ public class TranslationSessionController {
 
         TranslationSessionEntity session = sessionOpt.get();
 
-        // Check if session is completed
-        if (session.getStatus() != TranslationSessionEntity.SessionStatus.COMPLETED) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Session not completed"));
-        }
-
         // Check if Anki is enabled
         if (!Boolean.TRUE.equals(session.getAnkiEnabled())) {
             return ResponseEntity.badRequest().body(Map.of("error", "Anki not enabled"));
@@ -1134,11 +1048,6 @@ public class TranslationSessionController {
         }
 
         TranslationSessionEntity session = sessionOpt.get();
-
-        // Check if session is completed
-        if (session.getStatus() != TranslationSessionEntity.SessionStatus.COMPLETED) {
-            return "redirect:/sessions/" + id + "?error=session-not-completed";
-        }
 
         // Check if Anki is enabled
         if (!Boolean.TRUE.equals(session.getAnkiEnabled())) {

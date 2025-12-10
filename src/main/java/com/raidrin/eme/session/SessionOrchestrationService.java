@@ -11,7 +11,6 @@ import com.raidrin.eme.mnemonic.MnemonicGenerationService.MnemonicData;
 import com.raidrin.eme.sentence.SentenceData;
 import com.raidrin.eme.sentence.SentenceGenerationService;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
-import com.raidrin.eme.storage.entity.TranslationSessionEntity.SessionStatus;
 import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.service.GcpStorageService;
 import com.raidrin.eme.storage.service.SentenceStorageService;
@@ -117,8 +116,6 @@ public class SessionOrchestrationService {
                 ", audio=" + (request.isEnableSourceAudio() || request.isEnableTargetAudio()) +
                 ", sentences=" + request.isEnableSentenceGeneration() +
                 ", images=" + request.isEnableImageGeneration());
-
-            sessionService.updateStatus(sessionId, SessionStatus.IN_PROGRESS);
 
             // Initialize progress data at the start
             Map<String, Object> initialProgressData = new HashMap<>();
@@ -686,9 +683,6 @@ public class SessionOrchestrationService {
             long zipDuration = phaseTiming.get("zip_creation_end") - phaseTiming.get("zip_creation_start");
             System.out.println("[SESSION " + sessionId + "] ZIP creation completed in " + zipDuration + "ms");
 
-            // Step 9: Mark as completed
-            sessionService.updateStatus(sessionId, SessionStatus.COMPLETED);
-
             // Print final timing summary
             long totalDuration = System.currentTimeMillis() - sessionStartTime;
             System.out.println("[SESSION " + sessionId + "] ========== TIMING SUMMARY ==========");
@@ -705,7 +699,11 @@ public class SessionOrchestrationService {
         } catch (Exception e) {
             System.err.println("Batch processing failed for session " + sessionId + ": " + e.getMessage());
             e.printStackTrace();
-            sessionService.markAsFailed(sessionId, e.getMessage());
+            // Store error in session data
+            Map<String, Object> errorData = new HashMap<>();
+            errorData.put("error", e.getMessage());
+            errorData.put("errorTime", java.time.LocalDateTime.now().toString());
+            sessionService.updateSessionData(sessionId, errorData);
             return CompletableFuture.failedFuture(e);
         }
     }

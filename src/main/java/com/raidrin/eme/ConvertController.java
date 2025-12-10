@@ -112,11 +112,7 @@ public class ConvertController {
                 sessionWord,
                 lang != null ? lang : "en",
                 targetLang != null ? targetLang : "en",
-                imageGeneration,
-                (sourceAudio || targetAudio),
-                sentenceGeneration,
                 anki,
-                overrideTranslation,
                 deck,
                 ankiFormat
         );
@@ -415,11 +411,7 @@ public class ConvertController {
                 sessionWord,
                 lang,
                 targetLang != null ? targetLang : "en",
-                imageGeneration,
-                (sourceAudio || targetAudio),
-                sentenceGeneration,
                 anki,
-                overrideTranslation,
                 deck,
                 ankiFormat
         );
@@ -585,7 +577,7 @@ public class ConvertController {
 
                 // Create a translation session for tracking
                 TranslationSessionEntity session = translationSessionService.createSession(
-                    sourceText, lang, targetLang, true, (sourceAudio || targetAudio)
+                    sourceText, lang, targetLang, false, null, null
                 );
 
                 // Store session ID for reference

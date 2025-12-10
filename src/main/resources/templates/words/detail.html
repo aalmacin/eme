@@ -133,13 +133,6 @@
                             Your browser does not support the audio element.
                         </audio>
                     </div>
-                    <div class="column" th:if="${word.audioTargetFile != null}">
-                        <p class="has-text-weight-bold mb-2">Target Audio:</p>
-                        <audio controls class="is-block" style="width: 100%;">
-                            <source th:src="@{'/generated_audio/' + ${word.audioTargetFile}}" type="audio/mpeg">
-                            Your browser does not support the audio element.
-                        </audio>
-                    </div>
                 </div>
             </div>
 

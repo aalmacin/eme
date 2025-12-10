@@ -72,6 +72,9 @@ public class WordEntity {
     @Column(name = "mnemonic_keyword_updated_at")
     private LocalDateTime mnemonicKeywordUpdatedAt; // Set when user manually updates mnemonic keyword
 
+    @Column(name = "transliteration_override_at")
+    private LocalDateTime transliterationOverrideAt; // Set when user manually overrides transliteration
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

@@ -2252,7 +2252,6 @@
                 sourceLanguage: /*[[${translationSession.sourceLanguage}]]*/ 'hi',
                 targetLanguage: /*[[${translationSession.targetLanguage}]]*/ 'en',
                 enableSourceAudio: /*[[${translationSession.audioGenerationEnabled}]]*/ false,
-                enableTargetAudio: /*[[${translationSession.audioGenerationEnabled}]]*/ false,
                 enableTranslation: true,
                 enableSentenceGeneration: /*[[${translationSession.sentenceGenerationEnabled}]]*/ false,
                 enableImageGeneration: /*[[${translationSession.imageGenerationEnabled}]]*/ false,
@@ -2446,7 +2445,6 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source_transliteration]')">source_transliteration</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[target-text]')">target-text</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source-audio]')">source-audio</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[target-audio]')">target-audio</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[image]')">image</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[mnemonic_keyword]')">mnemonic_keyword</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[mnemonic_sentence]')">mnemonic_sentence</button>
@@ -2467,7 +2465,6 @@
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source_transliteration]')">source_transliteration</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[target-text]')">target-text</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source-audio]')">source-audio</button>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[target-audio]')">target-audio</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[image]')">image</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[mnemonic_keyword]')">mnemonic_keyword</button>
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[mnemonic_sentence]')">mnemonic_sentence</button>
@@ -2494,7 +2491,6 @@
                                 <div class="dnd-block" draggable="true" data-type="field" data-value="[source_transliteration]">source_transliteration</div>
                                 <div class="dnd-block" draggable="true" data-type="field" data-value="[target-text]">target-text</div>
                                 <div class="dnd-block" draggable="true" data-type="field" data-value="[source-audio]">source-audio</div>
-                                <div class="dnd-block" draggable="true" data-type="field" data-value="[target-audio]">target-audio</div>
                                 <div class="dnd-block" draggable="true" data-type="field" data-value="[image]">image</div>
                                 <div class="dnd-block" draggable="true" data-type="field" data-value="[mnemonic_keyword]">mnemonic_keyword</div>
                                 <div class="dnd-block" draggable="true" data-type="field" data-value="[mnemonic_sentence]">mnemonic_sentence</div>
@@ -2722,10 +2718,6 @@
                 result = result.replace(/\[source-audio\]/g, '[sound:' + wordData.source_audio_file + ']');
             }
 
-            if (wordData.target_audio_files && wordData.target_audio_files.length > 0) {
-                result = result.replace(/\[target-audio\]/g, '[sound:' + wordData.target_audio_files[0] + ']');
-            }
-
             result = result.replace(/\[mnemonic_keyword\]/g, wordData.mnemonic_keyword || '');
             result = result.replace(/\[mnemonic_sentence\]/g, wordData.mnemonic_sentence || '');
 
@@ -2841,9 +2833,7 @@
                 case 'TARGET_TEXT': return (wordData.translations || []).join(', ');
                 case 'SOURCE_TRANSLITERATION': return wordData.source_transliteration || '';
                 case 'SOURCE_AUDIO': return wordData.source_audio_file ? `[sound:${wordData.source_audio_file}]` : '';
-                case 'TARGET_AUDIO': return (wordData.target_audio_files && wordData.target_audio_files[0]) ? `[sound:${wordData.target_audio_files[0]}]` : '';
                 case 'SENTENCE_LATIN': return (wordData.sentence_data && wordData.sentence_data.target_language_latin) || '';
-                case 'SENTENCE_TARGET': return (wordData.sentence_data && wordData.sentence_data.target_language_sentence) || '';
                 case 'SENTENCE_TRANSLITERATION': return (wordData.sentence_data && wordData.sentence_data.target_language_transliteration) || '';
                 case 'SENTENCE_SOURCE': return (wordData.sentence_data && wordData.sentence_data.source_language_sentence) || '';
                 case 'SENTENCE_STRUCTURE': return (wordData.sentence_data && wordData.sentence_data.source_language_structure) || '';

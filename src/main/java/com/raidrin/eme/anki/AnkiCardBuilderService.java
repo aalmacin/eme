@@ -67,23 +67,9 @@ public class AnkiCardBuilderService {
                 }
                 yield "";
             }
-            case TARGET_AUDIO -> {
-                if (wordData.containsKey("target_audio_files") && wordData.get("target_audio_files") instanceof List) {
-                    List<?> audioFiles = (List<?>) wordData.get("target_audio_files");
-                    if (!audioFiles.isEmpty()) {
-                        String audioFile = audioFiles.get(0).toString();
-                        yield "[sound:" + audioFile + "]";
-                    }
-                }
-                yield "";
-            }
             case SENTENCE_LATIN -> {
                 Object sentenceLatin = wordData.get("sentence_latin");
                 yield sentenceLatin != null ? sentenceLatin.toString() : "";
-            }
-            case SENTENCE_TARGET -> {
-                Object sentenceTarget = wordData.get("sentence_target");
-                yield sentenceTarget != null ? sentenceTarget.toString() : "";
             }
             case SENTENCE_TRANSLITERATION -> {
                 Object sentenceTransliteration = wordData.get("sentence_transliteration");
@@ -149,9 +135,7 @@ public class AnkiCardBuilderService {
             case TARGET_TEXT -> "Target Text";
             case SOURCE_TRANSLITERATION -> "Source Transliteration";
             case SOURCE_AUDIO -> "Source Audio";
-            case TARGET_AUDIO -> "Target Audio";
             case SENTENCE_LATIN -> "Sentence Latin";
-            case SENTENCE_TARGET -> "Sentence Target";
             case SENTENCE_TRANSLITERATION -> "Sentence Transliteration";
             case SENTENCE_SOURCE -> "Sentence Source";
             case SENTENCE_STRUCTURE -> "Sentence Structure";

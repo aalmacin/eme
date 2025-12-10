@@ -238,11 +238,7 @@ public class ZipFileGenerator {
         metadata.append("Word/Phrase: ").append(session.getWord()).append("\n");
         metadata.append("Source Language: ").append(session.getSourceLanguage()).append("\n");
         metadata.append("Target Language: ").append(session.getTargetLanguage()).append("\n");
-        metadata.append("Status: ").append(session.getStatus()).append("\n");
         metadata.append("Created: ").append(session.getCreatedAt()).append("\n");
-        if (session.getCompletedAt() != null) {
-            metadata.append("Completed: ").append(session.getCompletedAt()).append("\n");
-        }
         metadata.append("\n");
 
         // Add batch processing info

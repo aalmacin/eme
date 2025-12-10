@@ -51,6 +51,7 @@ public class AsyncImageGenerationService {
 
         try {
             System.out.println("Starting async image generation for session: " + sessionId + " with pre-generated mnemonic");
+            sessionService.updateStatus(sessionId, SessionStatus.IN_PROGRESS);
 
             // Step 1: Generate image using configured provider
             System.out.println("Generating image with prompt: " + mnemonicData.getImagePrompt());
@@ -92,6 +93,7 @@ public class AsyncImageGenerationService {
             }
 
             sessionService.updateSessionData(sessionId, sessionData);
+            sessionService.updateStatus(sessionId, SessionStatus.COMPLETED);
 
             System.out.println("Image generation completed for session: " + sessionId);
 
@@ -100,6 +102,7 @@ public class AsyncImageGenerationService {
         } catch (Exception e) {
             System.err.println("Image generation failed for session " + sessionId + ": " + e.getMessage());
             e.printStackTrace();
+            sessionService.markAsFailed(sessionId, e.getMessage());
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -122,6 +125,7 @@ public class AsyncImageGenerationService {
 
         try {
             System.out.println("Starting async image generation for session: " + sessionId);
+            sessionService.updateStatus(sessionId, SessionStatus.IN_PROGRESS);
 
             // Step 1: Generate mnemonic data
             System.out.println("Generating mnemonic for: " + sourceWord + " -> " + targetWord);
@@ -171,6 +175,7 @@ public class AsyncImageGenerationService {
             }
 
             sessionService.updateSessionData(sessionId, sessionData);
+            sessionService.updateStatus(sessionId, SessionStatus.COMPLETED);
 
             System.out.println("Image generation completed for session: " + sessionId);
 
@@ -179,6 +184,7 @@ public class AsyncImageGenerationService {
         } catch (Exception e) {
             System.err.println("Image generation failed for session " + sessionId + ": " + e.getMessage());
             e.printStackTrace();
+            sessionService.markAsFailed(sessionId, e.getMessage());
             return CompletableFuture.failedFuture(e);
         }
     }
@@ -200,6 +206,7 @@ public class AsyncImageGenerationService {
 
         try {
             System.out.println("Starting async image generation for " + translations.size() + " words");
+            sessionService.updateStatus(sessionId, SessionStatus.IN_PROGRESS);
 
             List<ImageResult> results = new ArrayList<>();
             Map<String, Object> allSessionData = new HashMap<>();
@@ -251,6 +258,7 @@ public class AsyncImageGenerationService {
             allSessionData.put("images", imagesData);
             allSessionData.put("total_count", translations.size());
             sessionService.updateSessionData(sessionId, allSessionData);
+            sessionService.updateStatus(sessionId, SessionStatus.COMPLETED);
 
             System.out.println("All images generated successfully for session: " + sessionId);
 
@@ -259,6 +267,7 @@ public class AsyncImageGenerationService {
         } catch (Exception e) {
             System.err.println("Multiple image generation failed: " + e.getMessage());
             e.printStackTrace();
+            sessionService.markAsFailed(sessionId, e.getMessage());
             return CompletableFuture.failedFuture(e);
         }
     }

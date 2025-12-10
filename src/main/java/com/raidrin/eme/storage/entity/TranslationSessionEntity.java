@@ -21,27 +21,17 @@ public class TranslationSessionEntity {
     @Column(name = "word", nullable = false, columnDefinition = "TEXT")
     private String word;
 
+    @Column(name = "session_name", length = 200)
+    private String sessionName;
+
     @Column(name = "source_language", nullable = false, length = 10)
     private String sourceLanguage;
 
     @Column(name = "target_language", nullable = false, length = 10)
     private String targetLanguage;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "status", nullable = false, length = 20)
-    private SessionStatus status = SessionStatus.PENDING;
-
-    @Column(name = "image_generation_enabled", nullable = false)
-    private Boolean imageGenerationEnabled = false;
-
-    @Column(name = "audio_generation_enabled", nullable = false)
-    private Boolean audioGenerationEnabled = false;
-
     @Column(name = "anki_enabled", nullable = false)
     private Boolean ankiEnabled = false;
-
-    @Column(name = "override_translation_enabled", nullable = false)
-    private Boolean overrideTranslationEnabled = false;
 
     @Column(name = "anki_deck", columnDefinition = "TEXT")
     private String ankiDeck;
@@ -49,9 +39,6 @@ public class TranslationSessionEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "anki_format_id")
     private AnkiFormatEntity ankiFormat;
-
-    @Column(name = "sentence_generation_enabled", nullable = false)
-    private Boolean sentenceGenerationEnabled = false;
 
     @Column(name = "session_data", columnDefinition = "TEXT")
     private String sessionData; // JSON with mnemonic data, file paths, errors, etc.
@@ -65,22 +52,14 @@ public class TranslationSessionEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    @Column(name = "completed_at")
-    private LocalDateTime completedAt;
-
-    @Column(name = "cancelled_at")
-    private LocalDateTime cancelledAt;
-
-    @Column(name = "cancellation_reason", columnDefinition = "TEXT")
-    private String cancellationReason;
-
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
         createdAt = now;
         updatedAt = now;
-        if (status == null) {
-            status = SessionStatus.PENDING;
+        // Default session name to first word if not provided
+        if (sessionName == null || sessionName.trim().isEmpty()) {
+            sessionName = word;
         }
     }
 
@@ -90,28 +69,23 @@ public class TranslationSessionEntity {
     }
 
     public TranslationSessionEntity(String word, String sourceLanguage, String targetLanguage,
-                                    Boolean imageGenerationEnabled, Boolean audioGenerationEnabled,
-                                    Boolean sentenceGenerationEnabled, Boolean ankiEnabled,
-                                    Boolean overrideTranslationEnabled,
-                                    String ankiDeck, AnkiFormatEntity ankiFormat) {
+                                    Boolean ankiEnabled, String ankiDeck, AnkiFormatEntity ankiFormat) {
         this.word = word;
         this.sourceLanguage = sourceLanguage;
         this.targetLanguage = targetLanguage;
-        this.imageGenerationEnabled = imageGenerationEnabled;
-        this.audioGenerationEnabled = audioGenerationEnabled;
-        this.sentenceGenerationEnabled = sentenceGenerationEnabled;
         this.ankiEnabled = ankiEnabled;
-        this.overrideTranslationEnabled = overrideTranslationEnabled;
         this.ankiDeck = ankiDeck;
         this.ankiFormat = ankiFormat;
-        this.status = SessionStatus.PENDING;
     }
 
-    public enum SessionStatus {
-        PENDING,
-        IN_PROGRESS,
-        COMPLETED,
-        FAILED,
-        CANCELLED
+    public TranslationSessionEntity(String word, String sessionName, String sourceLanguage, String targetLanguage,
+                                    Boolean ankiEnabled, String ankiDeck, AnkiFormatEntity ankiFormat) {
+        this.word = word;
+        this.sessionName = sessionName;
+        this.sourceLanguage = sourceLanguage;
+        this.targetLanguage = targetLanguage;
+        this.ankiEnabled = ankiEnabled;
+        this.ankiDeck = ankiDeck;
+        this.ankiFormat = ankiFormat;
     }
 }

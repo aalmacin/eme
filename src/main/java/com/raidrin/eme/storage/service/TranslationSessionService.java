@@ -5,7 +5,6 @@ import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.raidrin.eme.storage.entity.AnkiFormatEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
-import com.raidrin.eme.storage.entity.TranslationSessionEntity.SessionStatus;
 import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.repository.TranslationSessionRepository;
 import lombok.RequiredArgsConstructor;
@@ -28,26 +27,25 @@ public class TranslationSessionService {
 
     @Transactional
     public TranslationSessionEntity createSession(String word, String sourceLanguage, String targetLanguage,
-                                                   boolean imageGenerationEnabled, boolean audioGenerationEnabled) {
-        return createSession(word, sourceLanguage, targetLanguage,
-                imageGenerationEnabled, audioGenerationEnabled,
-                false, false, false, null, null);
-    }
-
-    @Transactional
-    public TranslationSessionEntity createSession(String word, String sourceLanguage, String targetLanguage,
-                                                   boolean imageGenerationEnabled, boolean audioGenerationEnabled,
-                                                   boolean sentenceGenerationEnabled, boolean ankiEnabled,
-                                                   boolean overrideTranslationEnabled,
-                                                   String ankiDeck, AnkiFormatEntity ankiFormat) {
+                                                   boolean ankiEnabled, String ankiDeck, AnkiFormatEntity ankiFormat) {
         validateParameters(word, sourceLanguage, targetLanguage);
 
         TranslationSessionEntity session = new TranslationSessionEntity(
                 word, sourceLanguage, targetLanguage,
-                imageGenerationEnabled, audioGenerationEnabled,
-                sentenceGenerationEnabled, ankiEnabled,
-                overrideTranslationEnabled,
-                ankiDeck, ankiFormat
+                ankiEnabled, ankiDeck, ankiFormat
+        );
+
+        return sessionRepository.save(session);
+    }
+
+    @Transactional
+    public TranslationSessionEntity createSession(String word, String sessionName, String sourceLanguage, String targetLanguage,
+                                                   boolean ankiEnabled, String ankiDeck, AnkiFormatEntity ankiFormat) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        TranslationSessionEntity session = new TranslationSessionEntity(
+                word, sessionName, sourceLanguage, targetLanguage,
+                ankiEnabled, ankiDeck, ankiFormat
         );
 
         return sessionRepository.save(session);
@@ -65,32 +63,9 @@ public class TranslationSessionService {
         return sessionRepository.findAll(pageable);
     }
 
-    public List<TranslationSessionEntity> findByStatus(SessionStatus status) {
-        return sessionRepository.findByStatusOrderByCreatedAtDesc(status);
-    }
-
-    public Page<TranslationSessionEntity> findByStatus(SessionStatus status, Pageable pageable) {
-        return sessionRepository.findByStatus(status, pageable);
-    }
-
     public List<TranslationSessionEntity> findRecentSessions(int days) {
         LocalDateTime since = LocalDateTime.now().minusDays(days);
         return sessionRepository.findRecentSessions(since);
-    }
-
-    @Transactional
-    public void updateStatus(Long sessionId, SessionStatus status) {
-        TranslationSessionEntity session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
-
-        session.setStatus(status);
-        if (status == SessionStatus.COMPLETED || status == SessionStatus.FAILED) {
-            session.setCompletedAt(LocalDateTime.now());
-        } else if (status == SessionStatus.CANCELLED) {
-            session.setCancelledAt(LocalDateTime.now());
-        }
-
-        sessionRepository.save(session);
     }
 
     @Transactional
@@ -124,63 +99,11 @@ public class TranslationSessionService {
         sessionRepository.save(session);
     }
 
-    @Transactional
-    public void markAsCompleted(Long sessionId, String zipFilePath) {
-        TranslationSessionEntity session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
-
-        session.setStatus(SessionStatus.COMPLETED);
-        session.setZipFilePath(zipFilePath);
-        session.setCompletedAt(LocalDateTime.now());
-
-        sessionRepository.save(session);
-    }
-
-    @Transactional
-    public void markAsFailed(Long sessionId, String errorMessage) {
-        TranslationSessionEntity session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
-
-        session.setStatus(SessionStatus.FAILED);
-        session.setCompletedAt(LocalDateTime.now());
-
-        // Add error to session data
-        Map<String, Object> currentData = deserializeData(session.getSessionData());
-        currentData.put("error", errorMessage);
-        currentData.put("errorTime", LocalDateTime.now().toString());
-        session.setSessionData(serializeData(currentData));
-
-        sessionRepository.save(session);
-    }
-
-    @Transactional
-    public void markAsCancelled(Long sessionId, String cancellationReason) {
-        TranslationSessionEntity session = sessionRepository.findById(sessionId)
-                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
-
-        session.setStatus(SessionStatus.CANCELLED);
-        session.setCancelledAt(LocalDateTime.now());
-        session.setCancellationReason(cancellationReason != null ? cancellationReason : "Cancelled by user");
-
-        // Add cancellation info to session data
-        Map<String, Object> currentData = deserializeData(session.getSessionData());
-        currentData.put("cancelled", true);
-        currentData.put("cancellationTime", LocalDateTime.now().toString());
-        currentData.put("cancellationReason", session.getCancellationReason());
-        session.setSessionData(serializeData(currentData));
-
-        sessionRepository.save(session);
-    }
-
     public Map<String, Object> getSessionData(Long sessionId) {
         TranslationSessionEntity session = sessionRepository.findById(sessionId)
                 .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
 
         return deserializeData(session.getSessionData());
-    }
-
-    public long countByStatus(SessionStatus status) {
-        return sessionRepository.countByStatus(status);
     }
 
     /**
