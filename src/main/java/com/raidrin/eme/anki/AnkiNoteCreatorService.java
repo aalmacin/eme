@@ -144,24 +144,6 @@ public class AnkiNoteCreatorService {
             }
         }
 
-        // Extract target audio files
-        if (wordData.containsKey("target_audio_files") && wordData.get("target_audio_files") instanceof List) {
-            @SuppressWarnings("unchecked")
-            List<String> targetAudioFiles = (List<String>) wordData.get("target_audio_files");
-            for (String audioFile : targetAudioFiles) {
-                if (!audioFile.isEmpty()) {
-                    File audioPath = new File(audioOutputDirectory, audioFile);
-                    if (audioPath.exists()) {
-                        audioFiles.add(new MediaFile(
-                            audioFile,
-                            audioPath.getAbsolutePath(),
-                            List.of("Back")
-                        ));
-                    }
-                }
-            }
-        }
-
         // Extract sentence source audio
         if (wordData.containsKey("sentence_source_audio_file") && wordData.get("sentence_source_audio_file") != null) {
             String audioFile = wordData.get("sentence_source_audio_file").toString();

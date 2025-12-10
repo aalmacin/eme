@@ -599,15 +599,13 @@ public class TranslationSessionController {
                     : new HashMap<>();
 
             boolean enableSourceAudio = (Boolean) originalRequest.getOrDefault("enable_source_audio", true);
-            boolean enableTargetAudio = (Boolean) originalRequest.getOrDefault("enable_target_audio", false);
 
             List<AsyncAudioGenerationService.AudioRequest> audioRequests = new ArrayList<>();
 
             // Get language audio configuration
             LangAudioOption sourceLangAudio = getLangAudioOption(session.getSourceLanguage());
-            LangAudioOption targetLangAudio = getLangAudioOption(session.getTargetLanguage());
 
-            // Generate source audio
+            // Generate source audio only
             if (enableSourceAudio) {
                 String sourceAudioFileName = Codec.encodeForAudioFileName(sourceWord);
                 AsyncAudioGenerationService.AudioRequest sourceAudioRequest =
@@ -620,28 +618,6 @@ public class TranslationSessionController {
                         );
                 audioRequests.add(sourceAudioRequest);
                 wordData.put("source_audio_file", sourceAudioFileName + ".mp3");
-            }
-
-            // Generate target audio
-            if (enableTargetAudio && wordData.containsKey("translations")) {
-                List<String> translations = (List<String>) wordData.get("translations");
-                List<String> targetAudioFiles = new ArrayList<>();
-
-                for (String translation : translations) {
-                    String targetAudioFileName = Codec.encodeForAudioFileName(translation);
-                    AsyncAudioGenerationService.AudioRequest targetAudioRequest =
-                            new AsyncAudioGenerationService.AudioRequest(
-                                    translation,
-                                    targetLangAudio.languageCode,
-                                    targetLangAudio.voiceGender,
-                                    targetLangAudio.voiceName,
-                                    targetAudioFileName
-                            );
-                    audioRequests.add(targetAudioRequest);
-                    targetAudioFiles.add(targetAudioFileName + ".mp3");
-                }
-
-                wordData.put("target_audio_files", targetAudioFiles);
             }
 
             // Generate audio files
@@ -696,15 +672,13 @@ public class TranslationSessionController {
             // Force enable source audio when explicitly regenerating audio
             // (User clicked the "Generate Audio" button, so they want audio regardless of original settings)
             boolean enableSourceAudio = true;
-            boolean enableTargetAudio = false;  // Only generate source audio by default
 
-            System.out.println("Forcing audio generation: enableSourceAudio=" + enableSourceAudio + ", enableTargetAudio=" + enableTargetAudio);
+            System.out.println("Forcing audio generation: enableSourceAudio=" + enableSourceAudio);
 
             List<AsyncAudioGenerationService.AudioRequest> audioRequests = new ArrayList<>();
 
             // Get language audio configuration
             LangAudioOption sourceLangAudio = getLangAudioOption(session.getSourceLanguage());
-            LangAudioOption targetLangAudio = getLangAudioOption(session.getTargetLanguage());
 
             // Process all words
             int audioFilesAdded = 0;
@@ -729,28 +703,6 @@ public class TranslationSessionController {
                     audioRequests.add(sourceAudioRequest);
                     wordData.put("source_audio_file", sourceAudioFileName + ".mp3");
                     audioFilesAdded++;
-                }
-
-                // Generate target audio
-                if (enableTargetAudio && wordData.containsKey("translations")) {
-                    List<String> translations = (List<String>) wordData.get("translations");
-                    List<String> targetAudioFiles = new ArrayList<>();
-
-                    for (String translation : translations) {
-                        String targetAudioFileName = Codec.encodeForAudioFileName(translation);
-                        AsyncAudioGenerationService.AudioRequest targetAudioRequest =
-                                new AsyncAudioGenerationService.AudioRequest(
-                                        translation,
-                                        targetLangAudio.languageCode,
-                                        targetLangAudio.voiceGender,
-                                        targetLangAudio.voiceName,
-                                        targetAudioFileName
-                                );
-                        audioRequests.add(targetAudioRequest);
-                        targetAudioFiles.add(targetAudioFileName + ".mp3");
-                    }
-
-                    wordData.put("target_audio_files", targetAudioFiles);
                 }
             }
 
@@ -785,17 +737,11 @@ public class TranslationSessionController {
     private void updateAudioCountInProcessSummary(Map<String, Object> sessionData, List<Map<String, Object>> words) {
         int audioCount = 0;
 
-        // Count audio files from word data
+        // Count audio files from word data (source only)
         for (Map<String, Object> wordData : words) {
             // Count source audio
             if (wordData.containsKey("source_audio_file") && wordData.get("source_audio_file") != null) {
                 audioCount++;
-            }
-
-            // Count target audio files
-            if (wordData.containsKey("target_audio_files") && wordData.get("target_audio_files") instanceof List) {
-                List<?> targetAudioFiles = (List<?>) wordData.get("target_audio_files");
-                audioCount += targetAudioFiles.size();
             }
         }
 
@@ -1168,11 +1114,6 @@ public class TranslationSessionController {
         // Update with latest audio files
         if (wordEntity.getAudioSourceFile() != null) {
             mergedData.put("source_audio_file", wordEntity.getAudioSourceFile());
-        }
-        if (wordEntity.getAudioTargetFile() != null) {
-            List<String> targetAudioFiles = new ArrayList<>();
-            targetAudioFiles.add(wordEntity.getAudioTargetFile());
-            mergedData.put("target_audio_files", targetAudioFiles);
         }
 
         // Update with latest mnemonic data

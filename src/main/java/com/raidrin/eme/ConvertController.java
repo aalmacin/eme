@@ -129,21 +129,13 @@ public class ConvertController {
         request.setSourceLanguageCode(getTranslationCode(lang != null ? lang : "en").getCode());
         request.setTargetLanguageCode(getTranslationCode(targetLang != null ? targetLang : "en").getCode());
 
-        // Audio configuration
+        // Audio configuration (source only)
         request.setEnableSourceAudio(sourceAudio);
-        request.setEnableTargetAudio(targetAudio);
 
         LangAudioOption sourceLangAudio = getLangAudioOption(lang != null ? lang : "en");
         request.setSourceAudioLanguageCode(sourceLangAudio.languageCode);
         request.setSourceVoiceGender(sourceLangAudio.voiceGender);
         request.setSourceVoiceName(sourceLangAudio.voiceName);
-
-        if (translation) {
-            LangAudioOption targetLangAudio = getLangAudioOption(targetLang != null ? targetLang : "en");
-            request.setTargetAudioLanguageCode(targetLangAudio.languageCode);
-            request.setTargetVoiceGender(targetLangAudio.voiceGender);
-            request.setTargetVoiceName(targetLangAudio.voiceName);
-        }
 
         // Feature flags
         request.setEnableTranslation(translation);
@@ -430,19 +422,10 @@ public class ConvertController {
 
         // Audio configuration
         request.setEnableSourceAudio(sourceAudio);
-        request.setEnableTargetAudio(targetAudio);
-
         LangAudioOption sourceLangAudio = getLangAudioOption(lang);
         request.setSourceAudioLanguageCode(sourceLangAudio.languageCode);
         request.setSourceVoiceGender(sourceLangAudio.voiceGender);
         request.setSourceVoiceName(sourceLangAudio.voiceName);
-
-        if (translation) {
-            LangAudioOption targetLangAudio = getLangAudioOption(targetLang != null ? targetLang : "en");
-            request.setTargetAudioLanguageCode(targetLangAudio.languageCode);
-            request.setTargetVoiceGender(targetLangAudio.voiceGender);
-            request.setTargetVoiceName(targetLangAudio.voiceName);
-        }
 
         // Feature flags
         request.setEnableTranslation(translation);

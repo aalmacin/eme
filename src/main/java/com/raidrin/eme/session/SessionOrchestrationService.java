@@ -113,7 +113,7 @@ public class SessionOrchestrationService {
             System.out.println("[SESSION " + sessionId + "] Configuration: " +
                 "words=" + request.getSourceWords().size() +
                 ", translation=" + request.isEnableTranslation() +
-                ", audio=" + (request.isEnableSourceAudio() || request.isEnableTargetAudio()) +
+                ", audio=" + request.isEnableSourceAudio() +
                 ", sentences=" + request.isEnableSentenceGeneration() +
                 ", images=" + request.isEnableImageGeneration());
 
@@ -307,7 +307,6 @@ public class SessionOrchestrationService {
 
                     // ============================================================
                     // PHASE 2: Run translation-dependent operations in parallel
-                    // - Target audio (depends on translations)
                     // - Mnemonics and Images (depends on translations)
                     // - Example Sentences (depends on translations)
                     // ============================================================
@@ -317,27 +316,6 @@ public class SessionOrchestrationService {
                     String transliteration = translationResult.transliteration;
 
                     List<CompletableFuture<Void>> phase2Futures = new ArrayList<>();
-
-                    // Target audio collection (depends on translations)
-                    if (request.isEnableTargetAudio() && translations != null && !translations.isEmpty()) {
-                        List<String> targetAudioFiles = new ArrayList<>();
-                        for (String translation : translations) {
-                            String targetAudioFileName = Codec.encodeForAudioFileName(translation);
-                            targetAudioFiles.add(targetAudioFileName + ".mp3");
-
-                            if (!processedAudioFiles.contains(targetAudioFileName)) {
-                                allAudioRequests.add(new AsyncAudioGenerationService.AudioRequest(
-                                    translation,
-                                    request.getTargetAudioLanguageCode(),
-                                    request.getTargetVoiceGender(),
-                                    request.getTargetVoiceName(),
-                                    targetAudioFileName
-                                ));
-                                processedAudioFiles.add(targetAudioFileName);
-                            }
-                        }
-                        wordData.put("target_audio_files", targetAudioFiles);
-                    }
 
                     // Sentence generation (depends on translations for target language context)
                     if (request.isEnableSentenceGeneration()) {
@@ -647,13 +625,9 @@ public class SessionOrchestrationService {
             originalRequest.put("source_language_code", request.getSourceLanguageCode());
             originalRequest.put("target_language_code", request.getTargetLanguageCode());
             originalRequest.put("enable_source_audio", request.isEnableSourceAudio());
-            originalRequest.put("enable_target_audio", request.isEnableTargetAudio());
             originalRequest.put("source_audio_language_code", request.getSourceAudioLanguageCode() != null ? request.getSourceAudioLanguageCode().name() : null);
-            originalRequest.put("target_audio_language_code", request.getTargetAudioLanguageCode() != null ? request.getTargetAudioLanguageCode().name() : null);
             originalRequest.put("source_voice_gender", request.getSourceVoiceGender() != null ? request.getSourceVoiceGender().name() : null);
-            originalRequest.put("target_voice_gender", request.getTargetVoiceGender() != null ? request.getTargetVoiceGender().name() : null);
             originalRequest.put("source_voice_name", request.getSourceVoiceName());
-            originalRequest.put("target_voice_name", request.getTargetVoiceName());
             originalRequest.put("enable_translation", request.isEnableTranslation());
             originalRequest.put("enable_sentence_generation", request.isEnableSentenceGeneration());
             originalRequest.put("enable_image_generation", request.isEnableImageGeneration());
@@ -782,16 +756,10 @@ public class SessionOrchestrationService {
         request.setSourceLanguageCode((String) originalRequest.get("source_language_code"));
         request.setTargetLanguageCode((String) originalRequest.get("target_language_code"));
         request.setEnableSourceAudio((Boolean) originalRequest.get("enable_source_audio"));
-        request.setEnableTargetAudio((Boolean) originalRequest.get("enable_target_audio"));
 
         String sourceAudioLangCode = (String) originalRequest.get("source_audio_language_code");
         if (sourceAudioLangCode != null) {
             request.setSourceAudioLanguageCode(LanguageAudioCodes.valueOf(sourceAudioLangCode));
-        }
-
-        String targetAudioLangCode = (String) originalRequest.get("target_audio_language_code");
-        if (targetAudioLangCode != null) {
-            request.setTargetAudioLanguageCode(LanguageAudioCodes.valueOf(targetAudioLangCode));
         }
 
         String sourceVoiceGender = (String) originalRequest.get("source_voice_gender");
@@ -799,13 +767,7 @@ public class SessionOrchestrationService {
             request.setSourceVoiceGender(SsmlVoiceGender.valueOf(sourceVoiceGender));
         }
 
-        String targetVoiceGender = (String) originalRequest.get("target_voice_gender");
-        if (targetVoiceGender != null) {
-            request.setTargetVoiceGender(SsmlVoiceGender.valueOf(targetVoiceGender));
-        }
-
         request.setSourceVoiceName((String) originalRequest.get("source_voice_name"));
-        request.setTargetVoiceName((String) originalRequest.get("target_voice_name"));
         request.setEnableTranslation((Boolean) originalRequest.get("enable_translation"));
         request.setEnableSentenceGeneration((Boolean) originalRequest.get("enable_sentence_generation"));
         request.setEnableImageGeneration((Boolean) originalRequest.get("enable_image_generation"));
@@ -1551,15 +1513,11 @@ public class SessionOrchestrationService {
         private String sourceLanguageCode;  // For translation API
         private String targetLanguageCode;  // For translation API
 
-        // Audio configuration
+        // Audio configuration (source only)
         private boolean enableSourceAudio;
-        private boolean enableTargetAudio;
         private LanguageAudioCodes sourceAudioLanguageCode;
-        private LanguageAudioCodes targetAudioLanguageCode;
         private SsmlVoiceGender sourceVoiceGender;
-        private SsmlVoiceGender targetVoiceGender;
         private String sourceVoiceName;
-        private String targetVoiceName;
 
         // Feature flags
         private boolean enableTranslation;
