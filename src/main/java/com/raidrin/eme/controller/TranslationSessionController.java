@@ -1510,4 +1510,231 @@ public class TranslationSessionController {
 
         return outputPath;
     }
+
+    // ========================================================================
+    // GRANULAR REGENERATION ENDPOINTS (Phase 2.3)
+    // These endpoints selectively regenerate specific fields, respecting overrides
+    // ========================================================================
+
+    /**
+     * Selectively regenerate translations for all words in session (skips overridden words)
+     */
+    @PostMapping("/{id}/generate-translations")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateTranslations(@PathVariable Long id) {
+        try {
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateTranslationsSelectively(id).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    /**
+     * Selectively regenerate transliterations for all words in session (skips overridden words)
+     */
+    @PostMapping("/{id}/generate-transliterations")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateTransliterations(@PathVariable Long id) {
+        try {
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateTransliterationsSelectively(id).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    /**
+     * Selectively regenerate mnemonic keywords for all words in session (skips overridden words)
+     */
+    @PostMapping("/{id}/generate-mnemonic-keywords")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateMnemonicKeywords(
+            @PathVariable Long id,
+            @RequestParam(required = false) String imageStyle) {
+        try {
+            com.raidrin.eme.image.ImageStyle style = imageStyle != null
+                ? com.raidrin.eme.image.ImageStyle.fromString(imageStyle)
+                : com.raidrin.eme.image.ImageStyle.REALISTIC_CINEMATIC;
+
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateMnemonicKeywordsSelectively(id, style).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    /**
+     * Selectively regenerate mnemonic sentences for all words in session (checks prerequisites)
+     */
+    @PostMapping("/{id}/generate-mnemonic-sentences")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateMnemonicSentences(
+            @PathVariable Long id,
+            @RequestParam(required = false) String imageStyle) {
+        try {
+            com.raidrin.eme.image.ImageStyle style = imageStyle != null
+                ? com.raidrin.eme.image.ImageStyle.fromString(imageStyle)
+                : com.raidrin.eme.image.ImageStyle.REALISTIC_CINEMATIC;
+
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateMnemonicSentencesSelectively(id, style).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    /**
+     * Selectively regenerate images for all words in session (validates prerequisites)
+     */
+    @PostMapping("/{id}/generate-images")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateImages(@PathVariable Long id) {
+        try {
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateImagesSelectively(id).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    /**
+     * Selectively regenerate source audio for all words in session
+     */
+    @PostMapping("/{id}/generate-audio")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateAudio(@PathVariable Long id) {
+        try {
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateAudioSelectively(id).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    /**
+     * Selectively regenerate example sentences for all words in session (checks prerequisites)
+     */
+    @PostMapping("/{id}/generate-example-sentences")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateExampleSentences(@PathVariable Long id) {
+        try {
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateExampleSentencesSelectively(id).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
 }

@@ -825,6 +825,721 @@ public class SessionOrchestrationService {
         return request;
     }
 
+    // ========================================================================
+    // SELECTIVE GENERATION METHODS (Phase 2.3)
+    // These methods selectively regenerate specific fields, respecting overrides
+    // ========================================================================
+
+    /**
+     * Selectively generate translations for words in a session, skipping overridden words
+     *
+     * @param sessionId The session ID
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateTranslationsSelectively(Long sessionId) {
+        System.out.println("[SESSION " + sessionId + "] Starting selective translation generation");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("translations");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            // Get language codes from original request or use defaults
+            @SuppressWarnings("unchecked")
+            Map<String, Object> originalRequest = (Map<String, Object>) sessionData.get("original_request");
+            String sourceLanguageCode = originalRequest != null && originalRequest.containsKey("source_language_code")
+                ? (String) originalRequest.get("source_language_code")
+                : session.getSourceLanguage();
+            String targetLanguageCode = originalRequest != null && originalRequest.containsKey("target_language_code")
+                ? (String) originalRequest.get("target_language_code")
+                : session.getTargetLanguage();
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                // Find the word entity
+                Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+                );
+
+                if (wordEntityOpt.isPresent() && wordService.isTranslationOverridden(wordEntityOpt.get())) {
+                    System.out.println("[WORD] Skipping translation for '" + sourceWord + "' (manually overridden)");
+                    result.addSkipped(sourceWord, "Translation manually overridden");
+                    continue;
+                }
+
+                // Generate new translation
+                try {
+                    com.raidrin.eme.translator.TranslationData translationData = translationService.translateText(
+                        sourceWord,
+                        sourceLanguageCode,
+                        targetLanguageCode,
+                        true // Force new translation
+                    );
+
+                    // Update word entity with new translation
+                    wordService.updateTranslation(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        translationData.getTranslations()
+                    );
+
+                    result.incrementSuccess();
+                    System.out.println("[WORD] Generated translation for: " + sourceWord);
+                } catch (Exception e) {
+                    result.incrementFailed();
+                    result.addError(sourceWord, e.getMessage());
+                    System.err.println("[WORD] Translation generation failed for '" + sourceWord + "': " + e.getMessage());
+                }
+            }
+
+            result.setMessage("Translation generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Translation generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Translation generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Selectively generate transliterations for words in a session, skipping overridden words
+     *
+     * @param sessionId The session ID
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateTransliterationsSelectively(Long sessionId) {
+        System.out.println("[SESSION " + sessionId + "] Starting selective transliteration generation");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("transliterations");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            // Get language codes from original request or use defaults
+            @SuppressWarnings("unchecked")
+            Map<String, Object> originalRequest = (Map<String, Object>) sessionData.get("original_request");
+            String sourceLanguageCode = originalRequest != null && originalRequest.containsKey("source_language_code")
+                ? (String) originalRequest.get("source_language_code")
+                : session.getSourceLanguage();
+            String targetLanguageCode = originalRequest != null && originalRequest.containsKey("target_language_code")
+                ? (String) originalRequest.get("target_language_code")
+                : session.getTargetLanguage();
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                // Find the word entity
+                Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+                );
+
+                if (wordEntityOpt.isPresent() && wordService.isTransliterationOverridden(wordEntityOpt.get())) {
+                    System.out.println("[WORD] Skipping transliteration for '" + sourceWord + "' (manually overridden)");
+                    result.addSkipped(sourceWord, "Transliteration manually overridden");
+                    continue;
+                }
+
+                // Generate new transliteration via translation service
+                try {
+                    com.raidrin.eme.translator.TranslationData translationData = translationService.translateText(
+                        sourceWord,
+                        sourceLanguageCode,
+                        targetLanguageCode,
+                        true
+                    );
+
+                    if (translationData.getTransliteration() != null && !translationData.getTransliteration().isEmpty()) {
+                        wordService.updateTransliteration(
+                            sourceWord,
+                            session.getSourceLanguage(),
+                            session.getTargetLanguage(),
+                            translationData.getTransliteration()
+                        );
+                        result.incrementSuccess();
+                        System.out.println("[WORD] Generated transliteration for: " + sourceWord);
+                    } else {
+                        result.addSkipped(sourceWord, "No transliteration available for this language");
+                        System.out.println("[WORD] No transliteration available for: " + sourceWord);
+                    }
+                } catch (Exception e) {
+                    result.incrementFailed();
+                    result.addError(sourceWord, e.getMessage());
+                    System.err.println("[WORD] Transliteration generation failed for '" + sourceWord + "': " + e.getMessage());
+                }
+            }
+
+            result.setMessage("Transliteration generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Transliteration generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Transliteration generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Selectively generate mnemonic keywords for words in a session, skipping overridden words
+     *
+     * @param sessionId The session ID
+     * @param imageStyle Optional image style for mnemonic generation
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateMnemonicKeywordsSelectively(
+            Long sessionId, ImageStyle imageStyle) {
+        System.out.println("[SESSION " + sessionId + "] Starting selective mnemonic keyword generation");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("mnemonic_keywords");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                // Find the word entity
+                Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+                );
+
+                if (wordEntityOpt.isEmpty()) {
+                    result.addSkipped(sourceWord, "Word entity not found");
+                    continue;
+                }
+
+                WordEntity wordEntity = wordEntityOpt.get();
+
+                if (wordService.isMnemonicKeywordOverridden(wordEntity)) {
+                    System.out.println("[WORD] Skipping mnemonic keyword for '" + sourceWord + "' (manually overridden)");
+                    result.addSkipped(sourceWord, "Mnemonic keyword manually overridden");
+                    continue;
+                }
+
+                if (!wordService.hasTranslation(wordEntity)) {
+                    result.addSkipped(sourceWord, "Missing translation (prerequisite)");
+                    continue;
+                }
+
+                // Generate new mnemonic keyword
+                try {
+                    Set<String> translations = wordService.deserializeTranslations(wordEntity.getTranslation());
+                    String primaryTranslation = translations.iterator().next();
+
+                    MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
+                        sourceWord,
+                        primaryTranslation,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        wordEntity.getSourceTransliteration(),
+                        imageStyle != null ? imageStyle : ImageStyle.REALISTIC_CINEMATIC
+                    );
+
+                    // Only update mnemonic keyword (don't update sentence or clear image)
+                    wordService.updateMnemonic(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        mnemonicData.getMnemonicKeyword(),
+                        null, // Don't update sentence
+                        null  // Don't update image prompt
+                    );
+
+                    result.incrementSuccess();
+                    System.out.println("[WORD] Generated mnemonic keyword for: " + sourceWord);
+                } catch (Exception e) {
+                    result.incrementFailed();
+                    result.addError(sourceWord, e.getMessage());
+                    System.err.println("[WORD] Mnemonic keyword generation failed for '" + sourceWord + "': " + e.getMessage());
+                }
+            }
+
+            result.setMessage("Mnemonic keyword generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Mnemonic keyword generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Mnemonic keyword generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Selectively generate mnemonic sentences for words in a session
+     * Checks prerequisites (translation, mnemonic keyword)
+     *
+     * @param sessionId The session ID
+     * @param imageStyle Optional image style for mnemonic generation
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateMnemonicSentencesSelectively(
+            Long sessionId, ImageStyle imageStyle) {
+        System.out.println("[SESSION " + sessionId + "] Starting selective mnemonic sentence generation");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("mnemonic_sentences");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                // Find the word entity
+                Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+                );
+
+                if (wordEntityOpt.isEmpty()) {
+                    result.addSkipped(sourceWord, "Word entity not found");
+                    continue;
+                }
+
+                WordEntity wordEntity = wordEntityOpt.get();
+
+                // Check prerequisites
+                if (!wordService.hasTranslation(wordEntity)) {
+                    result.addSkipped(sourceWord, "Missing translation (prerequisite)");
+                    continue;
+                }
+
+                if (!wordService.hasMnemonicKeyword(wordEntity)) {
+                    result.addSkipped(sourceWord, "Missing mnemonic keyword (prerequisite)");
+                    continue;
+                }
+
+                // Generate new mnemonic sentence
+                try {
+                    Set<String> translations = wordService.deserializeTranslations(wordEntity.getTranslation());
+                    String primaryTranslation = translations.iterator().next();
+
+                    MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonic(
+                        sourceWord,
+                        primaryTranslation,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        wordEntity.getSourceTransliteration(),
+                        imageStyle != null ? imageStyle : ImageStyle.REALISTIC_CINEMATIC
+                    );
+
+                    // Update mnemonic sentence and image prompt, clear image file
+                    wordService.updateMnemonicAndClearImage(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        null, // Keep existing keyword
+                        mnemonicData.getMnemonicSentence(),
+                        mnemonicData.getImagePrompt()
+                    );
+
+                    result.incrementSuccess();
+                    System.out.println("[WORD] Generated mnemonic sentence for: " + sourceWord);
+                } catch (Exception e) {
+                    result.incrementFailed();
+                    result.addError(sourceWord, e.getMessage());
+                    System.err.println("[WORD] Mnemonic sentence generation failed for '" + sourceWord + "': " + e.getMessage());
+                }
+            }
+
+            result.setMessage("Mnemonic sentence generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Mnemonic sentence generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Mnemonic sentence generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Selectively generate images for words in a session
+     * Validates prerequisites (translation, mnemonic keyword, mnemonic sentence)
+     *
+     * @param sessionId The session ID
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateImagesSelectively(Long sessionId) {
+        System.out.println("[SESSION " + sessionId + "] Starting selective image generation");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("images");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                // Find the word entity
+                Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+                );
+
+                if (wordEntityOpt.isEmpty()) {
+                    result.addSkipped(sourceWord, "Word entity not found");
+                    continue;
+                }
+
+                WordEntity wordEntity = wordEntityOpt.get();
+
+                // Check prerequisites using WordService helper
+                if (!wordService.hasImagePrerequisites(wordEntity)) {
+                    List<String> missing = new ArrayList<>();
+                    if (!wordService.hasTranslation(wordEntity)) missing.add("translation");
+                    if (!wordService.hasMnemonicKeyword(wordEntity)) missing.add("mnemonic keyword");
+                    if (!wordService.hasMnemonicSentence(wordEntity)) missing.add("mnemonic sentence");
+
+                    result.addSkipped(sourceWord, "Missing prerequisites: " + String.join(", ", missing));
+                    continue;
+                }
+
+                // Generate image
+                try {
+                    // Sanitize the image prompt before sending to image generation API
+                    String sanitizedPrompt = mnemonicGenerationService.sanitizeImagePrompt(wordEntity.getImagePrompt());
+
+                    // Generate image using OpenAI
+                    String size = "1536x1024"; // Landscape format
+                    OpenAiImageService.GeneratedImage generatedImage = openAiImageService.generateImage(
+                        sanitizedPrompt, size, "medium", null
+                    );
+
+                    // Download and save image
+                    String imageFileName = FileNameSanitizer.fromMnemonicSentence(
+                        wordEntity.getMnemonicSentence(), "jpg"
+                    );
+
+                    Path localImagePath = downloadImageToLocal(generatedImage.getImageUrl(), imageFileName);
+                    String gcsUrl = gcpStorageService.downloadAndUpload(generatedImage.getImageUrl(), imageFileName);
+
+                    // Update word entity with image
+                    wordService.updateImage(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        imageFileName,
+                        wordEntity.getImagePrompt()
+                    );
+
+                    result.incrementSuccess();
+                    System.out.println("[WORD] Generated image for: " + sourceWord);
+                } catch (Exception e) {
+                    result.incrementFailed();
+                    result.addError(sourceWord, e.getMessage());
+                    System.err.println("[WORD] Image generation failed for '" + sourceWord + "': " + e.getMessage());
+                }
+            }
+
+            result.setMessage("Image generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Image generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Image generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Selectively generate source audio for words in a session
+     *
+     * @param sessionId The session ID
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateAudioSelectively(Long sessionId) {
+        System.out.println("[SESSION " + sessionId + "] Starting selective audio generation (source only)");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("audio");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            List<AsyncAudioGenerationService.AudioRequest> audioRequests = new ArrayList<>();
+            Set<String> processedAudioFiles = new HashSet<>();
+
+            // Get audio language code from original request or use defaults
+            @SuppressWarnings("unchecked")
+            Map<String, Object> originalRequest = (Map<String, Object>) sessionData.get("original_request");
+            String audioLangCodeStr = originalRequest != null && originalRequest.containsKey("source_audio_language_code")
+                ? (String) originalRequest.get("source_audio_language_code")
+                : session.getSourceLanguage();
+            LanguageAudioCodes audioLangCode;
+            try {
+                audioLangCode = LanguageAudioCodes.valueOf(audioLangCodeStr);
+            } catch (IllegalArgumentException e) {
+                // Fallback if enum value is invalid
+                audioLangCode = LanguageAudioCodes.English;
+            }
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                String sourceAudioFileName = Codec.encodeForAudioFileName(sourceWord);
+
+                if (processedAudioFiles.contains(sourceAudioFileName)) {
+                    result.addSkipped(sourceWord, "Audio file already queued");
+                    continue;
+                }
+
+                audioRequests.add(new AsyncAudioGenerationService.AudioRequest(
+                    sourceWord,
+                    audioLangCode,
+                    SsmlVoiceGender.NEUTRAL,
+                    null,
+                    sourceAudioFileName
+                ));
+                processedAudioFiles.add(sourceAudioFileName);
+            }
+
+            // Generate all audio files in parallel
+            if (!audioRequests.isEmpty()) {
+                CompletableFuture<List<AsyncAudioGenerationService.AudioResult>> audioFuture =
+                    audioGenerationService.generateAudioFilesParallel(audioRequests);
+
+                List<AsyncAudioGenerationService.AudioResult> audioResults = audioFuture.get();
+                for (AsyncAudioGenerationService.AudioResult audioResult : audioResults) {
+                    if (audioResult.getLocalFilePath() != null) {
+                        result.incrementSuccess();
+                    } else {
+                        result.incrementFailed();
+                        result.addError(audioResult.getFileName(), "Audio generation failed");
+                    }
+                }
+            }
+
+            result.setMessage("Audio generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Audio generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Audio generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Selectively generate example sentences for words in a session
+     * Checks prerequisites (translation)
+     *
+     * @param sessionId The session ID
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateExampleSentencesSelectively(Long sessionId) {
+        System.out.println("[SESSION " + sessionId + "] Starting selective example sentence generation");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("example_sentences");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                // Find the word entity
+                Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+                );
+
+                if (wordEntityOpt.isEmpty()) {
+                    result.addSkipped(sourceWord, "Word entity not found");
+                    continue;
+                }
+
+                WordEntity wordEntity = wordEntityOpt.get();
+
+                // Check prerequisites
+                if (!wordService.hasTranslation(wordEntity)) {
+                    result.addSkipped(sourceWord, "Missing translation (prerequisite)");
+                    continue;
+                }
+
+                // Generate example sentence
+                try {
+                    SentenceData sentenceData = sentenceGenerationService.generateSentence(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage()
+                    );
+
+                    if (sentenceData != null) {
+                        // Generate sentence audio
+                        if (sentenceData.getSourceLanguageSentence() != null) {
+                            String sentenceAudioFileName = Codec.encodeForAudioFileName(
+                                sentenceData.getSourceLanguageSentence()
+                            ) + ".mp3";
+                            sentenceData.setAudioFile(sentenceAudioFileName);
+
+                            // Save sentence to database
+                            sentenceStorageService.saveSentence(
+                                sourceWord,
+                                session.getSourceLanguage(),
+                                session.getTargetLanguage(),
+                                sentenceData
+                            );
+
+                            result.incrementSuccess();
+                            System.out.println("[WORD] Generated example sentence for: " + sourceWord);
+                        }
+                    } else {
+                        result.addSkipped(sourceWord, "Sentence generation returned null");
+                    }
+                } catch (Exception e) {
+                    result.incrementFailed();
+                    result.addError(sourceWord, e.getMessage());
+                    System.err.println("[WORD] Example sentence generation failed for '" + sourceWord + "': " + e.getMessage());
+                }
+            }
+
+            result.setMessage("Example sentence generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Example sentence generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Example sentence generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Result object for selective generation operations
+     */
+    @Data
+    public static class SelectiveGenerationResult {
+        private final String operationType;
+        private int totalCount = 0;
+        private int successCount = 0;
+        private int failedCount = 0;
+        private int skippedCount = 0;
+        private List<SkippedWord> skippedWords = new ArrayList<>();
+        private List<FailedWord> failedWords = new ArrayList<>();
+        private String message;
+
+        public SelectiveGenerationResult(String operationType) {
+            this.operationType = operationType;
+        }
+
+        public void incrementTotal() { totalCount++; }
+        public void incrementSuccess() { successCount++; }
+        public void incrementFailed() { failedCount++; }
+
+        public void addSkipped(String word, String reason) {
+            skippedCount++;
+            skippedWords.add(new SkippedWord(word, reason));
+        }
+
+        public void addError(String word, String error) {
+            failedWords.add(new FailedWord(word, error));
+        }
+
+        @Data
+        public static class SkippedWord {
+            private final String word;
+            private final String reason;
+        }
+
+        @Data
+        public static class FailedWord {
+            private final String word;
+            private final String error;
+        }
+    }
+
     /**
      * Configuration for batch processing
      */

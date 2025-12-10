@@ -302,4 +302,34 @@ public class WordService {
             throw new RuntimeException("Failed to deserialize translations", e);
         }
     }
+
+    // Override Checking Methods
+    public boolean isTranslationOverridden(WordEntity word) {
+        return word.getTranslationOverrideAt() != null;
+    }
+
+    public boolean isTransliterationOverridden(WordEntity word) {
+        return word.getTransliterationOverrideAt() != null;
+    }
+
+    public boolean isMnemonicKeywordOverridden(WordEntity word) {
+        return word.getMnemonicKeywordUpdatedAt() != null;
+    }
+
+    // Prerequisite Validation Methods
+    public boolean hasTranslation(WordEntity word) {
+        return word.getTranslation() != null && !word.getTranslation().trim().isEmpty();
+    }
+
+    public boolean hasMnemonicKeyword(WordEntity word) {
+        return word.getMnemonicKeyword() != null && !word.getMnemonicKeyword().trim().isEmpty();
+    }
+
+    public boolean hasMnemonicSentence(WordEntity word) {
+        return word.getMnemonicSentence() != null && !word.getMnemonicSentence().trim().isEmpty();
+    }
+
+    public boolean hasImagePrerequisites(WordEntity word) {
+        return hasTranslation(word) && hasMnemonicKeyword(word) && hasMnemonicSentence(word);
+    }
 }
