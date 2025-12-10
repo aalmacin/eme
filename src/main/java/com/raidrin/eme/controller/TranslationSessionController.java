@@ -1,11 +1,14 @@
 package com.raidrin.eme.controller;
 
 import com.google.cloud.texttospeech.v1.SsmlVoiceGender;
+import com.raidrin.eme.anki.AnkiCardBuilderService;
 import com.raidrin.eme.anki.AnkiNoteCreatorService;
+import com.raidrin.eme.anki.CardItem;
 import com.raidrin.eme.audio.AsyncAudioGenerationService;
 import com.raidrin.eme.audio.LanguageAudioCodes;
 import com.raidrin.eme.codec.Codec;
 import com.raidrin.eme.session.SessionOrchestrationService;
+import com.raidrin.eme.storage.entity.AnkiFormatEntity;
 import com.raidrin.eme.storage.entity.CharacterGuideEntity;
 import com.raidrin.eme.storage.entity.TranslationSessionEntity;
 import com.raidrin.eme.storage.entity.WordEntity;
@@ -97,16 +100,24 @@ public class TranslationSessionController {
     }
 
     @GetMapping("/{id}")
-    public String viewSession(@PathVariable Long id, Model model) {
+    public String viewSession(@PathVariable Long id,
+                             @RequestParam(defaultValue = "0") int wordPage,
+                             @RequestParam(defaultValue = "20") int wordSize,
+                             Model model) {
         Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
         if (sessionOpt.isPresent()) {
             TranslationSessionEntity session = sessionOpt.get();
             Map<String, Object> sessionData = translationSessionService.getSessionData(id);
 
             // Enrich word data with word IDs and latest data from WordEntity
+            List<Map<String, Object>> allWords = new ArrayList<>();
+            int totalWords = 0;
+
             if (sessionData.containsKey("words")) {
                 @SuppressWarnings("unchecked")
                 List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+                totalWords = words.size();
+
                 for (Map<String, Object> wordData : words) {
                     String sourceWord = (String) wordData.get("source_word");
                     if (sourceWord != null) {
@@ -133,9 +144,26 @@ public class TranslationSessionController {
                     }
                 }
 
+                allWords = words;
+
                 // Update audio count in process_summary to reflect current state
                 updateAudioCountInProcessSummary(sessionData, words);
             }
+
+            // Apply pagination to words list
+            int startIndex = wordPage * wordSize;
+            int endIndex = Math.min(startIndex + wordSize, totalWords);
+            List<Map<String, Object>> paginatedWords = new ArrayList<>();
+
+            if (startIndex < totalWords) {
+                paginatedWords = allWords.subList(startIndex, endIndex);
+            }
+
+            // Replace words in sessionData with paginated words
+            sessionData.put("words", paginatedWords);
+
+            // Calculate pagination info
+            int totalPages = (int) Math.ceil((double) totalWords / wordSize);
 
             // Extract source words from session data for display
             String sourceWordsText = "";
@@ -154,6 +182,15 @@ public class TranslationSessionController {
             model.addAttribute("translationSession", session);
             model.addAttribute("sessionData", sessionData);
             model.addAttribute("sourceWordsText", sourceWordsText);
+
+            // Add pagination attributes
+            model.addAttribute("wordPage", wordPage);
+            model.addAttribute("wordSize", wordSize);
+            model.addAttribute("totalWords", totalWords);
+            model.addAttribute("totalPages", totalPages);
+            model.addAttribute("startIndex", startIndex + 1); // 1-based for display
+            model.addAttribute("endIndex", endIndex);
+
             return "sessions/view";
         } else {
             return "redirect:/sessions?error=not-found";
@@ -988,11 +1025,26 @@ public class TranslationSessionController {
             return "redirect:/sessions/" + id + "?error=anki-not-enabled";
         }
 
+        // Check if Anki format is configured
+        if (session.getAnkiFormat() == null || session.getAnkiFormat().getFormat() == null) {
+            return "redirect:/sessions/" + id + "?error=anki-format-not-configured";
+        }
+
         // Get session data
         Map<String, Object> sessionData = translationSessionService.getSessionData(id);
 
         try {
+            // Get card format
+            AnkiFormatEntity ankiFormat = session.getAnkiFormat();
+            List<CardItem> frontCardItems = ankiFormat.getFormat().getFrontCardItems();
+            List<CardItem> backCardItems = ankiFormat.getFormat().getBackCardItems();
+
+            // Ensure custom note type exists in Anki
+            String modelName = "EME - " + ankiFormat.getName();
+            ankiCardBuilderService.ensureCustomNoteTypeExists(modelName, frontCardItems, backCardItems);
+
             int cardsCreated = 0;
+            int validationErrors = 0;
 
             // Get words from session data
             if (sessionData.containsKey("words") && sessionData.get("words") instanceof List) {
@@ -1007,14 +1059,31 @@ public class TranslationSessionController {
                             session.getTargetLanguage()
                     );
 
-                    // Build front and back content using latest data
-                    String front = buildAnkiFront(session, latestWordData);
-                    String back = buildAnkiBack(session, latestWordData);
+                    // Validate word data has all required fields
+                    AnkiCardBuilderService.ValidationResult frontValidation =
+                        ankiCardBuilderService.validateWordData(latestWordData, frontCardItems);
 
-                    // Create Anki card with media files
-                    ankiNoteCreatorService.addNoteWithMedia(session.getAnkiDeck(), front, back, latestWordData);
+                    if (!frontValidation.isValid()) {
+                        System.err.println("Skipping word due to missing front fields: " +
+                            latestWordData.get("source_word") + " - " + frontValidation.getMissingFieldsMessage());
+                        validationErrors++;
+                        continue;
+                    }
+
+                    // Build field values for custom note type
+                    Map<String, String> fields = ankiCardBuilderService.buildFieldValues(
+                        latestWordData, frontCardItems, backCardItems);
+
+                    // Create Anki card with custom note type
+                    ankiNoteCreatorService.addNoteWithCustomModel(
+                        session.getAnkiDeck(), modelName, fields, latestWordData);
                     cardsCreated++;
                 }
+            }
+
+            if (validationErrors > 0) {
+                return "redirect:/sessions/" + id + "?message=created-" + cardsCreated +
+                    "-cards&warning=skipped-" + validationErrors + "-cards";
             }
 
             return "redirect:/sessions/" + id + "?message=created-" + cardsCreated + "-cards";

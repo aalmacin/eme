@@ -446,13 +446,58 @@
         </div>
         <div id="words-content" style="display: block;">
             <div class="collapse-content">
+            <!-- Pagination Info and Controls (Top) -->
+            <div th:if="${totalWords > 0}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: var(--eme-hover-bg); border-radius: var(--radius-sm); margin-bottom: 15px;">
+                <div>
+                    <strong>Words [[${startIndex}]]-[[${endIndex}]] of [[${totalWords}]]</strong>
+                </div>
+                <div th:if="${totalPages > 1}" style="display: flex; gap: 5px;">
+                    <!-- First page -->
+                    <a th:if="${wordPage > 0}"
+                       th:href="@{/sessions/{id}(id=${translationSession.id}, wordPage=0, wordSize=${wordSize})}"
+                       class="btn btn-sm"
+                       style="padding: 4px 8px;">
+                        &#171; First
+                    </a>
+
+                    <!-- Previous page -->
+                    <a th:if="${wordPage > 0}"
+                       th:href="@{/sessions/{id}(id=${translationSession.id}, wordPage=${wordPage - 1}, wordSize=${wordSize})}"
+                       class="btn btn-sm"
+                       style="padding: 4px 8px;">
+                        &#8249; Prev
+                    </a>
+
+                    <!-- Page info -->
+                    <span style="padding: 4px 12px; background: var(--bulma-primary); color: white; border-radius: var(--radius-sm);">
+                        Page [[${wordPage + 1}]] of [[${totalPages}]]
+                    </span>
+
+                    <!-- Next page -->
+                    <a th:if="${wordPage < totalPages - 1}"
+                       th:href="@{/sessions/{id}(id=${translationSession.id}, wordPage=${wordPage + 1}, wordSize=${wordSize})}"
+                       class="btn btn-sm"
+                       style="padding: 4px 8px;">
+                        Next &#8250;
+                    </a>
+
+                    <!-- Last page -->
+                    <a th:if="${wordPage < totalPages - 1}"
+                       th:href="@{/sessions/{id}(id=${translationSession.id}, wordPage=${totalPages - 1}, wordSize=${wordSize})}"
+                       class="btn btn-sm"
+                       style="padding: 4px 8px;">
+                        Last &#187;
+                    </a>
+                </div>
+            </div>
+
             <!-- Selection Toolbar -->
             <div class="selection-toolbar" id="selectionToolbar" style="display: none;">
                 <div>
                     <span class="selection-count" id="selectionCount">0 selected</span>
                 </div>
                 <div>
-                    <button onclick="selectAllWords()" class="btn btn-sm" style="background: var(--eme-text-muted); margin-right: 5px;">Select All</button>
+                    <button onclick="selectAllWords()" class="btn btn-sm" style="background: var(--eme-text-muted); margin-right: 5px;">Select All (on this page)</button>
                     <button onclick="deselectAllWords()" class="btn btn-sm" style="background: var(--eme-text-muted); margin-right: 10px;">Deselect All</button>
                     <button onclick="showBatchRegenerateModal()" class="btn btn-warning" id="batchRegenerateBtn" style="display: none;">
                         🔄 Regenerate Selected (<span id="batchRegenerateCount">0</span>)
@@ -920,6 +965,51 @@
                         <span th:if="${wordData.get('image_status')} == 'success'" style="color: #28a745;">✓ Success</span>
                         <span th:if="${wordData.get('image_status')} == 'failed'" style="color: #dc3545;">✗ Failed</span>
                     </div>
+                </div>
+            </div>
+
+            <!-- Pagination Controls (Bottom) -->
+            <div th:if="${totalWords > 0 && totalPages > 1}" style="display: flex; justify-content: space-between; align-items: center; padding: 10px 15px; background: var(--eme-hover-bg); border-radius: var(--radius-sm); margin-top: 15px;">
+                <div>
+                    <strong>Words [[${startIndex}]]-[[${endIndex}]] of [[${totalWords}]]</strong>
+                </div>
+                <div style="display: flex; gap: 5px;">
+                    <!-- First page -->
+                    <a th:if="${wordPage > 0}"
+                       th:href="@{/sessions/{id}(id=${translationSession.id}, wordPage=0, wordSize=${wordSize})}"
+                       class="btn btn-sm"
+                       style="padding: 4px 8px;">
+                        &#171; First
+                    </a>
+
+                    <!-- Previous page -->
+                    <a th:if="${wordPage > 0}"
+                       th:href="@{/sessions/{id}(id=${translationSession.id}, wordPage=${wordPage - 1}, wordSize=${wordSize})}"
+                       class="btn btn-sm"
+                       style="padding: 4px 8px;">
+                        &#8249; Prev
+                    </a>
+
+                    <!-- Page info -->
+                    <span style="padding: 4px 12px; background: var(--bulma-primary); color: white; border-radius: var(--radius-sm);">
+                        Page [[${wordPage + 1}]] of [[${totalPages}]]
+                    </span>
+
+                    <!-- Next page -->
+                    <a th:if="${wordPage < totalPages - 1}"
+                       th:href="@{/sessions/{id}(id=${translationSession.id}, wordPage=${wordPage + 1}, wordSize=${wordSize})}"
+                       class="btn btn-sm"
+                       style="padding: 4px 8px;">
+                        Next &#8250;
+                    </a>
+
+                    <!-- Last page -->
+                    <a th:if="${wordPage < totalPages - 1}"
+                       th:href="@{/sessions/{id}(id=${translationSession.id}, wordPage=${totalPages - 1}, wordSize=${wordSize})}"
+                       class="btn btn-sm"
+                       style="padding: 4px 8px;">
+                        Last &#187;
+                    </a>
                 </div>
             </div>
         </div>
