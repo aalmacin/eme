@@ -358,7 +358,37 @@
             <div class="info-value" th:text="${translationSession.id}"></div>
         </div>
         <div class="info-row">
-            <div class="info-label">Word:</div>
+            <div class="info-label">Session Name:</div>
+            <div class="info-value">
+                <strong id="session-name-display" th:text="${translationSession.sessionName}"></strong>
+                <button onclick="toggleSessionNameEdit()" class="button is-small is-ghost ml-2" title="Edit session name">
+                    <span class="icon is-small"><i class="fas fa-edit"></i></span>
+                </button>
+                <div id="session-name-edit" style="display: none; margin-top: 8px;">
+                    <div class="field has-addons">
+                        <div class="control is-expanded">
+                            <input type="text" id="session-name-input" class="input is-small"
+                                   th:value="${translationSession.sessionName}" maxlength="200"
+                                   placeholder="Enter session name">
+                        </div>
+                        <div class="control">
+                            <button onclick="saveSessionName()" class="button is-small is-success">
+                                <span class="icon is-small"><i class="fas fa-check"></i></span>
+                                <span>Save</span>
+                            </button>
+                        </div>
+                        <div class="control">
+                            <button onclick="toggleSessionNameEdit()" class="button is-small">
+                                <span class="icon is-small"><i class="fas fa-times"></i></span>
+                                <span>Cancel</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="info-row">
+            <div class="info-label">First Word:</div>
             <div class="info-value"><strong th:text="${translationSession.word}"></strong></div>
         </div>
         <div class="info-row">
@@ -3636,6 +3666,72 @@
 
             resultContent.innerHTML = html;
         }
+
+        // Session Name Editing Functions
+        function toggleSessionNameEdit() {
+            const displayElem = document.getElementById('session-name-display');
+            const editElem = document.getElementById('session-name-edit');
+            const inputElem = document.getElementById('session-name-input');
+
+            if (editElem.style.display === 'none') {
+                editElem.style.display = 'block';
+                displayElem.style.display = 'none';
+                inputElem.focus();
+                inputElem.select();
+            } else {
+                editElem.style.display = 'none';
+                displayElem.style.display = 'inline';
+            }
+        }
+
+        async function saveSessionName() {
+            const inputElem = document.getElementById('session-name-input');
+            const newName = inputElem.value.trim();
+
+            if (!newName) {
+                alert('Session name cannot be empty');
+                return;
+            }
+
+            try {
+                const response = await fetch(`/sessions/${sessionId}/update-name`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ sessionName: newName })
+                });
+
+                if (response.ok) {
+                    const displayElem = document.getElementById('session-name-display');
+                    displayElem.textContent = newName;
+                    toggleSessionNameEdit();
+
+                    // Show success message
+                    const successDiv = document.createElement('div');
+                    successDiv.className = 'notification is-success is-light';
+                    successDiv.style.cssText = 'position: fixed; top: 20px; right: 20px; z-index: 1000; animation: slideIn 0.3s ease-out;';
+                    successDiv.innerHTML = '<button class="delete" onclick="this.parentElement.remove()"></button>Session name updated successfully!';
+                    document.body.appendChild(successDiv);
+
+                    setTimeout(() => successDiv.remove(), 3000);
+                } else {
+                    alert('Failed to update session name');
+                }
+            } catch (error) {
+                console.error('Error updating session name:', error);
+                alert('Error updating session name');
+            }
+        }
+
+        // Handle Enter key in session name input
+        document.getElementById('session-name-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                saveSessionName();
+            } else if (e.key === 'Escape') {
+                toggleSessionNameEdit();
+            }
+        });
     </script>
 </body>
 </html>

@@ -316,4 +316,13 @@ public class TranslationSessionService {
             throw new RuntimeException("Failed to deserialize session data", e);
         }
     }
+
+    @Transactional
+    public void updateSessionName(Long sessionId, String newName) {
+        TranslationSessionEntity session = sessionRepository.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+        session.setSessionName(newName);
+        sessionRepository.save(session);
+    }
 }

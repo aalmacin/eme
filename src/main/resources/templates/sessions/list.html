@@ -97,15 +97,6 @@
                             </div>
                         </form>
                     </div>
-                    <div class="column">
-                        <form method="post" action="/sessions/fix-stuck-sessions" class="is-pulled-right">
-                            <button type="submit" class="button is-warning is-outlined"
-                                    onclick="return confirm('Fix all stuck IN_PROGRESS sessions?')">
-                                <span class="icon"><i class="fas fa-wrench"></i></span>
-                                <span>Fix Stuck Sessions</span>
-                            </button>
-                        </form>
-                    </div>
                 </div>
             </div>
 
@@ -129,7 +120,7 @@
                         <thead>
                             <tr>
                                 <th style="width: 60px;">ID</th>
-                                <th>Word</th>
+                                <th>Session Name</th>
                                 <th>Languages</th>
                                 <th>Status</th>
                                 <th class="has-text-centered">Image Gen</th>
@@ -142,7 +133,7 @@
                             <tr th:each="translationSession : ${sessions}">
                                 <td th:text="${translationSession.id}"></td>
                                 <td>
-                                    <strong th:text="${translationSession.word}"></strong>
+                                    <strong th:text="${translationSession.sessionName}"></strong>
                                     <span th:if="${transliterations.containsKey(translationSession.id)}"
                                           class="text-secondary is-size-7 is-italic ml-1"
                                           th:text="'(' + ${transliterations.get(translationSession.id)} + ')'"></span>

@@ -1747,4 +1747,54 @@ public class TranslationSessionController {
             return ResponseEntity.internalServerError().body(error);
         }
     }
+
+    /**
+     * Update session name
+     */
+    @PutMapping("/{id}/update-name")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> updateSessionName(
+            @PathVariable Long id,
+            @RequestBody Map<String, String> request) {
+
+        try {
+            String newName = request.get("sessionName");
+
+            if (newName == null || newName.trim().isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("error", "Session name cannot be empty");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            if (newName.length() > 200) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("error", "Session name cannot exceed 200 characters");
+                return ResponseEntity.badRequest().body(error);
+            }
+
+            Optional<TranslationSessionEntity> sessionOpt = translationSessionService.findById(id);
+            if (sessionOpt.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("error", "Session not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            TranslationSessionEntity session = sessionOpt.get();
+            translationSessionService.updateSessionName(id, newName.trim());
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("sessionName", newName.trim());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
 }
