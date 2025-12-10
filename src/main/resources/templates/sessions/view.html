@@ -1067,40 +1067,54 @@
 
     <!-- Regeneration Actions -->
     <div class="info-card">
-        <h2>Regeneration Actions</h2>
-        <p style="color: #856404; margin-bottom: 15px;">Generate or regenerate content for all words in this session.</p>
+        <h2>Selective Regeneration Actions</h2>
+        <p style="color: #856404; margin-bottom: 10px;">
+            <strong>New:</strong> Selective regeneration respects manual overrides (🔒) and validates prerequisites.
+            <br>Only non-overridden words will be regenerated. Results show skipped/success/failed counts.
+        </p>
 
-        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
-            <!-- Generate Translations + Transliterations Button -->
-            <div>
-                <form th:action="@{/sessions/{id}/regenerate-all-translations(id=${translationSession.id})}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-primary" onclick="return confirm('This will regenerate translations and transliterations for all words in this session. This may take a while. Continue?');">🔄 Generate Translations + Transliterations</button>
-                </form>
-            </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 10px; margin-top: 15px;">
+            <!-- Generate Translations -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('translations')" style="width: 100%;">
+                🌐 Generate Translations
+            </button>
 
-            <!-- Generate Mnemonics + Images Button -->
-            <div>
-                <form th:action="@{/sessions/{id}/regenerate-all-mnemonics-and-images(id=${translationSession.id})}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-primary"
-                            th:disabled="${!sessionData.containsKey('words') || sessionData.get('words').isEmpty()}"
-                            onclick="return confirm('This will regenerate mnemonics and images for all words in this session. This may take a while. Continue?');">🔄 Generate Mnemonics + Images</button>
-                </form>
-            </div>
+            <!-- Generate Transliterations -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('transliterations')" style="width: 100%;">
+                🔤 Generate Transliterations
+            </button>
 
-            <!-- Generate Audio Button -->
-            <div>
-                <form id="regenerate-audio-form" th:action="@{/sessions/{id}/regenerate-all-audio(id=${translationSession.id})}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-primary"
-                            th:disabled="${!sessionData.containsKey('words') || sessionData.get('words').isEmpty()}"
-                            onclick="if(!confirm('This will regenerate audio for all words in this session. Continue?')) return false; var form=document.getElementById('regenerate-audio-form'); this.disabled=true; this.innerHTML='⏳ Generating Audio...'; form.submit(); return false;">🔄 Generate Audio</button>
-                </form>
-            </div>
+            <!-- Generate Mnemonic Keywords -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('mnemonic-keywords')" style="width: 100%;">
+                🔑 Generate Mnemonic Keywords
+            </button>
 
-            <!-- Generate Example Sentences Button -->
-            <div>
-                <form th:action="@{/sessions/{id}/regenerate-all-sentences(id=${translationSession.id})}" method="post" style="display: inline;">
-                    <button type="submit" class="btn btn-primary" onclick="return confirm('This will regenerate example sentences for all words in this session. This may take a while. Continue?');">🔄 Generate Example Sentences</button>
-                </form>
+            <!-- Generate Mnemonic Sentences -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('mnemonic-sentences')" style="width: 100%;">
+                💭 Generate Mnemonic Sentences
+            </button>
+
+            <!-- Generate Images -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('images')" style="width: 100%;">
+                🖼️ Generate Images
+            </button>
+
+            <!-- Generate Audio -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('audio')" style="width: 100%;">
+                🔊 Generate Audio
+            </button>
+
+            <!-- Generate Example Sentences -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('example-sentences')" style="width: 100%;">
+                📝 Generate Example Sentences
+            </button>
+        </div>
+
+        <!-- Result Display Area -->
+        <div id="regeneration-result" style="margin-top: 15px; display: none;">
+            <div style="background: var(--eme-hover-bg); padding: 15px; border-radius: var(--radius-sm); border-left: 4px solid var(--bulma-primary);">
+                <h3 style="margin-top: 0; font-size: 16px;">Generation Result</h3>
+                <div id="result-content"></div>
             </div>
         </div>
     </div>
@@ -3384,6 +3398,153 @@
         function updateDndPreview() {
             syncDndToText(); // Convert DnD to text first
             updateFormatPreview(); // Use existing function
+        }
+
+        // ========================================================================
+        // SELECTIVE REGENERATION (Phase 2.3)
+        // ========================================================================
+
+        /**
+         * Run selective generation for a specific operation type
+         * @param {string} operationType - One of: translations, transliterations, mnemonic-keywords,
+         *                                  mnemonic-sentences, images, audio, example-sentences
+         */
+        async function runSelectiveGeneration(operationType) {
+            const sessionId = [[${translationSession.id}]];
+            const operationNames = {
+                'translations': 'Translations',
+                'transliterations': 'Transliterations',
+                'mnemonic-keywords': 'Mnemonic Keywords',
+                'mnemonic-sentences': 'Mnemonic Sentences',
+                'images': 'Images',
+                'audio': 'Audio',
+                'example-sentences': 'Example Sentences'
+            };
+
+            const operationName = operationNames[operationType] || operationType;
+
+            if (!confirm(`Generate ${operationName} for all words?\n\nThis will skip manually overridden fields (🔒) and words missing prerequisites.\n\nContinue?`)) {
+                return;
+            }
+
+            // Show loading state
+            const resultDiv = document.getElementById('regeneration-result');
+            const resultContent = document.getElementById('result-content');
+            resultDiv.style.display = 'block';
+            resultContent.innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 10px;">Generating ${operationName}...</p>
+                </div>
+            `;
+
+            try {
+                const response = await fetch(`/sessions/${sessionId}/generate-${operationType}`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    displayGenerationResult(result, operationName);
+                } else {
+                    resultContent.innerHTML = `
+                        <div style="color: #721c24; background: #f8d7da; padding: 10px; border-radius: var(--radius-sm);">
+                            <strong>❌ Error:</strong> ${result.error || 'Unknown error'}
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultContent.innerHTML = `
+                    <div style="color: #721c24; background: #f8d7da; padding: 10px; border-radius: var(--radius-sm);">
+                        <strong>❌ Request Failed:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+
+        /**
+         * Display the generation result in a formatted way
+         */
+        function displayGenerationResult(result, operationName) {
+            const resultContent = document.getElementById('result-content');
+
+            let html = `
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 10px 0; font-size: 14px;">${operationName} Generation Complete</h4>
+                    <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 15px;">
+                        <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--bulma-primary);">${result.total}</div>
+                            <div style="font-size: 11px; color: var(--eme-text-muted);">Total</div>
+                        </div>
+                        <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--bulma-success);">${result.success_count}</div>
+                            <div style="font-size: 11px; color: var(--eme-text-muted);">Success</div>
+                        </div>
+                        <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: #fd7e14;">${result.skipped_count}</div>
+                            <div style="font-size: 11px; color: var(--eme-text-muted);">Skipped</div>
+                        </div>
+                        <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); text-align: center;">
+                            <div style="font-size: 24px; font-weight: bold; color: var(--bulma-danger);">${result.failed_count}</div>
+                            <div style="font-size: 11px; color: var(--eme-text-muted);">Failed</div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Show skipped words if any
+            if (result.skipped_words && result.skipped_words.length > 0) {
+                html += `
+                    <details style="margin-bottom: 10px;">
+                        <summary style="cursor: pointer; font-weight: 600; color: #fd7e14; margin-bottom: 5px;">
+                            🔒 Skipped Words (${result.skipped_words.length})
+                        </summary>
+                        <ul style="margin: 10px 0 0 20px; font-size: 13px;">
+                `;
+                result.skipped_words.forEach(item => {
+                    html += `<li><strong>${item.word}:</strong> ${item.reason}</li>`;
+                });
+                html += `
+                        </ul>
+                    </details>
+                `;
+            }
+
+            // Show failed words if any
+            if (result.failed_words && result.failed_words.length > 0) {
+                html += `
+                    <details style="margin-bottom: 10px;">
+                        <summary style="cursor: pointer; font-weight: 600; color: var(--bulma-danger); margin-bottom: 5px;">
+                            ❌ Failed Words (${result.failed_words.length})
+                        </summary>
+                        <ul style="margin: 10px 0 0 20px; font-size: 13px;">
+                `;
+                result.failed_words.forEach(item => {
+                    html += `<li><strong>${item.word}:</strong> ${item.error}</li>`;
+                });
+                html += `
+                        </ul>
+                    </details>
+                `;
+            }
+
+            // Reload suggestion
+            if (result.success_count > 0) {
+                html += `
+                    <div style="margin-top: 15px; padding: 10px; background: #d4edda; border-radius: var(--radius-sm); border: 1px solid #c3e6cb;">
+                        <strong>✅ Success!</strong> Generated content for ${result.success_count} word(s).
+                        <button onclick="window.location.reload()" class="btn btn-sm" style="margin-left: 10px; padding: 4px 12px; font-size: 12px;">
+                            🔄 Reload Page
+                        </button>
+                    </div>
+                `;
+            }
+
+            resultContent.innerHTML = html;
         }
     </script>
 </body>
