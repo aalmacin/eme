@@ -604,8 +604,8 @@ public class WordController {
             System.out.println("Updating transliteration for word: " + word.getWord() +
                     " from '" + word.getSourceTransliteration() + "' to '" + newTransliteration + "'");
 
-            // Update transliteration
-            wordService.updateTransliteration(word.getWord(), word.getSourceLanguage(),
+            // Update transliteration with manual override flag
+            wordService.updateTransliterationWithManualOverride(word.getWord(), word.getSourceLanguage(),
                     word.getTargetLanguage(), newTransliteration);
 
             // Re-attach character guide based on new transliteration
@@ -1000,6 +1000,102 @@ public class WordController {
         response.put("images", counts.images());
         response.put("sentences", counts.sentences());
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Clear translation override for a word, allowing regeneration
+     */
+    @DeleteMapping("/{wordId}/clear-override/translation")
+    public ResponseEntity<Map<String, Object>> clearTranslationOverride(@PathVariable Long wordId) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+            wordService.clearTranslationOverride(word.getWord(), word.getSourceLanguage(), word.getTargetLanguage());
+
+            response.put("success", true);
+            response.put("message", "Translation override cleared");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Clear transliteration override for a word, allowing regeneration
+     */
+    @DeleteMapping("/{wordId}/clear-override/transliteration")
+    public ResponseEntity<Map<String, Object>> clearTransliterationOverride(@PathVariable Long wordId) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+            wordService.clearTransliterationOverride(word.getWord(), word.getSourceLanguage(), word.getTargetLanguage());
+
+            response.put("success", true);
+            response.put("message", "Transliteration override cleared");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Clear mnemonic keyword override for a word, allowing regeneration
+     */
+    @DeleteMapping("/{wordId}/clear-override/mnemonic-keyword")
+    public ResponseEntity<Map<String, Object>> clearMnemonicKeywordOverride(@PathVariable Long wordId) {
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+            wordService.clearMnemonicKeywordOverride(word.getWord(), word.getSourceLanguage(), word.getTargetLanguage());
+
+            response.put("success", true);
+            response.put("message", "Mnemonic keyword override cleared");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
     }
 
     private Path downloadImageToLocal(String imageUrl, String fileName) throws IOException {

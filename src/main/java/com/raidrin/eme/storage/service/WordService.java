@@ -181,12 +181,53 @@ public class WordService {
     }
 
     @Transactional
+    public WordEntity updateTransliterationWithManualOverride(String word, String sourceLanguage, String targetLanguage,
+                                                               String sourceTransliteration) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+        if (sourceTransliteration == null || sourceTransliteration.trim().isEmpty()) {
+            throw new IllegalArgumentException("Transliteration must be provided");
+        }
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setSourceTransliteration(sourceTransliteration);
+        entity.setTransliterationOverrideAt(LocalDateTime.now());
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
     public WordEntity updateCharacterGuide(String word, String sourceLanguage, String targetLanguage,
                                             Long characterGuideId) {
         validateParameters(word, sourceLanguage, targetLanguage);
 
         WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
         entity.setCharacterGuideId(characterGuideId);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity clearTranslationOverride(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setTranslationOverrideAt(null);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity clearTransliterationOverride(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setTransliterationOverrideAt(null);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity clearMnemonicKeywordOverride(String word, String sourceLanguage, String targetLanguage) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setMnemonicKeywordUpdatedAt(null);
         return wordRepository.save(entity);
     }
 
