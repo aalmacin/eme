@@ -14,13 +14,13 @@
         .word-image {
             max-width: 100%;
             height: auto;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .prompt-box {
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             padding: 15px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 14px;
             white-space: pre-wrap;
             font-family: monospace;
@@ -181,7 +181,7 @@
 
             <!-- No Image -->
             <div class="box mb-4 has-text-centered" th:if="${word.imageFile == null}">
-                <span class="icon is-large has-text-grey-light">
+                <span class="icon is-large text-muted">
                     <i class="fas fa-3x fa-image"></i>
                 </span>
                 <p class="has-text-grey mt-4">No image has been generated for this word yet.</p>

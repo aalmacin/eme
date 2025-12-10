@@ -51,7 +51,7 @@
                     <div class="level-item">
                         <div>
                             <h1 class="title">Sentences Management</h1>
-                            <p class="subtitle has-text-grey">Manage example sentences</p>
+                            <p class="subtitle text-secondary">Manage example sentences</p>
                         </div>
                     </div>
                 </div>
@@ -83,11 +83,11 @@
 
             <!-- Empty State -->
             <div th:if="${#lists.isEmpty(sentences)}" class="box has-text-centered py-6">
-                <span class="icon is-large has-text-grey-light">
+                <span class="icon is-large text-muted">
                     <i class="fas fa-3x fa-comment"></i>
                 </span>
                 <p class="title is-5 has-text-grey mt-4">No sentences found</p>
-                <p class="subtitle is-6 has-text-grey-light">Start by creating your first sentence.</p>
+                <p class="subtitle is-6 text-muted">Start by creating your first sentence.</p>
                 <a th:href="@{/sentences/create}" class="button is-primary mt-3">
                     <span class="icon"><i class="fas fa-plus"></i></span>
                     <span>Create Sentence</span>
@@ -114,7 +114,7 @@
                                 <td>
                                     <strong th:text="${sentence.word}"></strong>
                                     <br>
-                                    <small class="has-text-grey">
+                                    <small class="text-secondary">
                                         <span th:text="${sentence.sourceLanguage}"></span>
                                         <span class="icon is-small"><i class="fas fa-arrow-right"></i></span>
                                         <span th:text="${sentence.targetLanguage}"></span>

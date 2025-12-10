@@ -50,7 +50,7 @@
                     <div class="level-item">
                         <div>
                             <h1 class="title">Words Management</h1>
-                            <p class="subtitle has-text-grey">Manage your vocabulary words</p>
+                            <p class="subtitle text-secondary">Manage your vocabulary words</p>
                         </div>
                     </div>
                 </div>
@@ -608,7 +608,7 @@
                 tbody.innerHTML = `
                     <tr>
                         <td colspan="9" class="has-text-centered py-6">
-                            <span class="icon is-large has-text-grey-light">
+                            <span class="icon is-large text-muted">
                                 <i class="fas fa-3x fa-inbox"></i>
                             </span>
                             <p class="has-text-grey mt-3">No words found</p>
@@ -628,12 +628,12 @@
                         <td><strong>${escapeHtml(word.word)}</strong></td>
                         <td><span class="tag is-primary is-light">${languageNames[word.sourceLanguage] || word.sourceLanguage}</span></td>
                         <td><span class="tag is-success is-light">${languageNames[word.targetLanguage] || word.targetLanguage}</span></td>
-                        <td class="is-truncated" style="max-width: 200px;" title="${escapeHtml(translationText)}">${escapeHtml(translationText) || '<span class="has-text-grey">-</span>'}</td>
-                        <td>${escapeHtml(word.sourceTransliteration) || '<span class="has-text-grey">-</span>'}</td>
+                        <td class="is-truncated" style="max-width: 200px;" title="${escapeHtml(translationText)}">${escapeHtml(translationText) || '<span class="text-secondary">-</span>'}</td>
+                        <td>${escapeHtml(word.sourceTransliteration) || '<span class="text-secondary">-</span>'}</td>
                         <td class="has-text-centered">
                             ${word.imageFile
                                 ? '<span class="icon has-text-success"><i class="fas fa-check-circle"></i></span>'
-                                : '<span class="icon has-text-grey-light"><i class="fas fa-times-circle"></i></span>'
+                                : '<span class="icon text-muted"><i class="fas fa-times-circle"></i></span>'
                             }
                         </td>
                         <td class="is-size-7">${formatDate(word.createdAt)}</td>

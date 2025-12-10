@@ -46,23 +46,23 @@
                         <table class="table is-fullwidth">
                             <tbody>
                                 <tr>
-                                    <th style="width: 30%;" class="has-text-grey">Word</th>
+                                    <th style="width: 30%;" class="text-secondary">Word</th>
                                     <td><strong th:text="${word}"></strong></td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Source Language</th>
+                                    <th class="text-secondary">Source Language</th>
                                     <td>
                                         <span class="tag is-primary" th:text="${sourceLanguage}"></span>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Target Language</th>
+                                    <th class="text-secondary">Target Language</th>
                                     <td>
                                         <span class="tag is-success" th:text="${targetLanguage}"></span>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Translations</th>
+                                    <th class="text-secondary">Translations</th>
                                     <td>
                                         <div class="tags">
                                             <span th:each="translation : ${translations}" class="tag is-info is-medium" th:text="${translation}"></span>

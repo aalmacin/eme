@@ -60,14 +60,14 @@
                         <div class="notification is-light">
                             <span class="tag is-info mr-2">Source</span>
                             <strong th:text="${sourceLanguageName}">Source Language</strong>
-                            <span class="has-text-grey" th:text="'(' + ${sourceLang} + ')'"></span>
+                            <span class="text-secondary" th:text="'(' + ${sourceLang} + ')'"></span>
                         </div>
                     </div>
                     <div class="column">
                         <div class="notification is-light">
                             <span class="tag is-success mr-2">Target</span>
                             <strong th:text="${targetLanguageName}">Target Language</strong>
-                            <span class="has-text-grey" th:text="'(' + ${targetLang} + ')'"></span>
+                            <span class="text-secondary" th:text="'(' + ${targetLang} + ')'"></span>
                         </div>
                     </div>
                 </div>
@@ -175,7 +175,7 @@
                                     </span>
                                     <span class="has-text-success ml-1">&#10003;</span>
                                 </span>
-                                <span th:if="${word.transliteration != null && word.characterName == null}" class="has-text-grey">
+                                <span th:if="${word.transliteration != null && word.characterName == null}" class="text-secondary">
                                     <strong>Character:</strong> <em>Will be auto-selected based on sound</em>
                                 </span>
                             </div>

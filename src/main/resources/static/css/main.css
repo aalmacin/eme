@@ -5,7 +5,7 @@
    1. CSS Custom Properties (Design Tokens)
    ================================================ */
 :root {
-  /* Colors - Override Bulma defaults */
+  /* Override ALL Bulma color variables to use our dark-on-light scheme */
   --bulma-primary: #3273dc;
   --bulma-link: #3259a8;
   --bulma-info: #3080c0;
@@ -13,13 +13,57 @@
   --bulma-warning: #946b00;
   --bulma-danger: #cc0f35;
 
-  /* EME Custom Colors - Improved contrast */
-  --eme-bg: #f5f5f5;
-  --eme-card-bg: #ffffff;
-  --eme-text: #2d2d2d;
-  --eme-text-light: #4a4a4a;
-  --eme-text-muted: #666666;
-  --eme-border: #d0d0d0;
+  /* Force Bulma text colors to be dark */
+  --bulma-text: #1a1a1a;
+  --bulma-text-strong: #1a1a1a;
+  --bulma-text-light: #333333;
+  --bulma-text-dark: #1a1a1a;
+
+  /* Override Bulma scheme colors */
+  --bulma-scheme-main: #fefefe;
+  --bulma-scheme-main-bis: #fafafa;
+  --bulma-scheme-main-ter: #f5f5f5;
+  --bulma-background: #fafafa;
+
+  /* Override Bulma border colors */
+  --bulma-border: #e0e0e0;
+  --bulma-border-hover: #cccccc;
+  --bulma-border-light: #e0e0e0;
+
+  /* Override Bulma body/strong colors */
+  --bulma-body-background-color: #fafafa;
+  --bulma-body-color: #1a1a1a;
+  --bulma-strong-color: #1a1a1a;
+  --bulma-code-color: #1a1a1a;
+
+  /* EME Custom Colors - Simple & Readable */
+  --eme-bg: #fafafa;                /* Paper white background */
+  --eme-card-bg: #fefefe;           /* Card background - slightly lighter */
+  --eme-text-primary: #1a1a1a;      /* Very dark text for maximum readability */
+  --eme-text-secondary: #333333;    /* Dark gray for secondary text */
+  --eme-text-muted: #757575;        /* Medium gray for muted/disabled text (still readable) */
+  --eme-text-disabled: #9e9e9e;     /* Lighter gray for truly disabled */
+  --eme-border: #e0e0e0;            /* Light borders */
+  --eme-border-dark: #cccccc;       /* Darker borders */
+
+  /* Semantic Colors - Simple with dark text */
+  --eme-success-text: #155724;      /* Dark green text */
+  --eme-success-bg: #d4edda;        /* Light green background */
+  --eme-success-border: #c3e6cb;    /* Green border */
+  --eme-info-text: #0c5460;         /* Dark cyan text */
+  --eme-info-bg: #d1ecf1;           /* Light cyan background */
+  --eme-info-border: #bee5eb;       /* Cyan border */
+  --eme-warning-text: #856404;      /* Dark brown text */
+  --eme-warning-bg: #fff3cd;        /* Light yellow background */
+  --eme-warning-border: #ffeaa7;    /* Yellow border */
+  --eme-danger-text: #721c24;       /* Dark red text */
+  --eme-danger-bg: #f8d7da;         /* Light red background */
+  --eme-danger-border: #f5c6cb;     /* Red border */
+
+  /* UI States */
+  --eme-hover-bg: #f5f5f5;
+  --eme-active-bg: #eeeeee;
+  --eme-focus-ring: 0 0 0 0.2rem rgba(13, 110, 253, 0.25);
 
   /* Spacing */
   --spacing-xs: 0.25rem;
@@ -48,92 +92,91 @@
 /* ================================================
    2. Dark Mode Support
    ================================================ */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --eme-bg: #1a1a2e;
-    --eme-card-bg: #16213e;
-    --eme-text: #f0f0f0;
-    --eme-text-light: #d0d0d0;
-    --eme-text-muted: #a8a8a8;
-    --eme-border: #4d4d6c;
-  }
-
-  body {
-    background-color: var(--eme-bg);
-    color: var(--eme-text);
-  }
-
-  .box, .card {
-    background-color: var(--eme-card-bg);
-  }
-
-  .table {
-    background-color: var(--eme-card-bg);
-    color: var(--eme-text);
-  }
-
-  .table thead th {
-    color: var(--eme-text);
-  }
-
-  .input, .textarea, .select select {
-    background-color: var(--eme-card-bg);
-    border-color: var(--eme-border);
-    color: var(--eme-text);
-  }
-
-  .navbar {
-    background-color: var(--eme-card-bg);
-  }
-
-  .label {
-    color: var(--eme-text);
-  }
-
-  /* Dark mode contrast fixes for Bulma classes */
-  .has-text-grey {
-    color: #c0c0c0 !important;
-  }
-
-  .has-text-grey-light {
-    color: #a0a0a0 !important;
-  }
-
-  .help {
-    color: #a8a8a8;
-  }
-
-  .notification.is-light {
-    background-color: #2a2a4e;
-    color: #f0f0f0;
-  }
-}
+/* No dark mode - keep everything light and readable */
 
 /* ================================================
    2b. Light Mode Contrast Improvements
    ================================================ */
 
-/* Override Bulma's grey text for better contrast */
-.has-text-grey {
-  color: #4a4a4a !important;
+/* Override ALL Bulma text color classes */
+.has-text-grey,
+.has-text-grey-dark,
+.has-text-grey-darker {
+  color: var(--eme-text-secondary) !important;
 }
 
-.has-text-grey-light {
-  color: #666666 !important;
+.has-text-grey-light,
+.has-text-grey-lighter {
+  color: var(--eme-text-muted) !important;
 }
 
-.has-text-grey-dark {
-  color: #363636 !important;
+.has-text-black,
+.has-text-black-bis,
+.has-text-black-ter {
+  color: var(--eme-text-primary) !important;
 }
 
-/* Help text - ensure readable */
+.has-text-white,
+.has-text-white-bis,
+.has-text-white-ter {
+  color: var(--eme-text-primary) !important;  /* Force white text to be dark */
+}
+
+/* Override Bulma link colors */
+.has-text-link {
+  color: #2563eb !important;  /* Readable blue */
+}
+
+a.has-text-link:hover,
+a.has-text-link:focus {
+  color: #1e40af !important;  /* Darker blue on hover */
+}
+
+/* Help text */
 .help {
-  color: #555555;
+  color: var(--eme-text-muted) !important;
 }
 
 /* Subtitle text */
 .subtitle {
-  color: #4a4a4a;
+  color: var(--eme-text-secondary) !important;
+}
+
+/* Small text */
+.is-size-7, .is-size-6 {
+  color: var(--eme-text-secondary) !important;
+}
+
+.table .is-size-7 {
+  color: var(--eme-text-secondary) !important;
+}
+
+/* Override Bulma's default text colors globally */
+html {
+  color: var(--eme-text-primary);
+}
+
+/* Force all divs, sections, and containers to inherit color */
+div, section, article, aside, header, footer, main {
+  color: inherit;
+}
+
+/* Bulma containers */
+.container, .section, .hero-body, .level {
+  color: var(--eme-text-primary);
+}
+
+/* Bulma content class */
+.content {
+  color: var(--eme-text-primary) !important;
+}
+
+.content h1, .content h2, .content h3, .content h4, .content h5, .content h6 {
+  color: var(--eme-text-primary) !important;
+}
+
+.content p, .content li, .content td, .content th {
+  color: var(--eme-text-primary) !important;
 }
 
 /* Placeholder text - darker for readability */
@@ -142,70 +185,108 @@
   opacity: 1;
 }
 
-/* Tags on light backgrounds */
+/* Tags - simple light backgrounds with very dark text */
+.tag {
+  font-weight: 500;
+}
+
 .tag.is-light {
-  background-color: #e8e8e8;
-  color: #363636;
+  background-color: #f0f0f0;
+  color: var(--eme-text-primary);
 }
 
 .tag.is-info.is-light {
-  background-color: #d6eaf8;
-  color: #1a5276;
+  background-color: var(--eme-info-bg);
+  color: var(--eme-info-text);
 }
 
 .tag.is-success.is-light {
-  background-color: #d4efdf;
-  color: #186a3b;
+  background-color: var(--eme-success-bg);
+  color: var(--eme-success-text);
 }
 
 .tag.is-warning.is-light {
-  background-color: #fef5e7;
-  color: #7d5a00;
+  background-color: var(--eme-warning-bg);
+  color: var(--eme-warning-text);
 }
 
 .tag.is-danger.is-light {
-  background-color: #fadbd8;
-  color: #922b21;
+  background-color: var(--eme-danger-bg);
+  color: var(--eme-danger-text);
 }
 
 .tag.is-primary.is-light {
-  background-color: #d6e4f5;
-  color: #1a4a7a;
+  background-color: #e3f2fd;
+  color: #0d47a1;
 }
 
-/* Notification light variants - ensure text is readable */
+/* Notification light variants - dark text on light backgrounds */
 .notification.is-light {
-  color: #363636;
+  color: var(--eme-text-primary);
 }
 
 .notification.is-info.is-light {
-  background-color: #d6eaf8;
-  color: #154360;
+  background-color: var(--eme-info-bg);
+  color: var(--eme-info-text);
 }
 
 .notification.is-success.is-light {
-  background-color: #d4efdf;
-  color: #145a32;
+  background-color: var(--eme-success-bg);
+  color: var(--eme-success-text);
 }
 
 .notification.is-warning.is-light {
-  background-color: #fef5e7;
-  color: #6e5000;
+  background-color: var(--eme-warning-bg);
+  color: var(--eme-warning-text);
 }
 
 .notification.is-danger.is-light {
-  background-color: #fadbd8;
-  color: #78281f;
+  background-color: var(--eme-danger-bg);
+  color: var(--eme-danger-text);
 }
 
 .notification.is-primary.is-light {
-  background-color: #d6e4f5;
-  color: #1a4a7a;
+  background-color: #e3f2fd;
+  color: #0d47a1;
 }
 
-/* Table text */
+/* Tables - clean and simple */
+.table {
+  background-color: var(--eme-card-bg) !important;
+  color: var(--eme-text-primary) !important;
+}
+
 .table td, .table th {
-  color: #2d2d2d;
+  color: var(--eme-text-primary) !important;
+  border-color: var(--eme-border) !important;
+  background-color: transparent !important;
+}
+
+.table thead th {
+  color: var(--eme-text-primary) !important;
+  background-color: var(--eme-card-bg) !important;
+  font-weight: 600;
+  border-bottom: 2px solid var(--eme-border) !important;
+}
+
+/* Very subtle hover effect only */
+.table.is-hoverable tbody tr:hover {
+  background-color: var(--eme-hover-bg) !important;
+}
+
+/* Remove striping - no alternating colors */
+.table.is-striped tbody tr:nth-child(odd),
+.table.is-striped tbody tr:nth-child(even) {
+  background-color: var(--eme-card-bg) !important;
+}
+
+/* Make sure all table text is dark */
+.table tbody tr {
+  color: var(--eme-text-primary) !important;
+}
+
+.table tbody tr td {
+  color: var(--eme-text-primary) !important;
 }
 
 /* Breadcrumb links */
@@ -226,8 +307,43 @@ html {
 
 body {
   font-family: var(--font-family);
-  background-color: var(--eme-bg);
+  background-color: var(--eme-bg) !important;
+  color: var(--eme-text-primary) !important;
   min-height: 100vh;
+}
+
+/* Override Bulma element colors */
+strong, b {
+  color: var(--eme-text-primary) !important;
+  font-weight: 700;
+}
+
+em, i {
+  color: inherit;
+}
+
+small {
+  color: var(--eme-text-secondary);
+}
+
+/* Ensure all text is dark and readable */
+.title {
+  color: var(--eme-text-primary) !important;
+}
+
+.subtitle {
+  color: var(--eme-text-secondary) !important;
+}
+
+/* All boxes and cards use paper white */
+.box, .card, .card-content {
+  background-color: var(--eme-card-bg) !important;
+  color: var(--eme-text-primary) !important;
+}
+
+/* Override all Bulma helper classes */
+.has-text-weight-bold, .has-text-weight-semibold, .has-text-weight-medium, .has-text-weight-normal {
+  color: inherit !important;
 }
 
 /* ================================================
@@ -294,17 +410,19 @@ body {
 }
 
 .navbar.is-primary .navbar-dropdown .navbar-item {
-  color: #2d2d2d;
+  color: var(--eme-text-primary);
 }
 
 .navbar.is-primary .navbar-dropdown .navbar-item:hover {
-  background-color: #f5f5f5;
+  background-color: var(--eme-hover-bg);
   color: #1a4a8a;
 }
 
 .navbar-item.is-active {
   font-weight: 600;
 }
+
+/* Hero sections - keep navbar white text on dark, but content sections use paper white */
 
 /* ================================================
    6. Card Enhancements
@@ -403,6 +521,28 @@ body {
 .form-card {
   max-width: 600px;
   margin: 0 auto;
+}
+
+/* Force form elements to have dark text */
+.input, .textarea, .select select, input, textarea, select {
+  background-color: var(--eme-card-bg) !important;
+  color: var(--eme-text-primary) !important;
+  border-color: var(--eme-border) !important;
+}
+
+.label, label {
+  color: var(--eme-text-primary) !important;
+  font-weight: 600;
+}
+
+/* Field labels and controls */
+.field-label, .field-body {
+  color: var(--eme-text-primary);
+}
+
+/* Select dropdowns */
+.select:not(.is-multiple):not(.is-loading)::after {
+  border-color: var(--eme-text-primary);
 }
 
 /* ================================================
@@ -521,12 +661,221 @@ body {
    14. Utility Classes
    ================================================ */
 
+/* Text Colors - Simple dark text */
+.text-primary { color: var(--eme-text-primary) !important; }
+.text-secondary { color: var(--eme-text-secondary) !important; }
+.text-muted { color: var(--eme-text-muted) !important; }
+.text-disabled { color: var(--eme-text-disabled) !important; }
+.text-success { color: var(--eme-success-text) !important; }
+.text-info { color: var(--eme-info-text) !important; }
+.text-warning { color: var(--eme-warning-text) !important; }
+.text-danger { color: var(--eme-danger-text) !important; }
+
+/* Force all text to be dark - override any light text */
+p, span, div, td, th, li, label, a:not(.button) {
+  color: inherit;
+}
+
+/* Icon colors - use dark, readable colors */
+.has-text-success {
+  color: var(--eme-success-text) !important;
+}
+
+.has-text-info {
+  color: var(--eme-info-text) !important;
+}
+
+.has-text-warning {
+  color: var(--eme-warning-text) !important;
+}
+
+.has-text-danger {
+  color: var(--eme-danger-text) !important;
+}
+
+/* Background Colors - all light with dark text */
+.bg-white {
+  background-color: var(--eme-card-bg) !important;
+  color: var(--eme-text-primary) !important;
+}
+.bg-light {
+  background-color: var(--eme-bg) !important;
+  color: var(--eme-text-primary) !important;
+}
+.bg-success {
+  background-color: var(--eme-success-bg) !important;
+  color: var(--eme-success-text) !important;
+}
+.bg-info {
+  background-color: var(--eme-info-bg) !important;
+  color: var(--eme-info-text) !important;
+}
+.bg-warning {
+  background-color: var(--eme-warning-bg) !important;
+  color: var(--eme-warning-text) !important;
+}
+.bg-danger {
+  background-color: var(--eme-danger-bg) !important;
+  color: var(--eme-danger-text) !important;
+}
+
+/* Border Colors */
+.border { border: 1px solid var(--eme-border) !important; }
+.border-success { border-color: var(--eme-success-border) !important; }
+.border-info { border-color: var(--eme-info-border) !important; }
+.border-warning { border-color: var(--eme-warning-border) !important; }
+.border-danger { border-color: var(--eme-danger-border) !important; }
+.border-left { border-left: 3px solid !important; }
+.border-left-success { border-left-color: var(--eme-success-border) !important; }
+.border-left-info { border-left-color: var(--eme-info-border) !important; }
+.border-left-warning { border-left-color: var(--eme-warning-border) !important; }
+.border-left-danger { border-left-color: var(--eme-danger-border) !important; }
+
+/* Status Badges */
+.status-badge {
+  display: inline-block;
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.5;
+}
+
+.status-pending {
+  background-color: var(--eme-warning-bg);
+  color: var(--eme-warning-text);
+  border: 1px solid var(--eme-warning-border);
+}
+
+.status-in-progress {
+  background-color: var(--eme-info-bg);
+  color: var(--eme-info-text);
+  border: 1px solid var(--eme-info-border);
+}
+
+.status-completed {
+  background-color: var(--eme-success-bg);
+  color: var(--eme-success-text);
+  border: 1px solid var(--eme-success-border);
+}
+
+.status-failed {
+  background-color: var(--eme-danger-bg);
+  color: var(--eme-danger-text);
+  border: 1px solid var(--eme-danger-border);
+}
+
+/* Info Cards */
+.info-card {
+  background: var(--eme-card-bg);
+  padding: 1.25rem;
+  border-radius: var(--radius-lg);
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-card);
+  border: 1px solid var(--eme-border);
+}
+
+.info-row {
+  display: flex;
+  padding: 0.625rem 0;
+  border-bottom: 1px solid var(--eme-border);
+}
+
+.info-row:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-weight: 600;
+  min-width: 12.5rem;
+  color: var(--eme-text-secondary);
+}
+
+.info-value {
+  flex: 1;
+  color: var(--eme-text-primary);
+}
+
+/* Alert/Message Boxes */
+.alert {
+  padding: 1rem;
+  border-radius: var(--radius-md);
+  margin-bottom: 1rem;
+  border: 1px solid;
+}
+
+.alert-success {
+  background-color: var(--eme-success-bg);
+  color: var(--eme-success-text);
+  border-color: var(--eme-success-border);
+}
+
+.alert-info {
+  background-color: var(--eme-info-bg);
+  color: var(--eme-info-text);
+  border-color: var(--eme-info-border);
+}
+
+.alert-warning {
+  background-color: var(--eme-warning-bg);
+  color: var(--eme-warning-text);
+  border-color: var(--eme-warning-border);
+}
+
+.alert-danger {
+  background-color: var(--eme-danger-bg);
+  color: var(--eme-danger-text);
+  border-color: var(--eme-danger-border);
+}
+
+/* Content Sections */
+.section-title {
+  font-weight: 700;
+  font-size: 0.875rem;
+  color: var(--eme-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.5rem;
+}
+
+.content-box {
+  background: var(--eme-card-bg);
+  padding: 0.75rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--eme-border);
+}
+
 /* Gap utilities */
 .gap-1 { gap: var(--spacing-xs); }
 .gap-2 { gap: var(--spacing-sm); }
 .gap-3 { gap: var(--spacing-md); }
 .gap-4 { gap: var(--spacing-lg); }
 .gap-5 { gap: var(--spacing-xl); }
+
+/* Spacing utilities */
+.p-1 { padding: var(--spacing-xs) !important; }
+.p-2 { padding: var(--spacing-sm) !important; }
+.p-3 { padding: var(--spacing-md) !important; }
+.p-4 { padding: var(--spacing-lg) !important; }
+.p-5 { padding: var(--spacing-xl) !important; }
+
+.m-1 { margin: var(--spacing-xs) !important; }
+.m-2 { margin: var(--spacing-sm) !important; }
+.m-3 { margin: var(--spacing-md) !important; }
+.m-4 { margin: var(--spacing-lg) !important; }
+.m-5 { margin: var(--spacing-xl) !important; }
+
+.mb-1 { margin-bottom: var(--spacing-xs) !important; }
+.mb-2 { margin-bottom: var(--spacing-sm) !important; }
+.mb-3 { margin-bottom: var(--spacing-md) !important; }
+.mb-4 { margin-bottom: var(--spacing-lg) !important; }
+.mb-5 { margin-bottom: var(--spacing-xl) !important; }
+
+.mt-1 { margin-top: var(--spacing-xs) !important; }
+.mt-2 { margin-top: var(--spacing-sm) !important; }
+.mt-3 { margin-top: var(--spacing-md) !important; }
+.mt-4 { margin-top: var(--spacing-lg) !important; }
+.mt-5 { margin-top: var(--spacing-xl) !important; }
 
 /* Truncate text */
 .is-truncated {
@@ -541,13 +890,26 @@ body {
 }
 
 .is-clickable:hover {
-  background-color: rgba(0, 0, 0, 0.02);
+  background-color: var(--eme-hover-bg);
 }
 
 /* No wrap */
 .is-nowrap {
   white-space: nowrap;
 }
+
+/* Font sizes */
+.text-xs { font-size: 0.75rem !important; }
+.text-sm { font-size: 0.875rem !important; }
+.text-base { font-size: 1rem !important; }
+.text-lg { font-size: 1.125rem !important; }
+.text-xl { font-size: 1.25rem !important; }
+
+/* Font weights */
+.font-normal { font-weight: 400 !important; }
+.font-medium { font-weight: 500 !important; }
+.font-semibold { font-weight: 600 !important; }
+.font-bold { font-weight: 700 !important; }
 
 /* ================================================
    15. Responsive Adjustments
@@ -581,4 +943,74 @@ body {
     box-shadow: none;
     border: 1px solid #ddd;
   }
+}
+
+/* ================================================
+   Global Bulma Override - Force Dark Text Everywhere
+   ================================================ */
+
+/* Override any remaining Bulma default colors */
+* {
+  /* Remove any Bulma color inheritance that might interfere */
+}
+
+/* Lists */
+ul, ol, dl {
+  color: var(--eme-text-primary);
+}
+
+li {
+  color: inherit;
+}
+
+/* Bulma navbar stays white text on dark background */
+.navbar.is-primary {
+  background-color: #1a4a8a !important;
+}
+
+.navbar.is-primary * {
+  color: #ffffff !important;
+}
+
+.navbar.is-primary .navbar-dropdown {
+  background-color: var(--eme-card-bg) !important;
+}
+
+.navbar.is-primary .navbar-dropdown * {
+  color: var(--eme-text-primary) !important;
+}
+
+/* All other text should be dark */
+:not(.navbar.is-primary) {
+  /* Ensures non-navbar elements use dark text */
+}
+
+/* Buttons keep their own colors but use dark text for light buttons */
+.button.is-light {
+  color: var(--eme-text-primary) !important;
+}
+
+/* Pagination */
+.pagination-previous, .pagination-next, .pagination-link, .pagination-ellipsis {
+  color: var(--eme-text-primary) !important;
+  border-color: var(--eme-border);
+}
+
+.pagination-link.is-current {
+  background-color: #3273dc;
+  color: #ffffff !important;
+}
+
+/* Breadcrumbs */
+.breadcrumb li {
+  color: var(--eme-text-secondary);
+}
+
+.breadcrumb a {
+  color: #2563eb !important;
+}
+
+/* Ensure all text is visible and readable */
+.is-invisible-text {
+  display: none;
 }

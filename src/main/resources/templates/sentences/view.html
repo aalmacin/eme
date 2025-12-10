@@ -45,11 +45,11 @@
                         <table class="table is-fullwidth">
                             <tbody>
                                 <tr>
-                                    <th style="width: 30%;" class="has-text-grey">Word</th>
+                                    <th style="width: 30%;" class="text-secondary">Word</th>
                                     <td><strong th:text="${word}"></strong></td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Languages</th>
+                                    <th class="text-secondary">Languages</th>
                                     <td>
                                         <span class="tag is-primary" th:text="${sourceLanguage}"></span>
                                         <span class="icon has-text-grey"><i class="fas fa-arrow-right"></i></span>
@@ -57,29 +57,29 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Word Romanized</th>
+                                    <th class="text-secondary">Word Romanized</th>
                                     <td th:text="${sentence.targetLanguageLatinCharacters}"></td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Sentence (Source)</th>
+                                    <th class="text-secondary">Sentence (Source)</th>
                                     <td>
                                         <div class="notification is-light" th:text="${sentence.targetLanguageSentence}"></div>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Transliteration</th>
+                                    <th class="text-secondary">Transliteration</th>
                                     <td>
                                         <div class="notification is-light" th:text="${sentence.targetLanguageTransliteration}"></div>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Sentence (Target)</th>
+                                    <th class="text-secondary">Sentence (Target)</th>
                                     <td>
                                         <div class="notification is-light" th:text="${sentence.sourceLanguageSentence}"></div>
                                     </td>
                                 </tr>
                                 <tr>
-                                    <th class="has-text-grey">Word Structure</th>
+                                    <th class="text-secondary">Word Structure</th>
                                     <td>
                                         <div class="notification is-light" th:text="${sentence.sourceLanguageStructure}"></div>
                                     </td>

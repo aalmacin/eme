@@ -51,7 +51,7 @@
                     <div class="level-item">
                         <div>
                             <h1 class="title">Translations Management</h1>
-                            <p class="subtitle has-text-grey">Manage word translations</p>
+                            <p class="subtitle text-secondary">Manage word translations</p>
                         </div>
                     </div>
                 </div>
@@ -83,11 +83,11 @@
 
             <!-- Empty State -->
             <div th:if="${#lists.isEmpty(translations)}" class="box has-text-centered py-6">
-                <span class="icon is-large has-text-grey-light">
+                <span class="icon is-large text-muted">
                     <i class="fas fa-3x fa-exchange-alt"></i>
                 </span>
                 <p class="title is-5 has-text-grey mt-4">No translations found</p>
-                <p class="subtitle is-6 has-text-grey-light">Start by creating your first translation.</p>
+                <p class="subtitle is-6 text-muted">Start by creating your first translation.</p>
                 <a th:href="@{/translations/create}" class="button is-primary mt-3">
                     <span class="icon"><i class="fas fa-plus"></i></span>
                     <span>Create Translation</span>

@@ -39,7 +39,7 @@
                     <div class="level-item">
                         <div>
                             <h1 class="title">Anki Card Formats</h1>
-                            <p class="subtitle has-text-grey">Manage reusable Anki card format templates</p>
+                            <p class="subtitle text-secondary">Manage reusable Anki card format templates</p>
                         </div>
                     </div>
                 </div>
@@ -70,11 +70,11 @@
             </div>
 
             <div th:if="${formats.isEmpty()}" class="box has-text-centered py-6">
-                <span class="icon is-large has-text-grey-light">
+                <span class="icon is-large text-muted">
                     <i class="fas fa-3x fa-layer-group"></i>
                 </span>
                 <p class="title is-5 has-text-grey mt-4">No Anki card formats found</p>
-                <p class="subtitle is-6 has-text-grey-light">Create one to get started!</p>
+                <p class="subtitle is-6 text-muted">Create one to get started!</p>
                 <a th:href="@{/anki-formats/create}" class="button is-primary mt-3">
                     <span class="icon"><i class="fas fa-plus"></i></span>
                     <span>Create New Format</span>

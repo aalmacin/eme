@@ -68,13 +68,13 @@
 
 <!-- Detail Row (for use inside detail-card) -->
 <tr th:fragment="detail-row(label, value)">
-    <th class="has-text-grey" style="width: 30%;" th:text="${label}"></th>
+    <th class="text-secondary" style="width: 30%;" th:text="${label}"></th>
     <td th:text="${value}"></td>
 </tr>
 
 <!-- Detail Row with HTML content -->
 <tr th:fragment="detail-row-html(label)">
-    <th class="has-text-grey" style="width: 30%;" th:text="${label}"></th>
+    <th class="text-secondary" style="width: 30%;" th:text="${label}"></th>
     <td th:insert="${~{::value}}"></td>
 </tr>
 
@@ -92,7 +92,7 @@
         <span>
             <strong th:text="${title}"></strong>
             <br>
-            <small class="has-text-grey" th:text="${description}"></small>
+            <small class="text-secondary" th:text="${description}"></small>
         </span>
     </label>
 </div>

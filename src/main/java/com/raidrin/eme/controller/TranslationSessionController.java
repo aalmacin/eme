@@ -1168,8 +1168,8 @@ public class TranslationSessionController {
                     String front = buildAnkiFront(session, latestWordData);
                     String back = buildAnkiBack(session, latestWordData);
 
-                    // Create Anki card
-                    ankiNoteCreatorService.addNote(session.getAnkiDeck(), front, back);
+                    // Create Anki card with media files
+                    ankiNoteCreatorService.addNoteWithMedia(session.getAnkiDeck(), front, back, latestWordData);
                     cardsCreated++;
                 }
             }

@@ -41,22 +41,9 @@
 
     <main class="eme-main"
           x-data="{
-              enableTranslation: true,
-              enableMnemonics: false,
-              enableAudio: false,
-              enableSentences: false,
-              showAdvanced: false,
               sourceLang: 'hi',
-              targetLang: 'en',
-              imageStyle: 'REALISTIC_CINEMATIC',
-              overrideTranslation: false,
-              get translation() { return this.enableTranslation },
-              get imageGeneration() { return this.enableMnemonics },
-              get sourceAudio() { return this.enableAudio },
-              get targetAudio() { return this.enableAudio && this.enableTranslation },
-              get sentenceGeneration() { return this.enableSentences }
-          }"
-          x-effect="if (!enableTranslation) { enableMnemonics = false; enableSentences = false; }">
+              targetLang: 'en'
+          }">
         <div class="container">
             <h1 class="title is-3 mb-5">
                 <span class="icon mr-2"><i class="fas fa-language"></i></span>
@@ -133,117 +120,14 @@
                             </div>
                         </div>
 
-                        <!-- Features Card -->
-                        <div class="box mb-4">
-                            <h2 class="title is-5">
-                                <span class="icon mr-2"><i class="fas fa-cogs"></i></span>
-                                Choose What to Generate
-                            </h2>
-
-                            <div class="columns is-multiline">
-                                <div class="column is-6">
-                                    <label class="box is-clickable mb-0" :class="{ 'has-background-primary-light': enableTranslation }">
-                                        <div class="is-flex is-align-items-center">
-                                            <input type="checkbox" class="mr-3" x-model="enableTranslation">
-                                            <div>
-                                                <p class="has-text-weight-bold">
-                                                    <span class="icon is-small has-text-success"><i class="fas fa-check"></i></span>
-                                                    Translation & Transliteration
-                                                </p>
-                                                <p class="is-size-7 has-text-grey">Translate words and add transliteration</p>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                                <div class="column is-6">
-                                    <label class="box is-clickable mb-0"
-                                           :class="{ 'has-background-primary-light': enableMnemonics, 'has-background-grey-lighter': !enableTranslation }"
-                                           :style="{ opacity: enableTranslation ? 1 : 0.6 }">
-                                        <div class="is-flex is-align-items-center">
-                                            <input type="checkbox" class="mr-3" x-model="enableMnemonics" :disabled="!enableTranslation">
-                                            <div>
-                                                <p class="has-text-weight-bold">
-                                                    <span class="icon is-small has-text-success"><i class="fas fa-check"></i></span>
-                                                    Mnemonics & Images
-                                                </p>
-                                                <p class="is-size-7 has-text-grey">Generate memory aids with visual imagery</p>
-                                                <p x-show="!enableTranslation" class="is-size-7 has-text-warning">Requires Translation</p>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                                <div class="column is-6">
-                                    <label class="box is-clickable mb-0" :class="{ 'has-background-primary-light': enableAudio }">
-                                        <div class="is-flex is-align-items-center">
-                                            <input type="checkbox" class="mr-3" x-model="enableAudio">
-                                            <div>
-                                                <p class="has-text-weight-bold">
-                                                    <span class="icon is-small has-text-success"><i class="fas fa-check"></i></span>
-                                                    Audio
-                                                </p>
-                                                <p class="is-size-7 has-text-grey">Generate pronunciation audio files</p>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                                <div class="column is-6">
-                                    <label class="box is-clickable mb-0"
-                                           :class="{ 'has-background-primary-light': enableSentences, 'has-background-grey-lighter': !enableTranslation }"
-                                           :style="{ opacity: enableTranslation ? 1 : 0.6 }">
-                                        <div class="is-flex is-align-items-center">
-                                            <input type="checkbox" class="mr-3" x-model="enableSentences" :disabled="!enableTranslation">
-                                            <div>
-                                                <p class="has-text-weight-bold">
-                                                    <span class="icon is-small has-text-success"><i class="fas fa-check"></i></span>
-                                                    Example Sentences
-                                                </p>
-                                                <p class="is-size-7 has-text-grey">Generate example sentences with structure</p>
-                                                <p x-show="!enableTranslation" class="is-size-7 has-text-warning">Requires Translation</p>
-                                            </div>
-                                        </div>
-                                    </label>
-                                </div>
-                            </div>
-
-                            <!-- Advanced Options -->
-                            <div class="mt-4">
-                                <button type="button" class="button is-small is-light" @click="showAdvanced = !showAdvanced">
-                                    <span class="icon is-small">
-                                        <i class="fas" :class="showAdvanced ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
-                                    </span>
-                                    <span>Advanced Options</span>
-                                </button>
-
-                                <div x-show="showAdvanced" x-transition class="mt-3 p-3 has-background-light" style="border-radius: 4px;">
-                                    <div class="field" x-show="enableMnemonics">
-                                        <label class="label">Image Style</label>
-                                        <div class="control">
-                                            <div class="select">
-                                                <select name="image-style" x-model="imageStyle">
-                                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                                                </select>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="field">
-                                        <label class="checkbox">
-                                            <input type="checkbox" name="override-translation" x-model="overrideTranslation">
-                                            Override Translation Cache
-                                        </label>
-                                        <p class="help">Force new translation instead of using cached translations</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Hidden form fields for backend compatibility -->
-                        <input type="hidden" name="translation" :value="translation ? 'on' : ''">
-                        <input type="hidden" name="source-audio" :value="sourceAudio ? 'on' : ''">
-                        <input type="hidden" name="target-audio" :value="targetAudio ? 'on' : ''">
-                        <input type="hidden" name="sentence-generation" :value="sentenceGeneration ? 'on' : ''">
-                        <input type="hidden" name="image-generation" :value="imageGeneration ? 'on' : ''">
+                        <!-- Hidden form fields - all features enabled by default -->
+                        <input type="hidden" name="translation" value="on">
+                        <input type="hidden" name="source-audio" value="on">
+                        <input type="hidden" name="target-audio" value="">
+                        <input type="hidden" name="sentence-generation" value="on">
+                        <input type="hidden" name="image-generation" value="on">
+                        <input type="hidden" name="image-style" value="REALISTIC_CINEMATIC">
+                        <input type="hidden" name="override-translation" value="">
 
                         <!-- Submit Button -->
                         <button type="submit" class="button is-primary is-large is-fullwidth mb-5">
