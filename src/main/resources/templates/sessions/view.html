@@ -222,6 +222,16 @@
             font-weight: normal;
             margin-left: 10px;
         }
+        .override-badge {
+            background: #fd7e14;
+            color: var(--eme-card-bg);
+            padding: 4px 8px;
+            border-radius: var(--radius-sm);
+            font-size: 11px;
+            font-weight: 600;
+            margin-left: 8px;
+            cursor: help;
+        }
         .word-select-checkbox {
             width: 20px;
             height: 20px;
@@ -464,6 +474,18 @@
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${#strings.listJoin(wordData.get('translations'), ', ')}"
                           style="font-size: 14px; color: var(--eme-text-secondary); font-weight: normal;"></span>
+
+                    <!-- Override badges -->
+                    <span th:if="${wordData.containsKey('translation_override_at')}"
+                          class="override-badge"
+                          title="Translation manually overridden - will skip regeneration">🔒 Trans</span>
+                    <span th:if="${wordData.containsKey('transliteration_override_at')}"
+                          class="override-badge"
+                          title="Transliteration manually overridden - will skip regeneration">🔒 Translit</span>
+                    <span th:if="${wordData.containsKey('mnemonic_keyword_override_at')}"
+                          class="override-badge"
+                          title="Mnemonic keyword manually overridden - will skip regeneration">🔒 Keyword</span>
+
                     <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == true}"
                           class="reused-badge">♻️ Reused</span>
                     <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == false}"
@@ -544,6 +566,15 @@
                                             style="margin-top: 4px; padding: 2px 6px; font-size: 11px;">
                                         ✏️ Edit
                                     </button>
+                                    <button type="button"
+                                            th:if="${wordData.containsKey('word_id') && wordData.containsKey('translation_override_at')}"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            onclick="clearOverride(this.dataset.wordId, 'translation')"
+                                            class="btn btn-sm btn-outline-warning"
+                                            style="margin-top: 4px; margin-left: 4px; padding: 2px 6px; font-size: 11px;"
+                                            title="Clear override to allow regeneration">
+                                        🔓 Clear Override
+                                    </button>
                                 </div>
                                 <div th:if="${wordData.containsKey('source_transliteration')}">
                                     <strong style="font-size: 12px; color: var(--eme-text-secondary);">Transliteration:</strong>
@@ -557,6 +588,15 @@
                                             class="btn btn-sm btn-outline-info"
                                             style="margin-top: 4px; padding: 2px 6px; font-size: 11px;">
                                         ✏️ Edit
+                                    </button>
+                                    <button type="button"
+                                            th:if="${wordData.containsKey('word_id') && wordData.containsKey('transliteration_override_at')}"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            onclick="clearOverride(this.dataset.wordId, 'transliteration')"
+                                            class="btn btn-sm btn-outline-warning"
+                                            style="margin-top: 4px; margin-left: 4px; padding: 2px 6px; font-size: 11px;"
+                                            title="Clear override to allow regeneration">
+                                        🔓 Clear Override
                                     </button>
                                 </div>
                             </div>
@@ -579,6 +619,15 @@
                                             class="btn btn-sm btn-outline-primary"
                                             style="margin-left: 8px; padding: 2px 6px; font-size: 11px;">
                                         ✏️ Edit
+                                    </button>
+                                    <button type="button"
+                                            th:if="${wordData.containsKey('word_id') && wordData.containsKey('mnemonic_keyword_override_at')}"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            onclick="clearOverride(this.dataset.wordId, 'mnemonic-keyword')"
+                                            class="btn btn-sm btn-outline-warning"
+                                            style="margin-left: 4px; padding: 2px 6px; font-size: 11px;"
+                                            title="Clear override to allow regeneration">
+                                        🔓 Clear Override
                                     </button>
                                 </div>
                                 <div th:if="${wordData.containsKey('mnemonic_sentence')}">
@@ -2193,6 +2242,33 @@
                 statusEl.textContent = 'Error: ' + error.message;
                 statusEl.style.color = '#dc3545';
                 btnEl.disabled = false;
+            }
+        }
+
+        // Clear override for a word field
+        async function clearOverride(wordId, overrideType) {
+            if (!confirm(`Are you sure you want to clear the ${overrideType} override? This will allow the field to be regenerated.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/words/${wordId}/clear-override/${overrideType}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`${overrideType} override cleared successfully! Reloading page...`);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
             }
         }
 

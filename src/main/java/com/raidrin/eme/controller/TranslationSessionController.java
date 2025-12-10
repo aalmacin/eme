@@ -1122,6 +1122,17 @@ public class TranslationSessionController {
             mergedData.put("source_transliteration", wordEntity.getSourceTransliteration());
         }
 
+        // Add override timestamps to indicate manually overridden fields
+        if (wordEntity.getTranslationOverrideAt() != null) {
+            mergedData.put("translation_override_at", wordEntity.getTranslationOverrideAt().toString());
+        }
+        if (wordEntity.getTransliterationOverrideAt() != null) {
+            mergedData.put("transliteration_override_at", wordEntity.getTransliterationOverrideAt().toString());
+        }
+        if (wordEntity.getMnemonicKeywordUpdatedAt() != null) {
+            mergedData.put("mnemonic_keyword_override_at", wordEntity.getMnemonicKeywordUpdatedAt().toString());
+        }
+
         // Update with latest image file (this is the key update for regenerated images)
         if (wordEntity.getImageFile() != null) {
             mergedData.put("image_file", wordEntity.getImageFile());
