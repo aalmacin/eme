@@ -1,12 +1,19 @@
 package com.raidrin.eme.anki;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class AnkiCardBuilderService {
+
+    private final AnkiConnectService ankiConnectService;
+    private final AnkiFieldMapper fieldMapper;
+    private final AnkiTemplateBuilder templateBuilder;
 
     public String buildCardSide(List<CardItem> cardItems, Map<?, ?> wordData) {
         if (cardItems == null || cardItems.isEmpty()) {
@@ -161,5 +168,155 @@ public class AnkiCardBuilderService {
         }
 
         return sb.toString();
+    }
+
+    // ========================================================================
+    // CUSTOM NOTE TYPE SUPPORT (Phase 2.4)
+    // ========================================================================
+
+    /**
+     * Ensure a custom note type exists for the given card format
+     * Creates the note type if it doesn't exist
+     * @param modelName The name of the note type
+     * @param frontCardItems Front card items
+     * @param backCardItems Back card items
+     * @return The model name (for use in card creation)
+     */
+    public String ensureCustomNoteTypeExists(String modelName, List<CardItem> frontCardItems, List<CardItem> backCardItems) {
+        try {
+            // Check if model already exists
+            if (ankiConnectService.modelExists(modelName)) {
+                System.out.println("Custom note type '" + modelName + "' already exists");
+                return modelName;
+            }
+
+            // Get all field names from both front and back
+            List<String> fieldNames = fieldMapper.getAllFieldNames(frontCardItems, backCardItems);
+
+            if (fieldNames.isEmpty()) {
+                throw new IllegalArgumentException("No fields found in card format");
+            }
+
+            // Build templates
+            String frontTemplate = templateBuilder.buildTemplate(frontCardItems);
+            String backTemplate = "{{FrontSide}}\n<hr id=\"answer\">\n" + templateBuilder.buildTemplate(backCardItems);
+
+            // Get CSS and JavaScript
+            String css = templateBuilder.getDefaultCSS();
+            String script = templateBuilder.getToggleScript();
+
+            // Combine front template with script
+            frontTemplate = frontTemplate + "\n" + script;
+
+            // Create the model
+            String response = ankiConnectService.createModel(modelName, fieldNames, frontTemplate, backTemplate, css);
+
+            System.out.println("Created custom note type: " + modelName);
+            System.out.println("Response: " + response);
+
+            return modelName;
+        } catch (Exception e) {
+            System.err.println("Error ensuring custom note type exists: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("Failed to create custom note type: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * Build field values map for Anki card creation
+     * Maps card data to Anki field names
+     * @param wordData Word data from session
+     * @param frontCardItems Front card items
+     * @param backCardItems Back card items
+     * @return Map of field names to values
+     */
+    public Map<String, String> buildFieldValues(Map<?, ?> wordData, List<CardItem> frontCardItems, List<CardItem> backCardItems) {
+        Map<String, String> fields = new HashMap<>();
+
+        // Collect all unique card types from both front and back
+        java.util.Set<CardType> allCardTypes = new java.util.HashSet<>();
+        if (frontCardItems != null) {
+            frontCardItems.forEach(item -> allCardTypes.add(item.getCardType()));
+        }
+        if (backCardItems != null) {
+            backCardItems.forEach(item -> allCardTypes.add(item.getCardType()));
+        }
+
+        // Build field value for each card type
+        for (CardType cardType : allCardTypes) {
+            String fieldName = fieldMapper.getFieldName(cardType);
+            if (fieldName != null) { // Skip LINE_BREAK
+                String content = getCardItemContent(cardType, wordData);
+                if (content != null && !content.isEmpty()) {
+                    fields.put(fieldName, content);
+                }
+            }
+        }
+
+        return fields;
+    }
+
+    /**
+     * Validate that all required fields exist for a word
+     * @param wordData Word data from session
+     * @param cardItems List of card items that are required
+     * @return Validation result
+     */
+    public ValidationResult validateWordData(Map<?, ?> wordData, List<CardItem> cardItems) {
+        ValidationResult result = new ValidationResult();
+        result.setValid(true);
+
+        if (cardItems == null || cardItems.isEmpty()) {
+            result.setValid(false);
+            result.addMissingField("No card items specified");
+            return result;
+        }
+
+        for (CardItem item : cardItems) {
+            CardType cardType = item.getCardType();
+            if (cardType == CardType.LINE_BREAK) {
+                continue; // LINE_BREAK is not a field
+            }
+
+            String content = getCardItemContent(cardType, wordData);
+            if (content == null || content.trim().isEmpty()) {
+                result.setValid(false);
+                String fieldName = fieldMapper.getFieldName(cardType);
+                result.addMissingField(fieldName);
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Validation result for word data
+     */
+    public static class ValidationResult {
+        private boolean valid;
+        private final java.util.List<String> missingFields = new java.util.ArrayList<>();
+
+        public boolean isValid() {
+            return valid;
+        }
+
+        public void setValid(boolean valid) {
+            this.valid = valid;
+        }
+
+        public java.util.List<String> getMissingFields() {
+            return missingFields;
+        }
+
+        public void addMissingField(String fieldName) {
+            missingFields.add(fieldName);
+        }
+
+        public String getMissingFieldsMessage() {
+            if (missingFields.isEmpty()) {
+                return "All fields present";
+            }
+            return "Missing fields: " + String.join(", ", missingFields);
+        }
     }
 }
