@@ -7,6 +7,8 @@ import com.raidrin.eme.storage.entity.TranslationEntity;
 import com.raidrin.eme.storage.repository.TranslationRepository;
 import com.raidrin.eme.translator.TranslationData;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +16,17 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated This service is deprecated. Use {@link WordVariantService} for translation management.
+ * <p>
+ * The new WordVariantService provides:
+ * - addTranslation() to add new translation variants
+ * - setCurrentTranslation() to switch active translation
+ * - getTranslationHistory() to view all variants
+ * <p>
+ * This service is kept for backward compatibility during the transition period.
+ */
+@Deprecated(since = "2.0", forRemoval = true)
 @Service
 @RequiredArgsConstructor
 public class TranslationStorageService {
@@ -68,6 +81,11 @@ public class TranslationStorageService {
         return translationRepository.findAll().stream()
                 .map(this::entityToTranslationData)
                 .collect(Collectors.toList());
+    }
+
+    public Page<TranslationData> getAllTranslations(Pageable pageable) {
+        return translationRepository.findAll(pageable)
+                .map(this::entityToTranslationData);
     }
     
     public Map<String, Object> getStorageInfo() {

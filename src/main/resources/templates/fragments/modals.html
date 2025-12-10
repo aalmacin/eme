@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Basic Modal (controlled by Alpine.js) -->
+<div th:fragment="modal(id, title)" class="modal" :class="{ 'is-active': open }" x-show="open">
+    <div class="modal-background" @click="open = false"></div>
+    <div class="modal-card">
+        <header class="modal-card-head">
+            <p class="modal-card-title" th:text="${title}"></p>
+            <button class="delete" aria-label="close" @click="open = false"></button>
+        </header>
+        <section class="modal-card-body">
+            <th:block th:insert="${~{::body}}"></th:block>
+        </section>
+        <footer class="modal-card-foot">
+            <th:block th:insert="${~{::footer}}"></th:block>
+        </footer>
+    </div>
+</div>
+
+<!-- Confirm Delete Modal -->
+<div th:fragment="confirm-delete-modal(id, itemName, deleteUrl)"
+     x-data="{ open: false, itemName: '', deleteUrl: '' }"
+     @open-delete-modal.window="open = true; itemName = $event.detail.name; deleteUrl = $event.detail.url">
+    <div class="modal" :class="{ 'is-active': open }">
+        <div class="modal-background" @click="open = false"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title">Confirm Delete</p>
+                <button class="delete" aria-label="close" @click="open = false"></button>
+            </header>
+            <section class="modal-card-body">
+                <p>Are you sure you want to delete <strong x-text="itemName"></strong>?</p>
+                <p class="has-text-danger mt-2">This action cannot be undone.</p>
+            </section>
+            <footer class="modal-card-foot">
+                <form :action="deleteUrl" method="post">
+                    <button type="submit" class="button is-danger">
+                        <span class="icon"><i class="fas fa-trash"></i></span>
+                        <span>Delete</span>
+                    </button>
+                </form>
+                <button class="button" @click="open = false">Cancel</button>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<!-- Simple Confirm Modal -->
+<div th:fragment="confirm-modal(id, title, message, confirmText, confirmClass)"
+     x-data="{ open: false, confirmAction: null }"
+     :id="${id}"
+     @open-confirm-modal.window="if ($event.detail.id === id) { open = true; confirmAction = $event.detail.action }">
+    <div class="modal" :class="{ 'is-active': open }">
+        <div class="modal-background" @click="open = false"></div>
+        <div class="modal-card">
+            <header class="modal-card-head">
+                <p class="modal-card-title" th:text="${title}">Confirm</p>
+                <button class="delete" aria-label="close" @click="open = false"></button>
+            </header>
+            <section class="modal-card-body">
+                <p th:text="${message}">Are you sure?</p>
+            </section>
+            <footer class="modal-card-foot">
+                <button class="button" th:classappend="${confirmClass} ?: 'is-primary'"
+                        @click="confirmAction(); open = false"
+                        th:text="${confirmText} ?: 'Confirm'">Confirm</button>
+                <button class="button" @click="open = false">Cancel</button>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<!-- Image Preview Modal -->
+<div th:fragment="image-modal"
+     x-data="{ open: false, imageUrl: '' }"
+     @open-image-modal.window="open = true; imageUrl = $event.detail.url">
+    <div class="modal" :class="{ 'is-active': open }">
+        <div class="modal-background" @click="open = false"></div>
+        <div class="modal-content">
+            <p class="image">
+                <img :src="imageUrl" alt="Preview">
+            </p>
+        </div>
+        <button class="modal-close is-large" aria-label="close" @click="open = false"></button>
+    </div>
+</div>
+
+<!-- Loading Modal -->
+<div th:fragment="loading-modal"
+     x-data="{ open: false, message: 'Loading...' }"
+     @show-loading.window="open = true; message = $event.detail?.message || 'Loading...'"
+     @hide-loading.window="open = false">
+    <div class="modal" :class="{ 'is-active': open }">
+        <div class="modal-background"></div>
+        <div class="modal-content">
+            <div class="box has-text-centered">
+                <span class="icon is-large">
+                    <i class="fas fa-spinner fa-pulse fa-3x"></i>
+                </span>
+                <p class="mt-4" x-text="message"></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Form Modal -->
+<div th:fragment="form-modal(id, title, action, method)"
+     x-data="{ open: false }"
+     @keydown.escape.window="open = false">
+    <div class="modal" :class="{ 'is-active': open }">
+        <div class="modal-background" @click="open = false"></div>
+        <div class="modal-card">
+            <form th:action="${action}" th:method="${method} ?: 'post'">
+                <header class="modal-card-head">
+                    <p class="modal-card-title" th:text="${title}"></p>
+                    <button type="button" class="delete" aria-label="close" @click="open = false"></button>
+                </header>
+                <section class="modal-card-body">
+                    <th:block th:insert="${~{::form-body}}"></th:block>
+                </section>
+                <footer class="modal-card-foot">
+                    <button type="submit" class="button is-primary">Save</button>
+                    <button type="button" class="button" @click="open = false">Cancel</button>
+                </footer>
+            </form>
+        </div>
+    </div>
+</div>
+
+</html>

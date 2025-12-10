@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Basic Card -->
+<div th:fragment="card(title)" class="card">
+    <header class="card-header" th:if="${title}">
+        <p class="card-header-title" th:text="${title}"></p>
+    </header>
+    <div class="card-content">
+        <div class="content" th:insert="${~{::content}}"></div>
+    </div>
+</div>
+
+<!-- Card with Footer -->
+<div th:fragment="card-with-footer(title)" class="card">
+    <header class="card-header" th:if="${title}">
+        <p class="card-header-title" th:text="${title}"></p>
+    </header>
+    <div class="card-content">
+        <div class="content" th:insert="${~{::content}}"></div>
+    </div>
+    <footer class="card-footer" th:insert="${~{::footer}}"></footer>
+</div>
+
+<!-- Stat Card (for dashboard stats) -->
+<div th:fragment="stat-card(label, value, icon, color)" class="box stat-card">
+    <span class="icon is-large mb-2" th:classappend="'has-text-' + ${color}">
+        <i class="fas fa-2x" th:classappend="${icon}"></i>
+    </span>
+    <p class="stat-value" th:classappend="'has-text-' + ${color}" th:text="${value}"></p>
+    <p class="stat-label" th:text="${label}"></p>
+</div>
+
+<!-- Box (simple container) -->
+<div th:fragment="box" class="box">
+    <th:block th:insert="${~{::content}}"></th:block>
+</div>
+
+<!-- Info Box -->
+<div th:fragment="info-box(title, icon)" class="box">
+    <article class="media">
+        <div class="media-left" th:if="${icon}">
+            <span class="icon is-large has-text-info">
+                <i class="fas fa-2x" th:classappend="${icon}"></i>
+            </span>
+        </div>
+        <div class="media-content">
+            <p class="title is-5" th:text="${title}"></p>
+            <div class="content" th:insert="${~{::content}}"></div>
+        </div>
+    </article>
+</div>
+
+<!-- Detail Card (for view pages) -->
+<div th:fragment="detail-card(title)" class="card mb-5">
+    <header class="card-header">
+        <p class="card-header-title">
+            <span class="icon mr-2"><i class="fas fa-info-circle"></i></span>
+            <span th:text="${title}">Details</span>
+        </p>
+    </header>
+    <div class="card-content">
+        <table class="table is-fullwidth">
+            <tbody th:insert="${~{::details}}"></tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Detail Row (for use inside detail-card) -->
+<tr th:fragment="detail-row(label, value)">
+    <th class="text-secondary" style="width: 30%;" th:text="${label}"></th>
+    <td th:text="${value}"></td>
+</tr>
+
+<!-- Detail Row with HTML content -->
+<tr th:fragment="detail-row-html(label)">
+    <th class="text-secondary" style="width: 30%;" th:text="${label}"></th>
+    <td th:insert="${~{::value}}"></td>
+</tr>
+
+<!-- Feature Card (for feature selection) -->
+<div th:fragment="feature-card(title, description, icon, checked, name)" class="box is-clickable"
+     x-data="{ checked: false }"
+     x-init="checked = $refs.checkbox.checked"
+     @click="checked = !checked; $refs.checkbox.checked = checked"
+     :class="{ 'has-background-primary-light': checked }">
+    <label class="checkbox is-flex is-align-items-center">
+        <input type="checkbox" th:name="${name}" x-ref="checkbox" th:checked="${checked}" class="mr-3">
+        <span class="icon is-medium mr-3 has-text-primary">
+            <i class="fas fa-lg" th:classappend="${icon}"></i>
+        </span>
+        <span>
+            <strong th:text="${title}"></strong>
+            <br>
+            <small class="text-secondary" th:text="${description}"></small>
+        </span>
+    </label>
+</div>
+
+<!-- Word Card (for word display) -->
+<div th:fragment="word-card(word, translation, language)" class="card">
+    <div class="card-content">
+        <p class="title is-3" th:text="${word}"></p>
+        <p class="subtitle is-5 has-text-grey" th:text="${translation}"></p>
+        <div class="tags">
+            <span class="tag is-info" th:text="${language}"></span>
+        </div>
+    </div>
+</div>
+
+<!-- Panel (for lists with headers) -->
+<nav th:fragment="panel(title)" class="panel is-primary">
+    <p class="panel-heading" th:text="${title}"></p>
+    <th:block th:insert="${~{::items}}"></th:block>
+</nav>
+
+<!-- Panel Item -->
+<a th:fragment="panel-item(text, url, icon, active)" class="panel-block"
+   th:href="${url}"
+   th:classappend="${active} ? 'is-active'">
+    <span class="panel-icon" th:if="${icon}">
+        <i class="fas" th:classappend="${icon}"></i>
+    </span>
+    <span th:text="${text}"></span>
+</a>
+
+</html>

@@ -3,128 +3,82 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Session Details - Eme</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Session Details - EME</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
     <style>
         body {
-            font-family: Arial, sans-serif;
             max-width: 1000px;
             margin: 0 auto;
             padding: 20px;
-            background-color: #f5f5f5;
         }
         .header {
-            background: white;
+            background: var(--eme-card-bg);
             padding: 20px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: var(--shadow-card);
         }
         .nav-links a {
             margin-right: 15px;
             text-decoration: none;
-            color: #007bff;
+            color: var(--bulma-primary);
         }
         .nav-links a:hover {
             text-decoration: underline;
         }
-        .info-card {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .info-row {
-            display: flex;
-            padding: 10px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .info-row:last-child {
-            border-bottom: none;
-        }
-        .info-label {
-            font-weight: bold;
-            width: 200px;
-            color: #495057;
-        }
-        .info-value {
-            flex: 1;
-        }
         .btn {
             display: inline-block;
             padding: 10px 20px;
-            background-color: #007bff;
-            color: white;
+            background-color: var(--bulma-primary);
+            color: var(--eme-card-bg);
             text-decoration: none;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             border: none;
             cursor: pointer;
             font-size: 14px;
             margin-right: 10px;
         }
         .btn:hover {
-            background-color: #0056b3;
+            background-color: var(--eme-info-text);
         }
         .btn-success {
-            background-color: #28a745;
+            background-color: var(--bulma-success);
         }
         .btn-success:hover {
-            background-color: #218838;
+            background-color: #1e6e42;
         }
         .btn-primary {
-            background-color: #007bff;
+            background-color: var(--bulma-primary);
         }
         .btn-primary:hover {
-            background-color: #0056b3;
-        }
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 4px;
-            font-size: 14px;
-            font-weight: bold;
-            display: inline-block;
-        }
-        .status-pending {
-            background-color: #ffc107;
-            color: #000;
-        }
-        .status-in-progress {
-            background-color: #17a2b8;
-            color: #fff;
-        }
-        .status-completed {
-            background-color: #28a745;
-            color: #fff;
-        }
-        .status-failed {
-            background-color: #dc3545;
-            color: #fff;
+            background-color: var(--eme-info-text);
         }
         .data-section {
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             padding: 15px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             margin-top: 10px;
         }
         .data-section pre {
-            background: white;
+            background: var(--eme-card-bg);
             padding: 10px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             overflow-x: auto;
         }
         .error-message {
             background: #f8d7da;
             color: #721c24;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             border: 1px solid #f5c6cb;
         }
         .collapsible-header {
             cursor: pointer;
             background: #e9ecef;
             padding: 15px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             margin-bottom: 0;
             user-select: none;
         }
@@ -140,21 +94,21 @@
         }
         .collapse-content {
             padding: 15px;
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             border-radius: 0 0 4px 4px;
             margin-top: 5px;
         }
         .word-item {
             padding: 8px;
-            background: white;
+            background: var(--eme-card-bg);
             margin-bottom: 5px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 16px;
         }
         .process-status-card {
-            background: white;
+            background: var(--eme-card-bg);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-bottom: 15px;
             border-left: 4px solid #6c757d;
         }
@@ -182,7 +136,7 @@
             color: #721c24;
             padding: 8px;
             margin-bottom: 5px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 14px;
         }
         .btn-danger {
@@ -204,11 +158,11 @@
             margin-left: 8px;
         }
         .word-detail {
-            background: white;
+            background: var(--eme-card-bg);
             margin-bottom: 15px;
             padding: 15px;
-            border-radius: 8px;
-            border: 1px solid #dee2e6;
+            border-radius: var(--radius-lg);
+            border: 1px solid var(--eme-border);
         }
         .word-detail-header {
             font-size: 18px;
@@ -220,15 +174,15 @@
         .process-item {
             margin: 8px 0;
             padding: 8px;
-            background: #f8f9fa;
-            border-radius: 4px;
+            background: var(--eme-hover-bg);
+            border-radius: var(--radius-sm);
             display: flex;
             justify-content: space-between;
             align-items: center;
         }
         .process-item.success {
             background: #d4edda;
-            border-left: 3px solid #28a745;
+            border-left: 3px solid var(--eme-success-border);
         }
         .process-item.failed {
             background: #f8d7da;
@@ -247,23 +201,23 @@
             margin-top: 10px;
             padding: 8px;
             border: 1px solid #ced4da;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 14px;
         }
         .reused-badge {
             background: #17a2b8;
-            color: white;
+            color: var(--eme-card-bg);
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 12px;
             font-weight: normal;
             margin-left: 10px;
         }
         .new-badge {
             background: #28a745;
-            color: white;
+            color: var(--eme-card-bg);
             padding: 4px 8px;
-            border-radius: 4px;
+            border-radius: var(--radius-sm);
             font-size: 12px;
             font-weight: normal;
             margin-left: 10px;
@@ -280,14 +234,14 @@
             box-shadow: 0 0 8px rgba(0, 123, 255, 0.3);
         }
         .selection-toolbar {
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-bottom: 15px;
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border: 1px solid #dee2e6;
+            border: 1px solid var(--eme-border);
         }
         .selection-count {
             font-weight: bold;
@@ -299,10 +253,10 @@
             grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
             gap: 8px;
             padding: 12px;
-            background: #f8f9fa;
-            border-radius: 6px;
+            background: var(--eme-hover-bg);
+            border-radius: var(--radius-md);
             margin-bottom: 15px;
-            border: 1px solid #e9ecef;
+            border: 1px solid var(--eme-border);
         }
         .checklist-item {
             display: flex;
@@ -310,8 +264,8 @@
             gap: 6px;
             font-size: 13px;
             padding: 4px 8px;
-            border-radius: 4px;
-            background: white;
+            border-radius: var(--radius-sm);
+            background: var(--eme-card-bg);
         }
         .checklist-item .check-icon {
             font-size: 14px;
@@ -325,19 +279,19 @@
             color: #28a745;
         }
         .checklist-item.missing {
-            color: #6c757d;
+            color: var(--eme-text-secondary);
             background: #e9ecef;
             opacity: 0.6;
         }
         .checklist-item.missing .check-icon {
-            color: #adb5bd;
+            color: var(--eme-text-muted);
         }
         .word-content-section {
             margin-bottom: 15px;
         }
         .section-title {
             font-weight: 600;
-            color: #495057;
+            color: var(--eme-text-secondary);
             font-size: 13px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
@@ -409,7 +363,7 @@
             <div class="info-label">Source Words:</div>
             <div class="info-value">
                 <textarea readonly th:text="${sourceWordsText}"
-                          style="width: 100%; min-height: 100px; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background-color: #f8f9fa; font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
+                          style="width: 100%; min-height: 100px; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); background-color: var(--eme-hover-bg); font-family: monospace; font-size: 12px; resize: vertical;"></textarea>
             </div>
         </div>
         <div class="info-row">
@@ -468,11 +422,11 @@
 
     <!-- Words Section with Detailed Status -->
     <div class="info-card" th:if="${sessionData.containsKey('words') && !sessionData.get('words').isEmpty()}">
-        <div class="collapsible-header" data-bs-toggle="collapse" data-bs-target="#words-content" aria-expanded="true" aria-controls="words-content">
+        <div class="collapsible-header" onclick="toggleCollapse('words-content', this)" aria-expanded="true">
             <h2 style="margin: 0; display: inline-block;">
                 <span th:text="${sessionData.containsKey('total_words') ? sessionData.get('total_words') : sessionData.get('words').size()}"></span> Words
             </h2>
-            <span th:if="${sessionData.containsKey('dedup_stats')}" style="font-size: 14px; margin-left: 15px; color: #6c757d;">
+            <span th:if="${sessionData.containsKey('dedup_stats')}" style="font-size: 14px; margin-left: 15px; color: var(--eme-text-secondary);">
                 <span th:if="${sessionData.get('dedup_stats').get('reused_count') > 0}"
                       th:text="'♻️ ' + ${sessionData.get('dedup_stats').get('reused_count')} + ' reused'"
                       style="margin-right: 10px;"></span>
@@ -481,7 +435,7 @@
             </span>
             <span class="arrow">▼</span>
         </div>
-        <div id="words-content" class="collapse show">
+        <div id="words-content" style="display: block;">
             <div class="collapse-content">
             <!-- Selection Toolbar -->
             <div class="selection-toolbar" id="selectionToolbar" style="display: none;">
@@ -489,8 +443,8 @@
                     <span class="selection-count" id="selectionCount">0 selected</span>
                 </div>
                 <div>
-                    <button onclick="selectAllWords()" class="btn btn-sm" style="background: #6c757d; margin-right: 5px;">Select All</button>
-                    <button onclick="deselectAllWords()" class="btn btn-sm" style="background: #6c757d; margin-right: 10px;">Deselect All</button>
+                    <button onclick="selectAllWords()" class="btn btn-sm" style="background: var(--eme-text-muted); margin-right: 5px;">Select All</button>
+                    <button onclick="deselectAllWords()" class="btn btn-sm" style="background: var(--eme-text-muted); margin-right: 10px;">Deselect All</button>
                     <button onclick="showBatchRegenerateModal()" class="btn btn-warning" id="batchRegenerateBtn" style="display: none;">
                         🔄 Regenerate Selected (<span id="batchRegenerateCount">0</span>)
                     </button>
@@ -507,10 +461,10 @@
                     <span th:text="${wordData.get('source_word')}"></span>
                     <span th:if="${wordData.containsKey('source_transliteration')}"
                           th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
-                          style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
+                          style="font-size: 16px; color: var(--eme-info-text); font-weight: 600; font-style: italic; margin-left: 8px;"></span>
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${#strings.listJoin(wordData.get('translations'), ', ')}"
-                          style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
+                          style="font-size: 14px; color: var(--eme-text-secondary); font-weight: normal;"></span>
                     <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == true}"
                           class="reused-badge">♻️ Reused</span>
                     <span th:if="${wordData.containsKey('reused') && wordData.get('reused') == false}"
@@ -577,10 +531,10 @@
                         <!-- Word Info Section -->
                         <div class="word-content-section" th:if="${wordData.containsKey('translations') || wordData.containsKey('source_transliteration')}">
                             <div class="section-title">Word Info</div>
-                            <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+                            <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--eme-border);">
                                 <div th:if="${wordData.containsKey('translations')}" style="margin-bottom: 8px;">
-                                    <strong style="font-size: 12px; color: #6c757d;">Translation:</strong>
-                                    <div style="font-size: 14px; color: #212529; margin-top: 2px;" th:text="${#strings.listJoin(wordData.get('translations'), ', ')}"></div>
+                                    <strong style="font-size: 12px; color: var(--eme-text-secondary);">Translation:</strong>
+                                    <div style="font-size: 14px; color: var(--eme-text-primary); margin-top: 2px;" th:text="${#strings.listJoin(wordData.get('translations'), ', ')}"></div>
                                     <button type="button"
                                             th:if="${wordData.containsKey('word_id')}"
                                             th:data-word-id="${wordData.get('word_id')}"
@@ -593,8 +547,8 @@
                                     </button>
                                 </div>
                                 <div th:if="${wordData.containsKey('source_transliteration')}">
-                                    <strong style="font-size: 12px; color: #6c757d;">Transliteration:</strong>
-                                    <div style="font-size: 13px; color: #0056b3; font-style: italic; margin-top: 2px;" th:text="${wordData.get('source_transliteration')}"></div>
+                                    <strong style="font-size: 12px; color: var(--eme-text-secondary);">Transliteration:</strong>
+                                    <div style="font-size: 13px; color: var(--eme-info-text); font-style: italic; margin-top: 2px;" th:text="${wordData.get('source_transliteration')}"></div>
                                     <button type="button"
                                             th:if="${wordData.containsKey('word_id')}"
                                             th:data-word-id="${wordData.get('word_id')}"
@@ -612,11 +566,11 @@
                         <!-- Mnemonic Section -->
                         <div class="word-content-section" th:if="${wordData.containsKey('mnemonic_keyword') || wordData.containsKey('mnemonic_sentence')}">
                             <div class="section-title">Mnemonic</div>
-                            <div style="background: #f0f8ff; padding: 10px; border-radius: 4px; border-left: 3px solid #17a2b8;">
+                            <div style="background: var(--eme-info-bg); padding: 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--eme-info-border);">
                                 <div th:if="${wordData.containsKey('mnemonic_keyword')}" style="margin-bottom: 8px;">
-                                    <strong style="font-size: 12px; color: #17a2b8;">🔑 Keyword:</strong>
+                                    <strong style="font-size: 12px; color: var(--eme-info-text);">🔑 Keyword:</strong>
                                     <span th:text="${wordData.get('mnemonic_keyword')}"
-                                          style="font-size: 14px; font-weight: 600; color: #0056b3; margin-left: 6px;"></span>
+                                          style="font-size: 14px; font-weight: 600; color: var(--eme-info-text); margin-left: 6px;"></span>
                                     <button type="button"
                                             th:if="${wordData.containsKey('word_id')}"
                                             th:data-word-id="${wordData.get('word_id')}"
@@ -629,9 +583,9 @@
                                     </button>
                                 </div>
                                 <div th:if="${wordData.containsKey('mnemonic_sentence')}">
-                                    <strong style="font-size: 12px; color: #17a2b8;">💭 Sentence:</strong>
+                                    <strong style="font-size: 12px; color: var(--eme-info-text);">💭 Sentence:</strong>
                                     <div th:text="${wordData.get('mnemonic_sentence')}"
-                                         style="font-size: 13px; color: #495057; line-height: 1.5; margin-top: 4px;"></div>
+                                         style="font-size: 13px; color: var(--eme-text-secondary); line-height: 1.5; margin-top: 4px;"></div>
                                 </div>
                             </div>
                         </div>
@@ -640,25 +594,25 @@
                         <div class="word-content-section" th:if="${wordData.get('sentence_status') == 'success' and wordData.containsKey('sentence_data')}">
                             <div class="section-title">Example Sentence</div>
                             <div th:with="sentenceData=${wordData.get('sentence_data')}"
-                                 style="background: #f0fff4; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745;">
+                                 style="background: var(--eme-success-bg); padding: 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--eme-success-border);">
                                 <div style="margin-bottom: 8px;">
                                     <div th:text="${sentenceData.get('source_language_sentence')}"
-                                         style="font-size: 14px; color: #212529; font-weight: 500;"></div>
+                                         style="font-size: 14px; color: var(--eme-text-primary); font-weight: 500;"></div>
                                 </div>
                                 <div th:if="${sentenceData.containsKey('target_language_transliteration') and sentenceData.get('target_language_transliteration') != null}"
                                      style="margin-bottom: 8px;">
                                     <em th:text="${sentenceData.get('target_language_transliteration')}"
-                                        style="font-size: 12px; color: #6c757d;"></em>
+                                        style="font-size: 12px; color: var(--eme-text-secondary);"></em>
                                 </div>
                                 <div style="margin-bottom: 8px;">
                                     <div th:text="${sentenceData.get('target_language_sentence')}"
-                                         style="font-size: 13px; color: #495057;"></div>
+                                         style="font-size: 13px; color: var(--eme-text-secondary);"></div>
                                 </div>
                                 <div th:if="${sentenceData.containsKey('source_language_structure') and sentenceData.get('source_language_structure') != null}">
                                     <details style="margin-top: 8px;">
-                                        <summary style="cursor: pointer; font-size: 12px; color: #6c757d;">Structure</summary>
+                                        <summary style="cursor: pointer; font-size: 12px; color: var(--eme-text-secondary);">Structure</summary>
                                         <pre th:text="${sentenceData.get('source_language_structure')}"
-                                             style="font-size: 11px; color: #495057; margin-top: 4px; white-space: pre-wrap; font-family: monospace; background: white; padding: 6px; border-radius: 3px;"></pre>
+                                             style="font-size: 11px; color: var(--eme-text-secondary); margin-top: 4px; white-space: pre-wrap; font-family: monospace; background: var(--eme-card-bg); padding: 6px; border-radius: 3px;"></pre>
                                     </details>
                                 </div>
                                 <form th:if="${wordData.containsKey('word_id')}"
@@ -679,14 +633,14 @@
                         <!-- Character Guide Section -->
                         <div class="word-content-section" th:if="${wordData.containsKey('character_name')}">
                             <div class="section-title">Character Guide</div>
-                            <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+                            <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--eme-border);">
                                 <div style="margin-bottom: 6px;">
-                                    <strong style="font-size: 13px; color: #495057;" th:text="${wordData.get('character_name')}"></strong>
+                                    <strong style="font-size: 13px; color: var(--eme-text-secondary);" th:text="${wordData.get('character_name')}"></strong>
                                     <span th:if="${wordData.containsKey('character_context') && !wordData.get('character_context').isEmpty()}"
                                           th:text="' (' + ${wordData.get('character_context')} + ')'"
-                                          style="color: #6c757d; font-size: 12px;"></span>
+                                          style="color: var(--eme-text-secondary); font-size: 12px;"></span>
                                 </div>
-                                <div style="font-size: 12px; color: #6c757d;">
+                                <div style="font-size: 12px; color: var(--eme-text-secondary);">
                                     Start sound: <code th:text="${wordData.get('character_start_sound')}"
                                                       style="background: #e9ecef; padding: 1px 4px; border-radius: 2px; font-size: 11px;"></code>
                                 </div>
@@ -720,14 +674,14 @@
                         <!-- Image Section -->
                         <div class="word-content-section" th:if="${wordData.get('image_status') == 'success' and wordData.containsKey('image_file')}">
                             <div class="section-title">Image</div>
-                            <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+                            <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--eme-border);">
                                 <img th:src="@{'/generated_images/' + ${wordData.get('image_file')}}"
                                      alt="Word image"
-                                     style="width: 100%; border-radius: 6px; margin-bottom: 8px;"/>
+                                     style="width: 100%; border-radius: var(--radius-md); margin-bottom: 8px;"/>
                                 <details th:if="${wordData.containsKey('image_prompt')}">
-                                    <summary style="cursor: pointer; font-size: 11px; color: #6c757d;">Prompt</summary>
+                                    <summary style="cursor: pointer; font-size: 11px; color: var(--eme-text-secondary);">Prompt</summary>
                                     <pre th:text="${wordData.get('image_prompt')}"
-                                         style="font-size: 10px; background: #f8f9fa; padding: 6px; border-radius: 3px; margin-top: 4px; white-space: pre-wrap;"></pre>
+                                         style="font-size: 10px; background: var(--eme-hover-bg); padding: 6px; border-radius: 3px; margin-top: 4px; white-space: pre-wrap;"></pre>
                                 </details>
                             </div>
                         </div>
@@ -735,12 +689,12 @@
                         <!-- Audio Section -->
                         <div class="word-content-section" th:if="${wordData.containsKey('source_audio_file')}">
                             <div class="section-title">Audio</div>
-                            <div style="background: white; padding: 10px; border-radius: 4px; border: 1px solid #e9ecef;">
+                            <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--eme-border);">
                                 <div style="font-size: 12px; color: #28a745; margin-bottom: 6px;">
                                     ✓ Generated
                                 </div>
                                 <code th:text="${wordData.get('source_audio_file')}"
-                                      style="font-size: 10px; background: #f8f9fa; padding: 4px 6px; border-radius: 3px; display: block; word-break: break-all;"></code>
+                                      style="font-size: 10px; background: var(--eme-hover-bg); padding: 4px 6px; border-radius: 3px; display: block; word-break: break-all;"></code>
                                 <form th:action="@{/sessions/{id}/regenerate-audio(id=${translationSession.id})}" method="post" style="display: inline;">
                                     <input type="hidden" name="wordIndex" th:value="${iterStat.index}"/>
                                     <button type="submit" class="btn btn-primary btn-sm"
@@ -767,10 +721,10 @@
                 <span style="font-weight: bold;">Progress:</span>
                 <span th:text="${sessionData.get('processed_words')} + ' / ' + ${sessionData.get('total_words')} + ' words processed'"></span>
             </div>
-            <div style="background: #e9ecef; border-radius: 8px; height: 24px; overflow: hidden;">
-                <div th:style="'width: ' + ${(sessionData.get('processed_words') * 100.0 / sessionData.get('total_words'))} + '%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; border-radius: 8px; transition: width 0.3s ease;'"></div>
+            <div style="background: #e9ecef; border-radius: var(--radius-lg); height: 24px; overflow: hidden;">
+                <div th:style="'width: ' + ${(sessionData.get('processed_words') * 100.0 / sessionData.get('total_words'))} + '%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; border-radius: var(--radius-lg); transition: width 0.3s ease;'"></div>
             </div>
-            <div th:if="${sessionData.containsKey('last_update')}" style="margin-top: 8px; font-size: 12px; color: #6c757d;">
+            <div th:if="${sessionData.containsKey('last_update')}" style="margin-top: 8px; font-size: 12px; color: var(--eme-text-secondary);">
                 Last updated: <span th:text="${sessionData.get('last_update')}"></span>
             </div>
         </div>
@@ -783,7 +737,7 @@
                     <span th:text="${wordData.get('source_word')}"></span>
                     <span th:if="${wordData.containsKey('source_transliteration')}"
                           th:text="' (' + ${wordData.get('source_transliteration')} + ')'"
-                          style="font-size: 16px; color: #0056b3; font-weight: 600; font-style: italic; margin-left: 8px;"></span>
+                          style="font-size: 16px; color: var(--eme-info-text); font-weight: 600; font-style: italic; margin-left: 8px;"></span>
                     <button type="button"
                             th:if="${wordData.containsKey('word_id')}"
                             th:data-word-id="${wordData.get('word_id')}"
@@ -797,7 +751,7 @@
                     </button>
                     <span th:if="${wordData.containsKey('translations')}"
                           th:text="' → ' + ${#strings.listJoin(wordData.get('translations'), ', ')}"
-                          style="font-size: 14px; color: #6c757d; font-weight: normal;"></span>
+                          style="font-size: 14px; color: var(--eme-text-secondary); font-weight: normal;"></span>
                     <button type="button"
                             th:if="${wordData.containsKey('word_id') && wordData.containsKey('translations')}"
                             th:data-word-id="${wordData.get('word_id')}"
@@ -813,12 +767,12 @@
 
                 <!-- Mnemonic Display -->
                 <div th:if="${wordData.containsKey('mnemonic_sentence')}"
-                     style="margin: 12px 0; padding: 12px; background: #f8f9fa; border-left: 4px solid #17a2b8; border-radius: 4px;">
+                     style="margin: 12px 0; padding: 12px; background: var(--eme-hover-bg); border-left: 4px solid #17a2b8; border-radius: var(--radius-sm);">
                     <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-                        <strong style="color: #17a2b8; font-size: 13px;">🔑 MNEMONIC KEYWORD:</strong>
+                        <strong style="color: var(--eme-info-text); font-size: 13px;">🔑 MNEMONIC KEYWORD:</strong>
                         <span th:if="${wordData.containsKey('mnemonic_keyword')}"
                               th:text="${wordData.get('mnemonic_keyword')}"
-                              style="font-size: 15px; font-weight: 600; color: #0056b3;"></span>
+                              style="font-size: 15px; font-weight: 600; color: var(--eme-info-text);"></span>
                         <button type="button"
                                 th:if="${wordData.containsKey('word_id') && wordData.containsKey('mnemonic_keyword')}"
                                 th:data-word-id="${wordData.get('word_id')}"
@@ -831,9 +785,9 @@
                         </button>
                     </div>
                     <div style="display: flex; align-items: flex-start; gap: 8px;">
-                        <strong style="color: #17a2b8; font-size: 13px; white-space: nowrap;">💭 SENTENCE:</strong>
+                        <strong style="color: var(--eme-info-text); font-size: 13px; white-space: nowrap;">💭 SENTENCE:</strong>
                         <span th:text="${wordData.get('mnemonic_sentence')}"
-                              style="font-size: 14px; color: #495057; line-height: 1.6;"></span>
+                              style="font-size: 14px; color: var(--eme-text-secondary); line-height: 1.6;"></span>
                     </div>
                 </div>
 
@@ -871,32 +825,32 @@
 
                         <!-- Display sentence data if successful -->
                         <div th:if="${wordData.get('sentence_status') == 'success' and wordData.containsKey('sentence_data')}"
-                             style="margin-top: 12px; padding: 12px; background-color: #f8f9fa; border-radius: 6px; border-left: 3px solid #28a745;">
+                             style="margin-top: 12px; padding: 12px; background-color: var(--eme-hover-bg); border-radius: var(--radius-md); border-left: 3px solid var(--eme-success-border);">
                             <div th:with="sentenceData=${wordData.get('sentence_data')}">
                                 <!-- Source language sentence -->
                                 <div style="margin-bottom: 8px;">
-                                    <strong style="color: #495057; font-size: 12px;">Example Sentence:</strong>
-                                    <div th:text="${sentenceData.get('source_language_sentence')}" style="font-size: 14px; color: #212529; margin-top: 4px;"></div>
+                                    <strong style="color: var(--eme-text-secondary); font-size: 12px;">Example Sentence:</strong>
+                                    <div th:text="${sentenceData.get('source_language_sentence')}" style="font-size: 14px; color: var(--eme-text-primary); margin-top: 4px;"></div>
                                 </div>
 
                                 <!-- Transliteration -->
                                 <div th:if="${sentenceData.containsKey('target_language_transliteration') and sentenceData.get('target_language_transliteration') != null}"
                                      style="margin-bottom: 8px;">
-                                    <strong style="color: #495057; font-size: 12px;">Transliteration:</strong>
-                                    <div th:text="${sentenceData.get('target_language_transliteration')}" style="font-size: 13px; color: #6c757d; font-style: italic; margin-top: 4px;"></div>
+                                    <strong style="color: var(--eme-text-secondary); font-size: 12px;">Transliteration:</strong>
+                                    <div th:text="${sentenceData.get('target_language_transliteration')}" style="font-size: 13px; color: var(--eme-text-secondary); font-style: italic; margin-top: 4px;"></div>
                                 </div>
 
                                 <!-- Target language translation -->
                                 <div style="margin-bottom: 8px;">
-                                    <strong style="color: #495057; font-size: 12px;">Translation:</strong>
-                                    <div th:text="${sentenceData.get('target_language_sentence')}" style="font-size: 13px; color: #6c757d; margin-top: 4px;"></div>
+                                    <strong style="color: var(--eme-text-secondary); font-size: 12px;">Translation:</strong>
+                                    <div th:text="${sentenceData.get('target_language_sentence')}" style="font-size: 13px; color: var(--eme-text-secondary); margin-top: 4px;"></div>
                                 </div>
 
                                 <!-- Word structure -->
                                 <div th:if="${sentenceData.containsKey('source_language_structure') and sentenceData.get('source_language_structure') != null}"
                                      style="margin-bottom: 0;">
-                                    <strong style="color: #495057; font-size: 12px;">Structure:</strong>
-                                    <div th:text="${sentenceData.get('source_language_structure')}" style="font-size: 12px; color: #6c757d; margin-top: 4px; white-space: pre-wrap; font-family: monospace;"></div>
+                                    <strong style="color: var(--eme-text-secondary); font-size: 12px;">Structure:</strong>
+                                    <div th:text="${sentenceData.get('source_language_structure')}" style="font-size: 12px; color: var(--eme-text-secondary); margin-top: 4px; white-space: pre-wrap; font-family: monospace;"></div>
                                 </div>
                             </div>
                         </div>
@@ -934,7 +888,7 @@
             </ul>
         </div>
 
-        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 8px; margin-top: 20px;">
+        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: var(--radius-lg); margin-top: 20px;">
             <strong>⚠️ Note:</strong> This session is actively being processed. Refresh the page to see the latest progress.
         </div>
         <button onclick="window.location.reload()" class="btn" style="margin-top: 15px;">🔄 Refresh to Check Progress</button>
@@ -1119,7 +1073,7 @@
     <!-- Session Data Debug Info (for empty sessions) -->
     <div class="info-card" th:if="${!sessionData.containsKey('words') && translationSession.status.name() == 'COMPLETED'}">
         <h2>Session Completed (Legacy Format)</h2>
-        <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: 4px; border: 1px solid #ffeaa7;">
+        <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: var(--radius-sm); border: 1px solid #ffeaa7;">
             This session was completed using an older format. Detailed word-by-word information is not available.
         </p>
         <div th:if="${!sessionData.isEmpty()}">
@@ -1139,12 +1093,12 @@
 
     <!-- Full Session Data (JSON) - Collapsible for debugging -->
     <div class="info-card" th:if="${!sessionData.isEmpty()}">
-        <div class="collapsible-header collapsed" data-bs-toggle="collapse" data-bs-target="#session-data-content" aria-expanded="false" aria-controls="session-data-content">
+        <div class="collapsible-header collapsed" onclick="toggleCollapse('session-data-content', this)" aria-expanded="false">
             <h2 style="margin: 0; display: inline-block;">Full Session Data (JSON)</h2>
-            <span style="font-size: 14px; margin-left: 15px; color: #6c757d;">For debugging purposes</span>
+            <span style="font-size: 14px; margin-left: 15px; color: var(--eme-text-secondary);">For debugging purposes</span>
             <span class="arrow">▼</span>
         </div>
-        <div id="session-data-content" class="collapse">
+        <div id="session-data-content" style="display: none;">
             <div class="collapse-content">
                 <div class="data-section">
                     <pre th:text="${sessionData}"></pre>
@@ -1155,7 +1109,7 @@
 
     <!-- Regenerate Image Modal -->
     <div id="regenerateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <h3 style="margin-top: 0;">Regenerate Image for <span id="modalWordTitle"></span></h3>
 
             <!-- Model Selection -->
@@ -1176,7 +1130,7 @@
             <!-- Image Style Selection -->
             <div style="margin-bottom: 20px;">
                 <label for="imageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
-                <select id="imageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <select id="imageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm);">
                     <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
                     <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
                     <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
@@ -1191,12 +1145,12 @@
                 </label>
             </div>
 
-            <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">Custom prompt (optional - leave blank to auto-generate new prompt):</p>
+            <p style="color: var(--eme-text-secondary); font-size: 14px; margin-bottom: 10px;">Custom prompt (optional - leave blank to auto-generate new prompt):</p>
             <textarea id="regeneratePromptTextarea"
                       placeholder="Enter a custom image prompt or leave blank to auto-generate..."
-                      style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;"></textarea>
+                      style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); font-family: monospace; font-size: 12px;"></textarea>
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div id="regenerateStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div id="regenerateStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
                 <div>
                     <button onclick="closeRegenerateModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="regenerateWordImage()" class="btn btn-warning" id="regenerateBtn">🔄 Regenerate</button>
@@ -1207,21 +1161,21 @@
 
     <!-- Update Translation Modal -->
     <div id="updateTranslationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <h3 style="margin-top: 0;">Update Translation for <span id="translationModalWordTitle"></span></h3>
 
             <div style="margin-bottom: 20px;">
                 <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Translation:</label>
                 <input type="text" id="newTranslationInput"
                        placeholder="Enter new translation..."
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This will regenerate the mnemonic sentence and image prompt.</p>
+                       style="width: 100%; padding: 10px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); font-size: 14px;">
+                <p style="color: var(--eme-text-secondary); font-size: 12px; margin-top: 5px;">This will regenerate the mnemonic sentence and image prompt.</p>
             </div>
 
             <!-- Image Style Selection -->
             <div style="margin-bottom: 20px;">
                 <label for="translationImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
-                <select id="translationImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <select id="translationImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm);">
                     <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
                     <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
                     <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
@@ -1229,7 +1183,7 @@
             </div>
 
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div id="updateTranslationStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div id="updateTranslationStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
                 <div>
                     <button onclick="closeUpdateTranslationModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="updateTranslation()" class="btn btn-primary" id="updateTranslationBtn">✏️ Update</button>
@@ -1240,21 +1194,21 @@
 
     <!-- Update Mnemonic Keyword Modal -->
     <div id="updateMnemonicKeywordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <h3 style="margin-top: 0;">Update Mnemonic Keyword for <span id="mnemonicKeywordModalWordTitle"></span></h3>
 
             <div style="margin-bottom: 20px;">
                 <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Mnemonic Keyword:</label>
                 <input type="text" id="newMnemonicKeywordInput"
                        placeholder="Enter new mnemonic keyword..."
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This will regenerate the image prompt with the new keyword.</p>
+                       style="width: 100%; padding: 10px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); font-size: 14px;">
+                <p style="color: var(--eme-text-secondary); font-size: 12px; margin-top: 5px;">This will regenerate the image prompt with the new keyword.</p>
             </div>
 
             <!-- Image Style Selection -->
             <div style="margin-bottom: 20px;">
                 <label for="mnemonicKeywordImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
-                <select id="mnemonicKeywordImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                <select id="mnemonicKeywordImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm);">
                     <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
                     <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
                     <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
@@ -1262,7 +1216,7 @@
             </div>
 
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div id="updateMnemonicKeywordStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div id="updateMnemonicKeywordStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
                 <div>
                     <button onclick="closeUpdateMnemonicKeywordModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="updateMnemonicKeyword()" class="btn btn-primary" id="updateMnemonicKeywordBtn">✏️ Update</button>
@@ -1273,19 +1227,19 @@
 
     <!-- Update Transliteration Modal -->
     <div id="updateTransliterationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <h3 style="margin-top: 0;">Update Transliteration for <span id="transliterationModalWordTitle"></span></h3>
 
             <div style="margin-bottom: 20px;">
                 <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Transliteration (Romanization):</label>
                 <input type="text" id="newTransliterationInput"
                        placeholder="Enter new transliteration (e.g., marna for Hindi)..."
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This is the romanized pronunciation of the word. It's used to find matching character guides for mnemonic generation.</p>
+                       style="width: 100%; padding: 10px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); font-size: 14px;">
+                <p style="color: var(--eme-text-secondary); font-size: 12px; margin-top: 5px;">This is the romanized pronunciation of the word. It's used to find matching character guides for mnemonic generation.</p>
             </div>
 
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div id="updateTransliterationStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div id="updateTransliterationStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
                 <div>
                     <button onclick="closeUpdateTransliterationModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="updateTransliteration()" class="btn btn-info" id="updateTransliterationBtn">✏️ Update</button>
@@ -1296,16 +1250,16 @@
 
     <!-- Batch Regenerate Image Modal -->
     <div id="batchRegenerateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 900px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 900px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <h3 style="margin-top: 0;">Batch Regenerate Images (<span id="batchModalCount">0</span> words)</h3>
 
             <!-- Global Settings -->
-            <div style="background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 2px solid #007bff;">
+            <div style="background: var(--eme-hover-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 20px; border: 2px solid #007bff;">
                 <h4 style="margin-top: 0; font-size: 16px;">Apply to All Words:</h4>
                 <div style="display: flex; gap: 20px; align-items: center; flex-wrap: wrap;">
                     <div>
                         <label style="font-weight: bold; margin-right: 10px;">Model:</label>
-                        <select id="globalModel" onchange="applyModelToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                        <select id="globalModel" onchange="applyModelToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: var(--radius-sm);">
                             <option value="">-- Don't change --</option>
                             <option value="gpt-image-1-mini">GPT Image 1 Mini</option>
                             <option value="gpt-image-1">GPT Image 1</option>
@@ -1313,7 +1267,7 @@
                     </div>
                     <div>
                         <label style="font-weight: bold; margin-right: 10px;">Image Style:</label>
-                        <select id="globalImageStyle" onchange="applyImageStyleToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                        <select id="globalImageStyle" onchange="applyImageStyleToAll()" style="padding: 6px; border: 1px solid #ced4da; border-radius: var(--radius-sm);">
                             <option value="">-- Don't change --</option>
                             <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
                             <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
@@ -1327,7 +1281,7 @@
                         </label>
                     </div>
                     <div style="flex: 1;">
-                        <button onclick="applyCustomPromptToAll()" class="btn btn-sm" style="background: #6c757d;">
+                        <button onclick="applyCustomPromptToAll()" class="btn btn-sm" style="background: var(--eme-text-muted);">
                             Apply Custom Prompt to All
                         </button>
                     </div>
@@ -1340,15 +1294,15 @@
             </div>
 
             <!-- Progress Section -->
-            <div id="batchProgress" style="display: none; background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px;">
+            <div id="batchProgress" style="display: none; background: var(--eme-hover-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 20px;">
                 <h4 style="margin-top: 0; font-size: 16px;">Progress:</h4>
                 <div style="margin-bottom: 10px;">
                     <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                         <span id="batchProgressText">Processing...</span>
                         <span id="batchProgressNumbers">0 / 0</span>
                     </div>
-                    <div style="background: #e9ecef; border-radius: 8px; height: 24px; overflow: hidden;">
-                        <div id="batchProgressBar" style="width: 0%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; border-radius: 8px; transition: width 0.3s ease;"></div>
+                    <div style="background: #e9ecef; border-radius: var(--radius-lg); height: 24px; overflow: hidden;">
+                        <div id="batchProgressBar" style="width: 0%; background: linear-gradient(90deg, #007bff, #0056b3); height: 100%; border-radius: var(--radius-lg); transition: width 0.3s ease;"></div>
                     </div>
                 </div>
                 <div id="batchProgressDetails" style="max-height: 200px; overflow-y: auto; font-size: 14px;">
@@ -1358,7 +1312,7 @@
 
             <!-- Action Buttons -->
             <div style="display: flex; justify-content: space-between; align-items: center;">
-                <div id="batchStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div id="batchStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
                 <div>
                     <button onclick="closeBatchRegenerateModal()" class="btn btn-secondary" style="margin-right: 10px;" id="batchCancelBtn">Cancel</button>
                     <button onclick="startBatchRegeneration()" class="btn btn-warning" id="batchStartBtn">🔄 Start Batch Regeneration</button>
@@ -1369,34 +1323,34 @@
 
     <!-- Add Character Guide Modal -->
     <div id="addCharacterModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <h3 style="margin-top: 0;">Add Character to Guide</h3>
 
             <div style="margin-bottom: 20px;">
                 <label style="font-weight: bold; margin-bottom: 8px; display: block;">Language:</label>
-                <input type="text" id="addCharLanguage" readonly style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; background: #f5f5f5;">
+                <input type="text" id="addCharLanguage" readonly style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); background: #f5f5f5;">
             </div>
 
             <div style="margin-bottom: 20px;">
                 <label style="font-weight: bold; margin-bottom: 8px; display: block;">Start Sound:</label>
-                <input type="text" id="addCharStartSound" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <small style="color: #6c757d; display: block; margin-top: 4px;">The phonetic sound at the start of the word (e.g., "cha", "sh")</small>
+                <input type="text" id="addCharStartSound" style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm);">
+                <small style="color: var(--eme-text-secondary); display: block; margin-top: 4px;">The phonetic sound at the start of the word (e.g., "cha", "sh")</small>
             </div>
 
             <div style="margin-bottom: 20px;">
                 <label style="font-weight: bold; margin-bottom: 8px; display: block;">Character Name:</label>
-                <input type="text" id="addCharName" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <small style="color: #6c757d; display: block; margin-top: 4px;">The character or person's name (e.g., "Charizard", "Shanks")</small>
+                <input type="text" id="addCharName" style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm);">
+                <small style="color: var(--eme-text-secondary); display: block; margin-top: 4px;">The character or person's name (e.g., "Charizard", "Shanks")</small>
             </div>
 
             <div style="margin-bottom: 20px;">
                 <label style="font-weight: bold; margin-bottom: 8px; display: block;">Character Context:</label>
-                <input type="text" id="addCharContext" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                <small style="color: #6c757d; display: block; margin-top: 4px;">Where the character is from (e.g., "Pokemon", "One Piece")</small>
+                <input type="text" id="addCharContext" style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm);">
+                <small style="color: var(--eme-text-secondary); display: block; margin-top: 4px;">Where the character is from (e.g., "Pokemon", "One Piece")</small>
             </div>
 
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div id="addCharStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div id="addCharStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
                 <div>
                     <button onclick="closeAddCharacterModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="addCharacterToGuide()" class="btn btn-success" id="addCharBtn">➕ Add to Guide</button>
@@ -1407,9 +1361,9 @@
 
     <!-- Anki Card Preview Modal -->
     <div id="ankiCardPreviewModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; overflow-y: auto; padding: 20px;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 1200px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 1200px; margin: 0 auto; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
             <h2 style="margin-top: 0;">Review and Edit Anki Cards</h2>
-            <p style="color: #6c757d; margin-bottom: 20px;">Review the cards below and edit as needed before creating them in Anki.</p>
+            <p style="color: var(--eme-text-secondary); margin-bottom: 20px;">Review the cards below and edit as needed before creating them in Anki.</p>
 
             <!-- Card List -->
             <div id="ankiCardList" style="margin-bottom: 30px;">
@@ -1418,7 +1372,7 @@
 
             <!-- Action Buttons -->
             <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 20px; border-top: 2px solid #dee2e6;">
-                <div id="ankiCardStatus" style="color: #6c757d; font-size: 14px;"></div>
+                <div id="ankiCardStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
                 <div>
                     <button onclick="closeAnkiCardPreview()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="createAnkiCards()" class="btn btn-primary" id="createAnkiCardsBtn">Create All Cards</button>
@@ -1429,11 +1383,11 @@
 
     <style>
         .anki-card-item {
-            background: white;
+            background: var(--eme-card-bg);
             padding: 20px;
             margin-bottom: 20px;
-            border: 1px solid #dee2e6;
-            border-radius: 8px;
+            border: 1px solid var(--eme-border);
+            border-radius: var(--radius-lg);
         }
         .card-header-row {
             display: flex;
@@ -1448,9 +1402,9 @@
             color: #007bff;
         }
         .card-edit-section {
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-bottom: 15px;
         }
         .placeholder-buttons {
@@ -1464,24 +1418,24 @@
             padding: 4px 8px;
         }
         .preview-card {
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             margin-bottom: 10px;
         }
         .preview-label {
             font-weight: bold;
-            color: #495057;
+            color: var(--eme-text-secondary);
             margin-bottom: 8px;
             font-size: 14px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
         .preview-content {
-            background: white;
+            background: var(--eme-card-bg);
             padding: 15px;
-            border-radius: 4px;
-            border: 1px solid #dee2e6;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--eme-border);
             min-height: 60px;
             font-size: 16px;
             line-height: 1.6;
@@ -1495,12 +1449,12 @@
             margin-bottom: 15px;
             padding: 10px;
             background: #e7f3ff;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
         }
         .dnd-blocks-palette {
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             padding: 15px;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             border: 2px dashed #dee2e6;
             margin-bottom: 15px;
         }
@@ -1508,7 +1462,7 @@
             display: inline-block;
             background: #fff;
             border: 2px solid #007bff;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             padding: 8px 12px;
             margin: 4px;
             cursor: grab;
@@ -1537,9 +1491,9 @@
         }
         .dnd-drop-zone {
             min-height: 100px;
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             border: 2px dashed #6c757d;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             padding: 10px;
             margin-bottom: 15px;
         }
@@ -1552,7 +1506,7 @@
             content: 'Drag blocks here to build your card';
             display: block;
             text-align: center;
-            color: #6c757d;
+            color: var(--eme-text-secondary);
             padding: 30px;
             font-style: italic;
         }
@@ -1561,7 +1515,7 @@
             align-items: center;
             background: #e7f3ff;
             border: 2px solid #007bff;
-            border-radius: 6px;
+            border-radius: var(--radius-md);
             padding: 8px 12px;
             margin: 4px;
             font-size: 13px;
@@ -1579,7 +1533,7 @@
         .dnd-dropped-block .remove-btn {
             margin-left: 8px;
             background: #dc3545;
-            color: white;
+            color: var(--eme-card-bg);
             border: none;
             border-radius: 3px;
             padding: 2px 6px;
@@ -1593,16 +1547,31 @@
         .dnd-dropped-block.line-break {
             display: block;
             background: #e9ecef;
-            border-color: #6c757d;
-            color: #495057;
+            border-color: var(--eme-text-secondary);
+            color: var(--eme-text-secondary);
             width: 100%;
             text-align: center;
             margin: 8px 0;
         }
     </style>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
+        // Collapsible toggle function (replaces Bootstrap collapse)
+        function toggleCollapse(contentId, headerEl) {
+            const content = document.getElementById(contentId);
+            const isExpanded = content.style.display !== 'none';
+
+            if (isExpanded) {
+                content.style.display = 'none';
+                headerEl.classList.add('collapsed');
+                headerEl.setAttribute('aria-expanded', 'false');
+            } else {
+                content.style.display = 'block';
+                headerEl.classList.remove('collapsed');
+                headerEl.setAttribute('aria-expanded', 'true');
+            }
+        }
+
         // Batch Regeneration State
         let selectedWords = new Set();
         let batchRegenerationData = {};
@@ -1712,13 +1681,13 @@
 
             Object.values(batchRegenerationData).forEach((data, index) => {
                 const wordDiv = document.createElement('div');
-                wordDiv.style.cssText = 'background: white; padding: 15px; margin-bottom: 15px; border: 1px solid #dee2e6; border-radius: 8px;';
+                wordDiv.style.cssText = 'background: var(--eme-card-bg); padding: 15px; margin-bottom: 15px; border: 1px solid var(--eme-border); border-radius: var(--radius-lg);';
                 wordDiv.innerHTML = `
                     <div style="font-weight: bold; margin-bottom: 10px; font-size: 16px;">${index + 1}. ${data.sourceWord}</div>
 
                     <div style="margin-bottom: 10px;">
                         <label style="font-weight: bold; margin-right: 10px;">Model:</label>
-                        <select class="word-model" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                        <select class="word-model" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: var(--radius-sm);">
                             <option value="gpt-image-1-mini" selected>GPT Image 1 Mini</option>
                             <option value="gpt-image-1">GPT Image 1</option>
                         </select>
@@ -1726,7 +1695,7 @@
 
                     <div style="margin-bottom: 10px;">
                         <label style="font-weight: bold; margin-right: 10px;">Image Style:</label>
-                        <select class="word-image-style" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: 4px;">
+                        <select class="word-image-style" data-word-id="${data.wordId}" style="padding: 6px; border: 1px solid #ced4da; border-radius: var(--radius-sm);">
                             <option value="REALISTIC_CINEMATIC" selected>Realistic Cinematic</option>
                             <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
                             <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
@@ -1744,10 +1713,10 @@
                         <label style="font-weight: bold; display: block; margin-bottom: 5px;">Custom Prompt (optional):</label>
                         <textarea class="word-custom-prompt" data-word-id="${data.wordId}"
                                   placeholder="Leave blank to auto-generate..."
-                                  style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ced4da; border-radius: 4px; font-size: 13px;"></textarea>
+                                  style="width: 100%; min-height: 80px; padding: 8px; border: 1px solid #ced4da; border-radius: var(--radius-sm); font-size: 13px;"></textarea>
                     </div>
 
-                    <div class="word-status-${data.wordId}" style="margin-top: 10px; display: none; padding: 8px; border-radius: 4px; font-size: 13px;"></div>
+                    <div class="word-status-${data.wordId}" style="margin-top: 10px; display: none; padding: 8px; border-radius: var(--radius-sm); font-size: 13px;"></div>
                 `;
                 wordListEl.appendChild(wordDiv);
 
@@ -1942,7 +1911,7 @@
         function addProgressDetail(sourceWord, status) {
             const detailsEl = document.getElementById('batchProgressDetails');
             const item = document.createElement('div');
-            item.style.cssText = 'padding: 6px; margin-bottom: 4px; border-radius: 4px;';
+            item.style.cssText = 'padding: 6px; margin-bottom: 4px; border-radius: var(--radius-sm);';
 
             if (status === 'success') {
                 item.style.background = '#d1e7dd';
@@ -2410,7 +2379,7 @@
 
             // Add format overview section
             const overviewDiv = document.createElement('div');
-            overviewDiv.style.cssText = 'background: #e7f3ff; padding: 20px; border-radius: 8px; margin-bottom: 30px; border: 2px solid #007bff;';
+            overviewDiv.style.cssText = 'background: #e7f3ff; padding: 20px; border-radius: var(--radius-lg); margin-bottom: 30px; border: 2px solid #007bff;';
 
             const formatOptions = availableFormats.map(f =>
                 `<option value="${f.id}"${f.isDefault ? ' selected' : ''}>${escapeHtml(f.name)}${f.isDefault ? ' (Default)' : ''}</option>`
@@ -2422,8 +2391,8 @@
                 </div>
 
                 <!-- Format Selector -->
-                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Anki Card Format:</label>
+                <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px; display: block;">Anki Card Format:</label>
                     <select class="form-control" id="formatSelector" onchange="onFormatChange()">
                         ${availableFormats.length === 0
                             ? '<option value="">No formats available - Create one first</option>'
@@ -2433,23 +2402,23 @@
                 </div>
 
                 <!-- Deck Name Input -->
-                <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                    <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Anki Deck Name:</label>
+                <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 15px;">
+                    <label style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px; display: block;">Anki Deck Name:</label>
                     <input type="text" class="form-control" id="deckNameInput" value="${escapeHtml(data.deck || '')}" placeholder="Enter deck name">
                 </div>
 
-                <p style="margin-bottom: 15px; color: #495057;">This format will be applied to all ${data.cards.length} cards.</p>
+                <p style="margin-bottom: 15px; color: var(--eme-text-secondary);">This format will be applied to all ${data.cards.length} cards.</p>
 
                 <!-- View Mode -->
                 <div id="formatViewMode">
-                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Front Card Structure:</div>
-                        <div data-structure="front" style="background: #f8f9fa; padding: 10px; border-radius: 4px;">${data.cards[0].frontStructure || '<div class="text-muted">No structure available</div>'}</div>
+                    <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 15px;">
+                        <div style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px;">Front Card Structure:</div>
+                        <div data-structure="front" style="background: var(--eme-hover-bg); padding: 10px; border-radius: var(--radius-sm);">${data.cards[0].frontStructure || '<div class="text-muted">No structure available</div>'}</div>
                     </div>
 
-                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Back Card Structure:</div>
-                        <div data-structure="back" style="background: #f8f9fa; padding: 10px; border-radius: 4px;">${data.cards[0].backStructure || '<div class="text-muted">No structure available</div>'}</div>
+                    <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 15px;">
+                        <div style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px;">Back Card Structure:</div>
+                        <div data-structure="back" style="background: var(--eme-hover-bg); padding: 10px; border-radius: var(--radius-sm);">${data.cards[0].backStructure || '<div class="text-muted">No structure available</div>'}</div>
                     </div>
                 </div>
 
@@ -2469,8 +2438,8 @@
 
                     <!-- Text Mode -->
                     <div id="textEditMode" style="display: none;">
-                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
+                        <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px; display: block;">Front Template:</label>
                             <textarea class="form-control" id="frontTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].frontTemplate)}</textarea>
                         <div class="placeholder-buttons" style="margin-top: 10px;">
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('front', '[source-text]')">source-text</button>
@@ -2490,8 +2459,8 @@
                         </div>
                     </div>
 
-                    <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                        <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Back Template:</label>
+                    <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 15px;">
+                        <label style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px; display: block;">Back Template:</label>
                         <textarea class="form-control" id="backTemplateEdit" rows="4" style="font-family: monospace;">${escapeHtml(data.cards[0].backTemplate)}</textarea>
                         <div class="placeholder-buttons" style="margin-top: 10px;">
                             <button type="button" class="btn btn-sm btn-outline-secondary" onclick="insertFormatPlaceholder('back', '[source-text]')">source-text</button>
@@ -2517,8 +2486,8 @@
                     <div id="dndEditMode">
                         <!-- Available Blocks Palette -->
                         <div class="dnd-blocks-palette">
-                            <h5 style="margin-top: 0; color: #495057;">Available Blocks</h5>
-                            <p style="font-size: 13px; color: #6c757d; margin-bottom: 12px;">Drag blocks below to build your card templates</p>
+                            <h5 style="margin-top: 0; color: var(--eme-text-secondary);">Available Blocks</h5>
+                            <p style="font-size: 13px; color: var(--eme-text-secondary); margin-bottom: 12px;">Drag blocks below to build your card templates</p>
 
                             <div id="dndBlocksPalette">
                                 <div class="dnd-block" draggable="true" data-type="field" data-value="[source-text]">source-text</div>
@@ -2539,14 +2508,14 @@
                         </div>
 
                         <!-- Front Template Drop Zone -->
-                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Front Template:</label>
+                        <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px; display: block;">Front Template:</label>
                             <div id="frontDropZone" class="dnd-drop-zone empty" data-target="front"></div>
                         </div>
 
                         <!-- Back Template Drop Zone -->
-                        <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-                            <label style="font-weight: bold; color: #495057; margin-bottom: 8px; display: block;">Back Template:</label>
+                        <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg); margin-bottom: 15px;">
+                            <label style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px; display: block;">Back Template:</label>
                             <div id="backDropZone" class="dnd-drop-zone empty" data-target="back"></div>
                         </div>
 
@@ -2558,19 +2527,19 @@
                     </div>
                 </div>
 
-                <div style="background: white; padding: 15px; border-radius: 8px;">
-                    <div style="font-weight: bold; color: #495057; margin-bottom: 8px;">Sample Preview (First Card: ${escapeHtml(data.cards[0].sourceWord)}):</div>
+                <div style="background: var(--eme-card-bg); padding: 15px; border-radius: var(--radius-lg);">
+                    <div style="font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 8px;">Sample Preview (First Card: ${escapeHtml(data.cards[0].sourceWord)}):</div>
                     <div style="margin-bottom: 10px;">
-                        <div style="font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 4px;">FRONT:</div>
-                        <div id="sampleFrontPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #28a745; word-break: break-word;"></div>
+                        <div style="font-size: 12px; font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 4px;">FRONT:</div>
+                        <div id="sampleFrontPreview" style="background: var(--eme-hover-bg); padding: 10px; border-radius: var(--radius-sm); border-left: 3px solid var(--eme-success-border); word-break: break-word;"></div>
                     </div>
                     <div>
-                        <div style="font-size: 12px; font-weight: bold; color: #6c757d; margin-bottom: 4px;">BACK:</div>
-                        <div id="sampleBackPreview" style="background: #f8f9fa; padding: 10px; border-radius: 4px; border-left: 3px solid #dc3545; word-break: break-word;"></div>
+                        <div style="font-size: 12px; font-weight: bold; color: var(--eme-text-secondary); margin-bottom: 4px;">BACK:</div>
+                        <div id="sampleBackPreview" style="background: var(--eme-hover-bg); padding: 10px; border-radius: var(--radius-sm); border-left: 3px solid #dc3545; word-break: break-word;"></div>
                     </div>
                 </div>
 
-                <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: 4px; border: 1px solid #ffc107;">
+                <div style="margin-top: 15px; padding: 10px; background: #fff3cd; border-radius: var(--radius-sm); border: 1px solid #ffc107;">
                     <strong>Tip:</strong> Set your deck name and edit the card format template. The preview updates automatically as you edit. You can review all ${data.cards.length} cards below before creating them.
                 </div>
             `;
@@ -2727,15 +2696,15 @@
                 const uniqueId = 'toggle-' + Date.now() + '-' + Math.random().toString(36).substr(2, 9);
 
                 // Create the toggle HTML with inline CSS (matching Java implementation)
-                return '<div style="margin: 10px 0; border: 1px solid #ddd; border-radius: 4px; padding: 5px;">' +
+                return '<div style="margin: 10px 0; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); padding: 5px;">' +
                     '<button onclick="var el = document.getElementById(\'' + uniqueId + '\'); ' +
                         'if(el.style.display === \'none\') { el.style.display = \'block\'; this.textContent = \'Hide ' + label + '\'; } ' +
                         'else { el.style.display = \'none\'; this.textContent = \'Show ' + label + '\'; }" ' +
-                        'style="background: #4CAF50; color: white; border: none; padding: 8px 16px; ' +
-                        'cursor: pointer; border-radius: 4px; font-size: 14px; margin-bottom: 5px;">' +
+                        'style="background: var(--eme-success-bg); color: var(--eme-card-bg); border: none; padding: 8px 16px; ' +
+                        'cursor: pointer; border-radius: var(--radius-sm); font-size: 14px; margin-bottom: 5px;">' +
                         'Show ' + label +
                     '</button>' +
-                    '<div id="' + uniqueId + '" style="display: none; padding: 10px; background: #2c3e50; color: #ecf0f1; border-radius: 4px; margin-top: 5px;">' +
+                    '<div id="' + uniqueId + '" style="display: none; padding: 10px; background: #2c3e50; color: var(--eme-card-bg); border-radius: var(--radius-sm); margin-top: 5px;">' +
                         placeholderValue +
                     '</div>' +
                 '</div>';
@@ -2892,10 +2861,10 @@
             const label = cardType.replace(/_/g, ' ');
             return `<div style="margin: 10px 0;">
                 <button onclick="var el = document.getElementById('${uniqueId}'); el.style.display = el.style.display === 'none' ? 'block' : 'none';"
-                    style="background: #4CAF50; color: white; border: none; padding: 8px 16px; cursor: pointer; border-radius: 4px;">
+                    style="background: var(--eme-success-bg); color: var(--eme-card-bg); border: none; padding: 8px 16px; cursor: pointer; border-radius: var(--radius-sm);">
                     Toggle ${label}
                 </button>
-                <div id="${uniqueId}" style="display: none; padding: 10px; background: #2c3e50; color: #ecf0f1; margin-top: 5px;">
+                <div id="${uniqueId}" style="display: none; padding: 10px; background: #2c3e50; color: var(--eme-card-bg); margin-top: 5px;">
                     ${content}
                 </div>
             </div>`;
@@ -3219,7 +3188,7 @@
                     toggleWrapper.setAttribute('data-type', 'toggle-group');
 
                     const innerBlock = document.createElement('span');
-                    innerBlock.style.cssText = 'background: #fff; padding: 4px 8px; border-radius: 4px; margin: 2px;';
+                    innerBlock.style.cssText = 'background: #fff; padding: 4px 8px; border-radius: var(--radius-sm); margin: 2px;';
                     innerBlock.textContent = blockText;
                     innerBlock.setAttribute('data-value', blockValue);
 
@@ -3354,7 +3323,7 @@
                     droppedBlock.setAttribute('data-type', 'toggle-group');
 
                     const innerSpan = document.createElement('span');
-                    innerSpan.style.cssText = 'background: #fff; padding: 4px 8px; border-radius: 4px; margin: 2px;';
+                    innerSpan.style.cssText = 'background: #fff; padding: 4px 8px; border-radius: var(--radius-sm); margin: 2px;';
                     innerSpan.textContent = label;
                     innerSpan.setAttribute('data-value', value);
 

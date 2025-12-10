@@ -3,11 +3,16 @@ package com.raidrin.eme.controller;
 import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.service.WordService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
 import java.util.List;
 import java.util.Optional;
@@ -53,12 +58,17 @@ public class WordViewController {
     }
 
     /**
-     * List all words (optional - for future use)
+     * List all words with pagination
      */
     @GetMapping
-    public String listWords(Model model) {
-        List<WordEntity> words = wordService.getAllWords();
-        model.addAttribute("words", words);
+    public String listWords(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Model model) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("updatedAt").descending());
+        Page<WordEntity> wordPage = wordService.getAllWords(pageable);
+        model.addAttribute("words", wordPage.getContent());
+        model.addAttribute("page", wordPage);
         return "words/list";
     }
 }

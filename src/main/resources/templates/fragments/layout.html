@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="page(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' - EME'">EME</title>
+
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- EME Custom Styles -->
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <div th:replace="~{fragments/navigation :: navbar}"></div>
+
+    <!-- Main Content -->
+    <main class="eme-main">
+        <div class="container">
+            <!-- Flash Messages -->
+            <div th:replace="~{fragments/alerts :: flash-messages}"></div>
+
+            <!-- Page Content -->
+            <div th:insert="${content}"></div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="content has-text-centered">
+            <p>
+                <strong>EME</strong> - Language Learning Application
+            </p>
+        </div>
+    </footer>
+</body>
+</html>
+
+<!-- Simplified page layout without navigation (for standalone pages) -->
+<html xmlns:th="http://www.thymeleaf.org" th:fragment="page-simple(title, content)">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title th:text="${title} + ' - EME'">EME</title>
+
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- EME Custom Styles -->
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+</head>
+<body>
+    <main class="eme-main">
+        <div class="container">
+            <!-- Flash Messages -->
+            <div th:replace="~{fragments/alerts :: flash-messages}"></div>
+
+            <!-- Page Content -->
+            <div th:insert="${content}"></div>
+        </div>
+    </main>
+</body>
+</html>

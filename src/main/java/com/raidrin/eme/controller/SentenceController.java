@@ -3,6 +3,10 @@ package com.raidrin.eme.controller;
 import com.raidrin.eme.sentence.SentenceData;
 import com.raidrin.eme.storage.service.SentenceStorageService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -19,9 +23,14 @@ public class SentenceController {
     private final SentenceStorageService sentenceStorageService;
 
     @GetMapping
-    public String listSentences(Model model) {
-        List<SentenceData> allSentences = sentenceStorageService.getAllSentences();
-        model.addAttribute("sentences", allSentences);
+    public String listSentences(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Model model) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("updatedAt").descending());
+        Page<SentenceData> sentencePage = sentenceStorageService.getAllSentences(pageable);
+        model.addAttribute("sentences", sentencePage.getContent());
+        model.addAttribute("page", sentencePage);
         return "sentences/list";
     }
 

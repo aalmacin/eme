@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+
+<!-- Basic Table Wrapper -->
+<div th:fragment="table-wrapper" class="table-container">
+    <table class="table is-fullwidth is-striped is-hoverable">
+        <thead>
+            <tr th:replace="${header}"></tr>
+        </thead>
+        <tbody th:replace="${body}"></tbody>
+    </table>
+</div>
+
+<!-- Sortable Table Header Cell -->
+<th th:fragment="sortable-header(column, label, currentSort, currentDir)"
+    class="is-sortable"
+    th:classappend="${column == currentSort} ? 'is-sorted'"
+    style="cursor: pointer; user-select: none;">
+    <span th:text="${label}"></span>
+    <span class="icon is-small" th:if="${column == currentSort}">
+        <i class="fas" th:classappend="${currentDir == 'asc'} ? 'fa-sort-up' : 'fa-sort-down'"></i>
+    </span>
+</th>
+
+<!-- Action Buttons Column -->
+<td th:fragment="action-buttons(viewUrl, editUrl, deleteUrl)" class="is-nowrap">
+    <div class="buttons are-small is-right">
+        <a th:if="${viewUrl}" th:href="${viewUrl}" class="button is-info is-outlined" title="View">
+            <span class="icon">
+                <i class="fas fa-eye"></i>
+            </span>
+        </a>
+        <a th:if="${editUrl}" th:href="${editUrl}" class="button is-warning is-outlined" title="Edit">
+            <span class="icon">
+                <i class="fas fa-edit"></i>
+            </span>
+        </a>
+        <a th:if="${deleteUrl}" th:href="${deleteUrl}" class="button is-danger is-outlined" title="Delete"
+           onclick="return confirm('Are you sure you want to delete this?')">
+            <span class="icon">
+                <i class="fas fa-trash"></i>
+            </span>
+        </a>
+    </div>
+</td>
+
+<!-- View/Edit Action Buttons -->
+<td th:fragment="view-edit-buttons(viewUrl, editUrl)" class="is-nowrap">
+    <div class="buttons are-small is-right">
+        <a th:if="${viewUrl}" th:href="${viewUrl}" class="button is-info is-outlined" title="View">
+            <span class="icon">
+                <i class="fas fa-eye"></i>
+            </span>
+        </a>
+        <a th:if="${editUrl}" th:href="${editUrl}" class="button is-warning is-outlined" title="Edit">
+            <span class="icon">
+                <i class="fas fa-edit"></i>
+            </span>
+        </a>
+    </div>
+</td>
+
+<!-- Table Pagination -->
+<nav th:fragment="pagination(currentPage, totalPages, baseUrl)" class="pagination is-centered mt-4" role="navigation" aria-label="pagination">
+    <a class="pagination-previous"
+       th:href="${baseUrl + '?page=' + (currentPage - 1)}"
+       th:disabled="${currentPage <= 0}">
+        <span class="icon"><i class="fas fa-chevron-left"></i></span>
+        <span>Previous</span>
+    </a>
+    <a class="pagination-next"
+       th:href="${baseUrl + '?page=' + (currentPage + 1)}"
+       th:disabled="${currentPage >= totalPages - 1}">
+        <span>Next</span>
+        <span class="icon"><i class="fas fa-chevron-right"></i></span>
+    </a>
+    <ul class="pagination-list">
+        <li th:if="${currentPage > 1}">
+            <a class="pagination-link" th:href="${baseUrl + '?page=0'}">1</a>
+        </li>
+        <li th:if="${currentPage > 2}">
+            <span class="pagination-ellipsis">&hellip;</span>
+        </li>
+        <li th:if="${currentPage > 0}">
+            <a class="pagination-link" th:href="${baseUrl + '?page=' + (currentPage - 1)}" th:text="${currentPage}"></a>
+        </li>
+        <li>
+            <a class="pagination-link is-current" th:text="${currentPage + 1}"></a>
+        </li>
+        <li th:if="${currentPage < totalPages - 1}">
+            <a class="pagination-link" th:href="${baseUrl + '?page=' + (currentPage + 1)}" th:text="${currentPage + 2}"></a>
+        </li>
+        <li th:if="${currentPage < totalPages - 3}">
+            <span class="pagination-ellipsis">&hellip;</span>
+        </li>
+        <li th:if="${currentPage < totalPages - 2}">
+            <a class="pagination-link" th:href="${baseUrl + '?page=' + (totalPages - 1)}" th:text="${totalPages}"></a>
+        </li>
+    </ul>
+</nav>
+
+<!-- Table Header with Actions -->
+<div th:fragment="table-header(title, createUrl, createText)" class="level mb-4">
+    <div class="level-left">
+        <div class="level-item">
+            <h1 class="title is-4" th:text="${title}"></h1>
+        </div>
+    </div>
+    <div class="level-right" th:if="${createUrl}">
+        <div class="level-item">
+            <a th:href="${createUrl}" class="button is-primary">
+                <span class="icon">
+                    <i class="fas fa-plus"></i>
+                </span>
+                <span th:text="${createText} ?: 'Add New'"></span>
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Filter Bar -->
+<div th:fragment="filter-bar" class="box mb-4">
+    <form th:action="${filterUrl}" method="get" class="columns is-multiline is-vcentered">
+        <div class="column is-narrow" th:each="filter : ${filters}">
+            <div class="field">
+                <label class="label is-small" th:text="${filter.label}"></label>
+                <div class="control">
+                    <div class="select is-small" th:if="${filter.type == 'select'}">
+                        <select th:name="${filter.name}">
+                            <option value="">All</option>
+                            <option th:each="opt : ${filter.options}"
+                                    th:value="${opt.value}"
+                                    th:text="${opt.label}"
+                                    th:selected="${opt.value == filter.selectedValue}"></option>
+                        </select>
+                    </div>
+                    <input class="input is-small" type="text"
+                           th:if="${filter.type == 'text'}"
+                           th:name="${filter.name}"
+                           th:value="${filter.value}"
+                           th:placeholder="${filter.placeholder}">
+                </div>
+            </div>
+        </div>
+        <div class="column is-narrow">
+            <div class="field">
+                <label class="label is-small">&nbsp;</label>
+                <div class="control">
+                    <button type="submit" class="button is-info is-small">
+                        <span class="icon"><i class="fas fa-filter"></i></span>
+                        <span>Filter</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<!-- Table Summary -->
+<p th:fragment="table-summary(showing, total)" class="has-text-grey is-size-7 mb-3">
+    Showing <strong th:text="${showing}"></strong> of <strong th:text="${total}"></strong> items
+</p>
+
+</html>

@@ -4,8 +4,11 @@ import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.AllArgsConstructor;
+import lombok.ToString;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "words", uniqueConstraints = {
@@ -29,6 +32,7 @@ public class WordEntity {
     @Column(name = "target_language", nullable = false, length = 10)
     private String targetLanguage;
 
+    // Legacy fields - kept for backward compatibility during migration
     @Column(name = "translation", columnDefinition = "TEXT")
     private String translation; // JSON string representation of translations
 
@@ -74,6 +78,23 @@ public class WordEntity {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    // New variant relationships
+    @OneToMany(mappedBy = "word", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<WordTranslationEntity> translations = new ArrayList<>();
+
+    @OneToMany(mappedBy = "word", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<WordMnemonicEntity> mnemonics = new ArrayList<>();
+
+    @OneToMany(mappedBy = "word", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<WordImageEntity> images = new ArrayList<>();
+
+    @OneToMany(mappedBy = "word", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    @ToString.Exclude
+    private List<WordSentenceEntity> sentences = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
         LocalDateTime now = LocalDateTime.now();
@@ -90,5 +111,34 @@ public class WordEntity {
         this.word = word;
         this.sourceLanguage = sourceLanguage;
         this.targetLanguage = targetLanguage;
+    }
+
+    // Helper methods to get current variants
+    public WordTranslationEntity getCurrentTranslation() {
+        return translations.stream()
+            .filter(WordTranslationEntity::getIsCurrent)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public WordMnemonicEntity getCurrentMnemonic() {
+        return mnemonics.stream()
+            .filter(WordMnemonicEntity::getIsCurrent)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public WordImageEntity getCurrentImage() {
+        return images.stream()
+            .filter(WordImageEntity::getIsCurrent)
+            .findFirst()
+            .orElse(null);
+    }
+
+    public WordSentenceEntity getCurrentSentence() {
+        return sentences.stream()
+            .filter(WordSentenceEntity::getIsCurrent)
+            .findFirst()
+            .orElse(null);
     }
 }

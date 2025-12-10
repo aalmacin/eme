@@ -4,6 +4,8 @@ import com.raidrin.eme.sentence.SentenceData;
 import com.raidrin.eme.storage.entity.SentenceEntity;
 import com.raidrin.eme.storage.repository.SentenceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -11,6 +13,17 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+/**
+ * @deprecated This service is deprecated. Use {@link WordVariantService} for sentence management.
+ * <p>
+ * The new WordVariantService provides:
+ * - addSentence() to add new sentence variants
+ * - setCurrentSentence() to switch active sentence
+ * - getSentenceHistory() to view all variants
+ * <p>
+ * This service is kept for backward compatibility during the transition period.
+ */
+@Deprecated(since = "2.0", forRemoval = true)
 @Service
 @RequiredArgsConstructor
 public class SentenceStorageService {
@@ -62,6 +75,11 @@ public class SentenceStorageService {
         return sentenceRepository.findAll().stream()
                 .map(this::entityToSentenceData)
                 .collect(Collectors.toList());
+    }
+
+    public Page<SentenceData> getAllSentences(Pageable pageable) {
+        return sentenceRepository.findAll(pageable)
+                .map(this::entityToSentenceData);
     }
     
     public Map<String, Object> getStorageInfo() {

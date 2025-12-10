@@ -6,6 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.raidrin.eme.storage.entity.WordEntity;
 import com.raidrin.eme.storage.repository.WordRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -215,6 +217,10 @@ public class WordService {
 
     public List<WordEntity> getAllWords() {
         return wordRepository.findAll();
+    }
+
+    public Page<WordEntity> getAllWords(Pageable pageable) {
+        return wordRepository.findAll(pageable);
     }
 
     public List<WordEntity> getAllWordsWithImages() {

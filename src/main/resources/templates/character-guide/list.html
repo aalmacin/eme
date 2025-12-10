@@ -2,186 +2,170 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Character Guide - Eme</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background: white;
-            padding: 20px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .nav-links {
-            margin-bottom: 20px;
-        }
-        .nav-links a {
-            margin-right: 15px;
-            text-decoration: none;
-            color: #007bff;
-        }
-        .nav-links a:hover {
-            text-decoration: underline;
-        }
-        .btn {
-            display: inline-block;
-            padding: 8px 16px;
-            background-color: #007bff;
-            color: white;
-            text-decoration: none;
-            border-radius: 4px;
-            border: none;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .btn:hover {
-            background-color: #0056b3;
-        }
-        .btn-danger {
-            background-color: #dc3545;
-        }
-        .btn-danger:hover {
-            background-color: #c82333;
-        }
-        .btn-success {
-            background-color: #28a745;
-        }
-        .btn-success:hover {
-            background-color: #218838;
-        }
-        .table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .table th, .table td {
-            padding: 12px;
-            text-align: left;
-            border-bottom: 1px solid #ddd;
-        }
-        .table th {
-            background-color: #f8f9fa;
-            font-weight: bold;
-        }
-        .table tr:hover {
-            background-color: #f8f9fa;
-        }
-        .alert {
-            padding: 12px;
-            margin-bottom: 20px;
-            border-radius: 4px;
-        }
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .alert-danger {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #6c757d;
-        }
-        .filter-bar {
-            background: white;
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        .filter-bar select {
-            padding: 8px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
-            margin-right: 10px;
-        }
-    </style>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Character Guide - EME</title>
+
+    <!-- Bulma CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+
+    <!-- Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- EME Custom Styles -->
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+
+    <!-- Alpine.js for interactivity -->
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
 </head>
 <body>
-    <div class="header">
-        <h1>Character Guide Management</h1>
-        <p>Define character associations for mnemonic image generation</p>
-        <div class="nav-links">
-            <a href="/">← Back to Home</a>
-            <a href="/words">📖 Words Library</a>
-            <a href="/translations">📚 Translations</a>
-            <a href="/sentences">📝 Sentences</a>
-            <a href="/sessions">📦 Sessions</a>
-            <a href="/anki-formats">🎴 Anki Card Formats</a>
+    <!-- Navigation -->
+    <nav class="navbar is-primary" role="navigation" aria-label="main navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                    <span class="icon mr-2">
+                        <i class="fas fa-language"></i>
+                    </span>
+                    <span>EME</span>
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" th:href="@{/}">Home</a>
+                    <a class="navbar-item" th:href="@{/words}">Words</a>
+                    <a class="navbar-item" th:href="@{/translations}">Translations</a>
+                    <a class="navbar-item" th:href="@{/sentences}">Sentences</a>
+                    <a class="navbar-item is-active" th:href="@{/character-guide}">Characters</a>
+                    <a class="navbar-item" th:href="@{/sessions}">Sessions</a>
+                </div>
+            </div>
         </div>
-    </div>
+    </nav>
 
-    <!-- Flash Messages -->
-    <div th:if="${success}" class="alert alert-success" th:text="${success}"></div>
-    <div th:if="${error}" class="alert alert-danger" th:text="${error}"></div>
+    <!-- Main Content -->
+    <main class="eme-main">
+        <div class="container">
+            <!-- Page Header -->
+            <div class="level mb-5">
+                <div class="level-left">
+                    <div class="level-item">
+                        <div>
+                            <h1 class="title">Character Guide Management</h1>
+                            <p class="subtitle text-secondary">Define character associations for mnemonic image generation</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="level-right">
+                    <div class="level-item">
+                        <div class="buttons">
+                            <a th:href="@{/}" class="button is-light">
+                                <span class="icon"><i class="fas fa-home"></i></span>
+                                <span>Home</span>
+                            </a>
+                            <a th:href="@{/character-guide/create}" class="button is-primary">
+                                <span class="icon"><i class="fas fa-plus"></i></span>
+                                <span>Add Character</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
-    <div class="filter-bar">
-        <form method="get" action="/character-guide" style="display: inline;">
-            <label for="language">Filter by Language:</label>
-            <select name="language" id="language" onchange="this.form.submit()">
-                <option value="">All Languages</option>
-                <option value="en" th:selected="${selectedLanguage == 'en'}">English</option>
-                <option value="hi" th:selected="${selectedLanguage == 'hi'}">Hindi</option>
-                <option value="pa" th:selected="${selectedLanguage == 'pa'}">Punjabi</option>
-                <option value="es" th:selected="${selectedLanguage == 'es'}">Spanish</option>
-                <option value="fr" th:selected="${selectedLanguage == 'fr'}">French</option>
-                <option value="jp" th:selected="${selectedLanguage == 'jp'}">Japanese</option>
-                <option value="kr" th:selected="${selectedLanguage == 'kr'}">Korean</option>
-                <option value="tl" th:selected="${selectedLanguage == 'tl'}">Tagalog</option>
-            </select>
-        </form>
-    </div>
+            <!-- Flash Messages -->
+            <div th:if="${success}" class="notification is-success is-light" x-data="{ show: true }" x-show="show" x-transition>
+                <button class="delete" @click="show = false"></button>
+                <span th:text="${success}"></span>
+            </div>
+            <div th:if="${error}" class="notification is-danger is-light" x-data="{ show: true }" x-show="show" x-transition>
+                <button class="delete" @click="show = false"></button>
+                <span th:text="${error}"></span>
+            </div>
 
-    <div style="margin-bottom: 20px;">
-        <a href="/character-guide/create" class="btn btn-success">+ Add New Character</a>
-    </div>
+            <!-- Filter Bar -->
+            <div class="box mb-5">
+                <form method="get" action="/character-guide" class="field has-addons">
+                    <div class="control">
+                        <label class="label is-small">Filter by Language</label>
+                        <div class="select">
+                            <select name="language" id="language" onchange="this.form.submit()">
+                                <option value="">All Languages</option>
+                                <option value="en" th:selected="${selectedLanguage == 'en'}">English</option>
+                                <option value="hi" th:selected="${selectedLanguage == 'hi'}">Hindi</option>
+                                <option value="pa" th:selected="${selectedLanguage == 'pa'}">Punjabi</option>
+                                <option value="es" th:selected="${selectedLanguage == 'es'}">Spanish</option>
+                                <option value="fr" th:selected="${selectedLanguage == 'fr'}">French</option>
+                                <option value="jp" th:selected="${selectedLanguage == 'jp'}">Japanese</option>
+                                <option value="kr" th:selected="${selectedLanguage == 'kr'}">Korean</option>
+                                <option value="tl" th:selected="${selectedLanguage == 'tl'}">Tagalog</option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
 
-    <div th:if="${#lists.isEmpty(characters)}" class="empty-state">
-        <h3>No character guides found</h3>
-        <p>Start by adding your first character association for mnemonic images.</p>
-        <a href="/character-guide/create" class="btn btn-success">Add Character</a>
-    </div>
+            <!-- Empty State -->
+            <div th:if="${#lists.isEmpty(characters)}" class="box has-text-centered py-6">
+                <span class="icon is-large text-muted">
+                    <i class="fas fa-3x fa-user-friends"></i>
+                </span>
+                <p class="title is-5 has-text-grey mt-4">No character guides found</p>
+                <p class="subtitle is-6 text-muted">Start by adding your first character association for mnemonic images.</p>
+                <a th:href="@{/character-guide/create}" class="button is-primary mt-3">
+                    <span class="icon"><i class="fas fa-plus"></i></span>
+                    <span>Add Character</span>
+                </a>
+            </div>
 
-    <table th:if="${!#lists.isEmpty(characters)}" class="table">
-        <thead>
-            <tr>
-                <th>Language</th>
-                <th>Start Sound</th>
-                <th>Character Name</th>
-                <th>Context (Show/Movie)</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr th:each="character : ${characters}">
-                <td><strong th:text="${character.language}"></strong></td>
-                <td><code th:text="${character.startSound}"></code></td>
-                <td th:text="${character.characterName}"></td>
-                <td th:text="${character.characterContext}"></td>
-                <td>
-                    <a th:href="@{/character-guide/{language}/{startSound}/edit(language=${character.language}, startSound=${character.startSound})}"
-                       class="btn">Edit</a>
-                    <form th:action="@{/character-guide/{language}/{startSound}/delete(language=${character.language}, startSound=${character.startSound})}"
-                          method="post" style="display: inline;">
-                        <button type="submit" class="btn btn-danger"
-                                onclick="return confirm('Are you sure you want to delete this character guide?')">Delete</button>
-                    </form>
-                </td>
-            </tr>
-        </tbody>
-    </table>
+            <!-- Characters Table -->
+            <div th:if="${!#lists.isEmpty(characters)}" class="box">
+                <div class="table-container">
+                    <table class="table is-fullwidth is-striped is-hoverable">
+                        <thead>
+                            <tr>
+                                <th style="width: 100px;">Language</th>
+                                <th style="width: 120px;">Start Sound</th>
+                                <th>Character Name</th>
+                                <th>Context (Show/Movie)</th>
+                                <th style="width: 150px;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr th:each="character : ${characters}">
+                                <td>
+                                    <span class="tag is-primary" th:text="${character.language}"></span>
+                                </td>
+                                <td>
+                                    <code class="has-background-light" th:text="${character.startSound}"></code>
+                                </td>
+                                <td>
+                                    <strong th:text="${character.characterName}"></strong>
+                                </td>
+                                <td th:text="${character.characterContext}"></td>
+                                <td>
+                                    <div class="buttons are-small">
+                                        <a th:href="@{/character-guide/{language}/{startSound}/edit(language=${character.language}, startSound=${character.startSound})}"
+                                           class="button is-warning is-outlined" title="Edit">
+                                            <span class="icon"><i class="fas fa-edit"></i></span>
+                                        </a>
+                                        <form th:action="@{/character-guide/{language}/{startSound}/delete(language=${character.language}, startSound=${character.startSound})}"
+                                              method="post" style="display: inline;">
+                                            <button type="submit" class="button is-danger is-outlined" title="Delete"
+                                                    onclick="return confirm('Are you sure you want to delete this character guide?')">
+                                                <span class="icon"><i class="fas fa-trash"></i></span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination (only shown when not filtering by language) -->
+                <div th:if="${selectedLanguage == null or selectedLanguage.isEmpty()}"
+                     th:replace="~{fragments/pagination :: pagination(${page}, '/character-guide')}"></div>
+            </div>
+        </div>
+    </main>
 </body>
 </html>

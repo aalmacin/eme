@@ -6,6 +6,10 @@ import com.raidrin.eme.anki.CardType;
 import com.raidrin.eme.storage.entity.AnkiFormatEntity;
 import com.raidrin.eme.storage.service.AnkiFormatService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -24,9 +28,14 @@ public class AnkiFormatController {
     private final AnkiFormatService ankiFormatService;
 
     @GetMapping
-    public String listFormats(Model model) {
-        List<AnkiFormatEntity> formats = ankiFormatService.findAll();
-        model.addAttribute("formats", formats);
+    public String listFormats(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size,
+            Model model) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("isDefault").descending().and(Sort.by("name").ascending()));
+        Page<AnkiFormatEntity> formatPage = ankiFormatService.findAll(pageable);
+        model.addAttribute("formats", formatPage.getContent());
+        model.addAttribute("page", formatPage);
         return "anki-formats/list";
     }
 

@@ -21,7 +21,7 @@ import com.raidrin.eme.translator.TranslationService;
 import com.raidrin.eme.util.FileNameSanitizer;
 import com.raidrin.eme.util.ZipFileGenerator;
 import lombok.Data;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
@@ -44,7 +44,6 @@ import java.util.stream.Collectors;
  * - ZIP creation with all assets
  */
 @Service
-@RequiredArgsConstructor
 public class SessionOrchestrationService {
 
     private final TranslationService translationService;
@@ -57,6 +56,32 @@ public class SessionOrchestrationService {
     private final TranslationSessionService sessionService;
     private final WordService wordService;
     private final ZipFileGenerator zipFileGenerator;
+    private final ExecutorService wordProcessingExecutor;
+
+    public SessionOrchestrationService(
+            TranslationService translationService,
+            SentenceGenerationService sentenceGenerationService,
+            MnemonicGenerationService mnemonicGenerationService,
+            AsyncAudioGenerationService audioGenerationService,
+            OpenAiImageService openAiImageService,
+            GcpStorageService gcpStorageService,
+            SentenceStorageService sentenceStorageService,
+            TranslationSessionService sessionService,
+            WordService wordService,
+            ZipFileGenerator zipFileGenerator,
+            @Qualifier("wordProcessingExecutor") ExecutorService wordProcessingExecutor) {
+        this.translationService = translationService;
+        this.sentenceGenerationService = sentenceGenerationService;
+        this.mnemonicGenerationService = mnemonicGenerationService;
+        this.audioGenerationService = audioGenerationService;
+        this.openAiImageService = openAiImageService;
+        this.gcpStorageService = gcpStorageService;
+        this.sentenceStorageService = sentenceStorageService;
+        this.sessionService = sessionService;
+        this.wordService = wordService;
+        this.zipFileGenerator = zipFileGenerator;
+        this.wordProcessingExecutor = wordProcessingExecutor;
+    }
 
     @Value("${audio.output.directory:./generated_audio}")
     private String audioOutputDirectory;
@@ -70,8 +95,8 @@ public class SessionOrchestrationService {
     @Value("${processing.phase2.concurrency.level:4}")
     private int phase2ConcurrencyLevel;
 
-    // Dedicated executor for CPU-bound parallel operations within word processing
-    private final ExecutorService wordProcessingExecutor = Executors.newCachedThreadPool();
+    @Value("${processing.progress.update.interval:5}")
+    private int progressUpdateInterval;
 
     /**
      * Process a batch of words/translations asynchronously
@@ -533,9 +558,15 @@ public class SessionOrchestrationService {
                             Map<String, Object> wordData = future.get();
                             wordResults.add(wordData);
 
-                            // Update progress incrementally after each word
+                            // Update progress in batches to reduce database writes
                             int currentCount = processedWordCount.incrementAndGet();
-                            updateProgressData(sessionId, request, wordResults, currentCount);
+                            int totalWords = request.getSourceWords().size();
+                            boolean isLastWord = currentCount == totalWords;
+                            boolean shouldUpdateProgress = currentCount % progressUpdateInterval == 0 || isLastWord;
+
+                            if (shouldUpdateProgress) {
+                                updateProgressData(sessionId, request, wordResults, currentCount);
+                            }
                         } catch (Exception e) {
                             System.err.println("Failed to get word processing result: " + e.getMessage());
                             e.printStackTrace();

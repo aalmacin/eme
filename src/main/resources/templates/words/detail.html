@@ -4,535 +4,764 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="${word.word} + ' - Word Details'">Word Details</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.2/css/bulma.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link rel="stylesheet" th:href="@{/css/main.css}">
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background-color: #f5f5f5;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .card {
-            margin-bottom: 20px;
-        }
-        .word-title {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin-bottom: 10px;
-        }
-        .translation {
-            font-size: 1.5rem;
-            color: #6c757d;
-            margin-bottom: 20px;
-        }
-        .image-container {
-            text-align: center;
-            margin: 20px 0;
-        }
         .word-image {
             max-width: 100%;
             height: auto;
-            border-radius: 8px;
+            border-radius: var(--radius-lg);
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
         .prompt-box {
-            background: #f8f9fa;
+            background: var(--eme-hover-bg);
             padding: 15px;
-            border-radius: 4px;
-            margin-top: 10px;
+            border-radius: var(--radius-sm);
             font-size: 14px;
             white-space: pre-wrap;
+            font-family: monospace;
         }
-        .audio-player {
-            margin: 10px 0;
+        .variant-card {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .variant-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .variant-image {
+            height: 150px;
+            object-fit: cover;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <!-- Header -->
-        <div class="card">
-            <div class="card-body">
-                <nav aria-label="breadcrumb">
-                    <ol class="breadcrumb">
-                        <li class="breadcrumb-item"><a href="/">Home</a></li>
-                        <li class="breadcrumb-item"><a href="/words">Words</a></li>
-                        <li class="breadcrumb-item"><a href="/sessions">Sessions</a></li>
-                        <li class="breadcrumb-item active" aria-current="page" th:text="${word.word}">Word</li>
-                    </ol>
-                </nav>
+    <nav class="navbar is-primary" role="navigation">
+        <div class="container">
+            <div class="navbar-brand">
+                <a class="navbar-item has-text-weight-bold is-size-5" th:href="@{/}">
+                    <span class="icon mr-2"><i class="fas fa-language"></i></span>
+                    <span>EME</span>
+                </a>
+            </div>
+            <div class="navbar-menu">
+                <div class="navbar-start">
+                    <a class="navbar-item" th:href="@{/}">Home</a>
+                    <a class="navbar-item is-active" th:href="@{/words}">Words</a>
+                    <a class="navbar-item" th:href="@{/translations}">Translations</a>
+                    <a class="navbar-item" th:href="@{/sentences}">Sentences</a>
+                    <a class="navbar-item" th:href="@{/character-guide}">Characters</a>
+                    <a class="navbar-item" th:href="@{/sessions}">Sessions</a>
+                </div>
             </div>
         </div>
+    </nav>
 
-        <!-- Word Overview -->
-        <div class="card">
-            <div class="card-body">
-                <div class="word-title" th:text="${word.word}">Word</div>
-                <div class="translation" th:if="${word.sourceTransliteration != null && !word.sourceTransliteration.isEmpty()}">
-                    <strong>Transliteration:</strong>
-                    <span th:text="${word.sourceTransliteration}"></span>
+    <main class="eme-main" x-data="wordDetailApp()">
+        <div class="container">
+            <!-- Breadcrumb -->
+            <nav class="breadcrumb mb-4" aria-label="breadcrumbs">
+                <ul>
+                    <li><a th:href="@{/}">Home</a></li>
+                    <li><a th:href="@{/words}">Words</a></li>
+                    <li><a th:href="@{/sessions}">Sessions</a></li>
+                    <li class="is-active"><a href="#" aria-current="page" th:text="${word.word}">Word</a></li>
+                </ul>
+            </nav>
+
+            <!-- Word Overview -->
+            <div class="box mb-4">
+                <h1 class="title is-2" th:text="${word.word}">Word</h1>
+                <div th:if="${word.sourceTransliteration != null && !word.sourceTransliteration.isEmpty()}" class="mb-3">
+                    <span class="tag is-info is-medium">Transliteration</span>
+                    <span class="is-size-5 ml-2" th:text="${word.sourceTransliteration}"></span>
                 </div>
-                <div class="translation" th:if="${translations != null && !translations.isEmpty()}">
-                    <strong>Translations:</strong>
-                    <span th:text="${#strings.listJoin(translations, ', ')}"></span>
+                <div th:if="${translations != null && !translations.isEmpty()}" class="mb-3">
+                    <span class="tag is-success is-medium">Translations</span>
+                    <span class="is-size-5 ml-2" th:text="${#strings.listJoin(translations, ', ')}"></span>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-6">
+                <div class="columns mt-4">
+                    <div class="column">
                         <p><strong>Source Language:</strong> <span th:text="${word.sourceLanguage}"></span></p>
                     </div>
-                    <div class="col-md-6">
+                    <div class="column">
                         <p><strong>Target Language:</strong> <span th:text="${word.targetLanguage}"></span></p>
                     </div>
                 </div>
 
                 <!-- Actions -->
-                <div class="mt-3">
-                    <button type="button" class="btn btn-primary"
+                <div class="buttons mt-4">
+                    <button type="button" class="button is-primary"
                             th:data-word-id="${word.id}"
                             th:data-source-word="${word.word}"
                             th:data-current-translation="${translations != null && !translations.isEmpty() ? #strings.listJoin(translations, ', ') : ''}"
-                            onclick="showUpdateTranslationModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentTranslation)">
-                        ✏️ Update Translation
+                            @click="showUpdateTranslationModal($el.dataset.wordId, $el.dataset.sourceWord, $el.dataset.currentTranslation)">
+                        <span class="icon"><i class="fas fa-edit"></i></span>
+                        <span>Update Translation</span>
                     </button>
-                    <button type="button" class="btn btn-warning"
+                    <button type="button" class="button is-warning"
                             th:data-word-id="${word.id}"
                             th:data-source-word="${word.word}"
-                            onclick="showRegenerateModal(this.dataset.wordId, this.dataset.sourceWord)">
-                        🔄 Regenerate Image
+                            @click="showRegenerateModal($el.dataset.wordId, $el.dataset.sourceWord)">
+                        <span class="icon"><i class="fas fa-sync"></i></span>
+                        <span>Regenerate Image</span>
                     </button>
                     <a th:if="${word.imageFile != null}"
                        th:href="@{/api/words/{id}/download-image(id=${word.id})}"
-                       class="btn btn-success" download>
-                        ⬇️ Download Image
+                       class="button is-success" download>
+                        <span class="icon"><i class="fas fa-download"></i></span>
+                        <span>Download Image</span>
                     </a>
                 </div>
             </div>
-        </div>
 
-        <!-- Audio Section -->
-        <div class="card" th:if="${word.audioSourceFile != null || word.audioTargetFile != null}">
-            <div class="card-header">
-                <h5 class="mb-0">🔊 Audio</h5>
-            </div>
-            <div class="card-body">
-                <div th:if="${word.audioSourceFile != null}" class="audio-player">
-                    <p><strong>Source Audio:</strong></p>
-                    <audio controls>
-                        <source th:src="@{'/generated_audio/' + ${word.audioSourceFile}}" type="audio/mpeg">
-                        Your browser does not support the audio element.
-                    </audio>
+            <!-- Audio Section -->
+            <div class="box mb-4" th:if="${word.audioSourceFile != null || word.audioTargetFile != null}">
+                <h2 class="title is-5">
+                    <span class="icon mr-2"><i class="fas fa-volume-up"></i></span>
+                    Audio
+                </h2>
+                <div class="columns">
+                    <div class="column" th:if="${word.audioSourceFile != null}">
+                        <p class="has-text-weight-bold mb-2">Source Audio:</p>
+                        <audio controls class="is-block" style="width: 100%;">
+                            <source th:src="@{'/generated_audio/' + ${word.audioSourceFile}}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
+                    <div class="column" th:if="${word.audioTargetFile != null}">
+                        <p class="has-text-weight-bold mb-2">Target Audio:</p>
+                        <audio controls class="is-block" style="width: 100%;">
+                            <source th:src="@{'/generated_audio/' + ${word.audioTargetFile}}" type="audio/mpeg">
+                            Your browser does not support the audio element.
+                        </audio>
+                    </div>
                 </div>
-                <div th:if="${word.audioTargetFile != null}" class="audio-player">
-                    <p><strong>Target Audio:</strong></p>
-                    <audio controls>
-                        <source th:src="@{'/generated_audio/' + ${word.audioTargetFile}}" type="audio/mpeg">
-                        Your browser does not support the audio element.
-                    </audio>
-                </div>
             </div>
-        </div>
 
-        <!-- Image Section -->
-        <div class="card" th:if="${word.imageFile != null}">
-            <div class="card-header">
-                <h5 class="mb-0">🖼️ Mnemonic Image</h5>
-            </div>
-            <div class="card-body">
-                <div class="image-container">
+            <!-- Image Section -->
+            <div class="box mb-4" th:if="${word.imageFile != null}">
+                <h2 class="title is-5">
+                    <span class="icon mr-2"><i class="fas fa-image"></i></span>
+                    Mnemonic Image
+                </h2>
+                <div class="has-text-centered mb-4">
                     <img th:src="@{'/generated_images/' + ${word.imageFile}}"
                          th:alt="${word.word}"
                          class="word-image">
                 </div>
 
-                <div th:if="${word.mnemonicKeyword != null}" class="mt-3">
-                    <h6>Mnemonic Keyword</h6>
+                <div th:if="${word.mnemonicKeyword != null}" class="mb-4">
+                    <h3 class="subtitle is-6">Mnemonic Keyword</h3>
                     <p th:text="${word.mnemonicKeyword}"></p>
-                    <button type="button" class="btn btn-sm btn-outline-primary"
+                    <button type="button" class="button is-small is-outlined is-primary mt-2"
                             th:data-word-id="${word.id}"
                             th:data-source-word="${word.word}"
                             th:data-current-keyword="${word.mnemonicKeyword}"
-                            onclick="showUpdateMnemonicKeywordModal(this.dataset.wordId, this.dataset.sourceWord, this.dataset.currentKeyword)">
-                        ✏️ Edit Keyword
+                            @click="showUpdateMnemonicKeywordModal($el.dataset.wordId, $el.dataset.sourceWord, $el.dataset.currentKeyword)">
+                        <span class="icon"><i class="fas fa-edit"></i></span>
+                        <span>Edit Keyword</span>
                     </button>
                 </div>
 
-                <div th:if="${word.mnemonicSentence != null}" class="mt-3">
-                    <h6>Mnemonic Sentence</h6>
+                <div th:if="${word.mnemonicSentence != null}" class="mb-4">
+                    <h3 class="subtitle is-6">Mnemonic Sentence</h3>
                     <p th:text="${word.mnemonicSentence}"></p>
                 </div>
 
-                <div th:if="${word.imagePrompt != null}" class="mt-3">
-                    <h6>Image Prompt</h6>
+                <div th:if="${word.imagePrompt != null}">
+                    <h3 class="subtitle is-6">Image Prompt</h3>
                     <div class="prompt-box" th:text="${word.imagePrompt}"></div>
                 </div>
             </div>
-        </div>
 
-        <!-- No Image -->
-        <div class="card" th:if="${word.imageFile == null}">
-            <div class="card-body text-center">
-                <p class="text-muted">No image has been generated for this word yet.</p>
-                <button type="button" class="btn btn-primary"
+            <!-- No Image -->
+            <div class="box mb-4 has-text-centered" th:if="${word.imageFile == null}">
+                <span class="icon is-large text-muted">
+                    <i class="fas fa-3x fa-image"></i>
+                </span>
+                <p class="has-text-grey mt-4">No image has been generated for this word yet.</p>
+                <button type="button" class="button is-primary mt-3"
                         th:data-word-id="${word.id}"
                         th:data-source-word="${word.word}"
-                        onclick="showRegenerateModal(this.dataset.wordId, this.dataset.sourceWord)">
-                    Generate Image
+                        @click="showRegenerateModal($el.dataset.wordId, $el.dataset.sourceWord)">
+                    <span class="icon"><i class="fas fa-magic"></i></span>
+                    <span>Generate Image</span>
                 </button>
             </div>
-        </div>
-    </div>
 
-    <!-- Update Translation Modal -->
-    <div id="updateTranslationModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <h3 style="margin-top: 0;">Update Translation for <span id="translationModalWordTitle"></span></h3>
+            <!-- Variant History Section -->
+            <div class="box mb-4">
+                <div class="level mb-4">
+                    <div class="level-left">
+                        <h2 class="title is-5 mb-0">
+                            <span class="icon mr-2"><i class="fas fa-history"></i></span>
+                            Variant History
+                        </h2>
+                    </div>
+                    <div class="level-right">
+                        <button class="button is-outlined is-primary" @click="loadAllVariants()">
+                            <span class="icon"><i class="fas fa-sync"></i></span>
+                            <span>Load History</span>
+                        </button>
+                    </div>
+                </div>
+                <p class="has-text-grey mb-4">View and switch between previously generated variants.</p>
 
-            <div style="margin-bottom: 20px;">
-                <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Translation:</label>
-                <input type="text" id="newTranslationInput"
-                       placeholder="Enter new translation..."
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This will regenerate the mnemonic sentence and image prompt.</p>
-            </div>
+                <!-- Variant Counts -->
+                <div x-show="variantsLoaded" class="mb-4">
+                    <div class="tags">
+                        <span class="tag is-medium">Images: <span x-text="counts.images" class="ml-1"></span></span>
+                        <span class="tag is-medium">Mnemonics: <span x-text="counts.mnemonics" class="ml-1"></span></span>
+                        <span class="tag is-medium">Translations: <span x-text="counts.translations" class="ml-1"></span></span>
+                        <span class="tag is-medium">Sentences: <span x-text="counts.sentences" class="ml-1"></span></span>
+                    </div>
+                </div>
 
-            <!-- Image Style Selection -->
-            <div style="margin-bottom: 20px;">
-                <label for="translationImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
-                <select id="translationImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                </select>
-            </div>
+                <!-- Image Variants -->
+                <div x-show="imageVariants.length > 0" class="mb-5">
+                    <h3 class="subtitle is-6">
+                        <span class="icon"><i class="fas fa-images"></i></span>
+                        <span>Image Variants</span>
+                    </h3>
+                    <div class="columns is-multiline">
+                        <template x-for="img in imageVariants" :key="img.id">
+                            <div class="column is-4-desktop is-6-tablet">
+                                <div class="card variant-card" :class="{'has-background-primary-light': img.isCurrent}">
+                                    <div class="card-image">
+                                        <figure class="image">
+                                            <img :src="'/generated_images/' + img.imageFile" class="variant-image" alt="Variant">
+                                        </figure>
+                                    </div>
+                                    <div class="card-content py-2 px-3">
+                                        <p class="is-size-7 has-text-grey" x-text="img.createdAt ? new Date(img.createdAt).toLocaleDateString() : 'Unknown'"></p>
+                                        <div class="tags">
+                                            <span x-show="img.imageStyle" class="tag is-info is-small" x-text="img.imageStyle"></span>
+                                            <span x-show="img.isCurrent" class="tag is-primary is-small">Current</span>
+                                        </div>
+                                        <button x-show="!img.isCurrent" class="button is-small is-outlined is-primary mt-2"
+                                                @click="setCurrentImage(img.id)">Use This</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
 
-            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div id="updateTranslationStatus" style="color: #6c757d; font-size: 14px;"></div>
-                <div>
-                    <button onclick="closeUpdateTranslationModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
-                    <button onclick="updateTranslation()" class="btn btn-primary" id="updateTranslationBtn">✏️ Update</button>
+                <!-- Mnemonic Variants -->
+                <div x-show="mnemonicVariants.length > 0" class="mb-5">
+                    <h3 class="subtitle is-6">
+                        <span class="icon"><i class="fas fa-lightbulb"></i></span>
+                        <span>Mnemonic Variants</span>
+                    </h3>
+                    <template x-for="m in mnemonicVariants" :key="m.id">
+                        <div class="box py-3 mb-2" :class="{'has-background-primary-light': m.isCurrent}">
+                            <div class="level is-mobile">
+                                <div class="level-left">
+                                    <div>
+                                        <p class="has-text-weight-bold" x-text="m.mnemonicKeyword || 'No keyword'"></p>
+                                        <span x-show="m.isUserCreated" class="tag is-warning is-small">User Created</span>
+                                        <span x-show="m.isCurrent" class="tag is-primary is-small">Current</span>
+                                        <p class="is-size-7 mt-1" x-text="m.mnemonicSentence || 'No sentence'"></p>
+                                        <p class="is-size-7 has-text-grey" x-text="m.createdAt ? new Date(m.createdAt).toLocaleDateString() : 'Unknown'"></p>
+                                    </div>
+                                </div>
+                                <div class="level-right">
+                                    <button x-show="!m.isCurrent" class="button is-small is-outlined is-primary"
+                                            @click="setCurrentMnemonic(m.id)">Use</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Translation Variants -->
+                <div x-show="translationVariants.length > 0" class="mb-5">
+                    <h3 class="subtitle is-6">
+                        <span class="icon"><i class="fas fa-globe"></i></span>
+                        <span>Translation Variants</span>
+                    </h3>
+                    <template x-for="t in translationVariants" :key="t.id">
+                        <div class="box py-3 mb-2" :class="{'has-background-primary-light': t.isCurrent}">
+                            <div class="level is-mobile">
+                                <div class="level-left">
+                                    <div>
+                                        <p class="has-text-weight-bold" x-text="t.translation"></p>
+                                        <span x-show="t.source" class="tag is-light is-small" x-text="t.source"></span>
+                                        <span x-show="t.isUserCreated" class="tag is-warning is-small">User Created</span>
+                                        <span x-show="t.isCurrent" class="tag is-primary is-small">Current</span>
+                                        <p x-show="t.transliteration" class="is-size-7 mt-1" x-text="'Transliteration: ' + t.transliteration"></p>
+                                        <p class="is-size-7 has-text-grey" x-text="t.createdAt ? new Date(t.createdAt).toLocaleDateString() : 'Unknown'"></p>
+                                    </div>
+                                </div>
+                                <div class="level-right">
+                                    <button x-show="!t.isCurrent" class="button is-small is-outlined is-primary"
+                                            @click="setCurrentTranslation(t.id)">Use</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
+                </div>
+
+                <!-- Sentence Variants -->
+                <div x-show="sentenceVariants.length > 0">
+                    <h3 class="subtitle is-6">
+                        <span class="icon"><i class="fas fa-quote-left"></i></span>
+                        <span>Sentence Variants</span>
+                    </h3>
+                    <template x-for="s in sentenceVariants" :key="s.id">
+                        <div class="box py-3 mb-2" :class="{'has-background-primary-light': s.isCurrent}">
+                            <div class="level is-mobile">
+                                <div class="level-left" style="flex: 1;">
+                                    <div style="width: 100%;">
+                                        <p class="has-text-weight-bold" x-text="s.sentenceSource || 'No source sentence'"></p>
+                                        <span x-show="s.isCurrent" class="tag is-primary is-small">Current</span>
+                                        <p x-show="s.sentenceTarget" class="is-size-7 mt-1" x-text="s.sentenceTarget"></p>
+                                        <audio x-show="s.audioFile" controls class="mt-2" style="height: 30px;">
+                                            <source :src="'/generated_audio/' + s.audioFile" type="audio/mpeg">
+                                        </audio>
+                                        <p class="is-size-7 has-text-grey mt-1" x-text="s.createdAt ? new Date(s.createdAt).toLocaleDateString() : 'Unknown'"></p>
+                                    </div>
+                                </div>
+                                <div class="level-right">
+                                    <button x-show="!s.isCurrent" class="button is-small is-outlined is-primary"
+                                            @click="setCurrentSentence(s.id)">Use</button>
+                                </div>
+                            </div>
+                        </div>
+                    </template>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Regenerate Image Modal -->
-    <div id="regenerateModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <h3 style="margin-top: 0;">Regenerate Image for <span id="modalWordTitle"></span></h3>
-
-            <!-- Provider Selection -->
-            <div style="margin-bottom: 20px;">
-                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Model:</label>
-                <div style="display: flex; gap: 20px;">
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="imageModel" value="gpt-image-1-mini" checked style="margin-right: 6px;">
-                        GPT Image 1 Mini
-                    </label>
-                    <label style="display: flex; align-items: center; cursor: pointer;">
-                        <input type="radio" name="imageModel" value="gpt-image-1" style="margin-right: 6px;">
-                        GPT Image 1
-                    </label>
-                </div>
-            </div>
-
-            <!-- Image Style Selection -->
-            <div style="margin-bottom: 20px;">
-                <label for="imageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
-                <select id="imageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                </select>
-            </div>
-
-            <!-- Use Same Prompt Checkbox -->
-            <div style="margin-bottom: 15px;">
-                <label style="display: flex; align-items: center; cursor: pointer;">
-                    <input type="checkbox" id="useSamePromptCheckbox" style="margin-right: 8px;">
-                    Use same prompt (reuse existing prompt instead of generating new one)
-                </label>
-            </div>
-
-            <p style="color: #6c757d; font-size: 14px; margin-bottom: 10px;">Custom prompt (optional - leave blank to auto-generate new prompt):</p>
-            <textarea id="regeneratePromptTextarea"
-                      placeholder="Enter a custom image prompt or leave blank to auto-generate..."
-                      style="width: 100%; min-height: 150px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-family: monospace; font-size: 12px;"></textarea>
-            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div id="regenerateStatus" style="color: #6c757d; font-size: 14px;"></div>
-                <div>
-                    <button onclick="closeRegenerateModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
-                    <button onclick="regenerateWordImage()" class="btn btn-warning" id="regenerateBtn">🔄 Regenerate</button>
-                </div>
+        <!-- Update Translation Modal -->
+        <div class="modal" :class="{'is-active': translationModal.show}">
+            <div class="modal-background" @click="translationModal.show = false"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Update Translation for <span x-text="translationModal.sourceWord"></span></p>
+                    <button class="delete" aria-label="close" @click="translationModal.show = false"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="field">
+                        <label class="label">New Translation</label>
+                        <div class="control">
+                            <input type="text" class="input" x-model="translationModal.newTranslation"
+                                   placeholder="Enter new translation...">
+                        </div>
+                        <p class="help">This will regenerate the mnemonic sentence and image prompt.</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">Image Style</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select x-model="translationModal.imageStyle">
+                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <p x-show="translationModal.status" class="mt-3" :class="translationModal.statusClass" x-text="translationModal.status"></p>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button" @click="translationModal.show = false">Cancel</button>
+                    <button class="button is-primary" @click="updateTranslation()" :disabled="translationModal.loading">
+                        <span class="icon" x-show="translationModal.loading"><i class="fas fa-spinner fa-spin"></i></span>
+                        <span>Update</span>
+                    </button>
+                </footer>
             </div>
         </div>
-    </div>
 
-    <!-- Update Mnemonic Keyword Modal -->
-    <div id="updateMnemonicKeywordModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
-        <div style="background: white; padding: 30px; border-radius: 8px; max-width: 600px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
-            <h3 style="margin-top: 0;">Update Mnemonic Keyword for <span id="mnemonicKeywordModalWordTitle"></span></h3>
-
-            <div style="margin-bottom: 20px;">
-                <label style="font-weight: bold; margin-bottom: 8px; display: block;">New Mnemonic Keyword:</label>
-                <input type="text" id="newMnemonicKeywordInput"
-                       placeholder="Enter new mnemonic keyword..."
-                       style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; font-size: 14px;">
-                <p style="color: #6c757d; font-size: 12px; margin-top: 5px;">This will regenerate the image prompt with the new keyword.</p>
-            </div>
-
-            <!-- Image Style Selection -->
-            <div style="margin-bottom: 20px;">
-                <label for="mnemonicKeywordImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
-                <select id="mnemonicKeywordImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
-                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                </select>
-            </div>
-
-            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
-                <div id="updateMnemonicKeywordStatus" style="color: #6c757d; font-size: 14px;"></div>
-                <div>
-                    <button onclick="closeUpdateMnemonicKeywordModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
-                    <button onclick="updateMnemonicKeyword()" class="btn btn-primary" id="updateMnemonicKeywordBtn">✏️ Update</button>
-                </div>
+        <!-- Regenerate Image Modal -->
+        <div class="modal" :class="{'is-active': regenerateModal.show}">
+            <div class="modal-background" @click="regenerateModal.show = false"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Regenerate Image for <span x-text="regenerateModal.sourceWord"></span></p>
+                    <button class="delete" aria-label="close" @click="regenerateModal.show = false"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="field">
+                        <label class="label">Image Model</label>
+                        <div class="control">
+                            <label class="radio">
+                                <input type="radio" value="gpt-image-1-mini" x-model="regenerateModal.model">
+                                GPT Image 1 Mini
+                            </label>
+                            <label class="radio">
+                                <input type="radio" value="gpt-image-1" x-model="regenerateModal.model">
+                                GPT Image 1
+                            </label>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="label">Image Style</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select x-model="regenerateModal.imageStyle">
+                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="field">
+                        <label class="checkbox">
+                            <input type="checkbox" x-model="regenerateModal.useSamePrompt">
+                            Use same prompt (reuse existing prompt instead of generating new one)
+                        </label>
+                    </div>
+                    <div class="field">
+                        <label class="label">Custom Prompt (optional)</label>
+                        <div class="control">
+                            <textarea class="textarea" x-model="regenerateModal.customPrompt"
+                                      placeholder="Enter a custom image prompt or leave blank to auto-generate..."></textarea>
+                        </div>
+                    </div>
+                    <p x-show="regenerateModal.status" class="mt-3" :class="regenerateModal.statusClass" x-text="regenerateModal.status"></p>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button" @click="regenerateModal.show = false">Cancel</button>
+                    <button class="button is-warning" @click="regenerateWordImage()" :disabled="regenerateModal.loading">
+                        <span class="icon" x-show="regenerateModal.loading"><i class="fas fa-spinner fa-spin"></i></span>
+                        <span>Regenerate</span>
+                    </button>
+                </footer>
             </div>
         </div>
-    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
-    <script>
-        let currentWordId = null;
-        let currentTranslationWordId = null;
-        let currentMnemonicKeywordWordId = null;
+        <!-- Update Mnemonic Keyword Modal -->
+        <div class="modal" :class="{'is-active': mnemonicKeywordModal.show}">
+            <div class="modal-background" @click="mnemonicKeywordModal.show = false"></div>
+            <div class="modal-card">
+                <header class="modal-card-head">
+                    <p class="modal-card-title">Update Mnemonic Keyword for <span x-text="mnemonicKeywordModal.sourceWord"></span></p>
+                    <button class="delete" aria-label="close" @click="mnemonicKeywordModal.show = false"></button>
+                </header>
+                <section class="modal-card-body">
+                    <div class="field">
+                        <label class="label">New Mnemonic Keyword</label>
+                        <div class="control">
+                            <input type="text" class="input" x-model="mnemonicKeywordModal.newKeyword"
+                                   placeholder="Enter new mnemonic keyword...">
+                        </div>
+                        <p class="help">This will regenerate the image prompt with the new keyword.</p>
+                    </div>
+                    <div class="field">
+                        <label class="label">Image Style</label>
+                        <div class="control">
+                            <div class="select is-fullwidth">
+                                <select x-model="mnemonicKeywordModal.imageStyle">
+                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <p x-show="mnemonicKeywordModal.status" class="mt-3" :class="mnemonicKeywordModal.statusClass" x-text="mnemonicKeywordModal.status"></p>
+                </section>
+                <footer class="modal-card-foot">
+                    <button class="button" @click="mnemonicKeywordModal.show = false">Cancel</button>
+                    <button class="button is-primary" @click="updateMnemonicKeyword()" :disabled="mnemonicKeywordModal.loading">
+                        <span class="icon" x-show="mnemonicKeywordModal.loading"><i class="fas fa-spinner fa-spin"></i></span>
+                        <span>Update</span>
+                    </button>
+                </footer>
+            </div>
+        </div>
+    </main>
 
-        function showUpdateTranslationModal(wordId, sourceWord, currentTranslation) {
-            currentTranslationWordId = wordId;
-            document.getElementById('translationModalWordTitle').textContent = sourceWord;
-            document.getElementById('newTranslationInput').value = currentTranslation || '';
-            document.getElementById('translationImageStyleSelect').value = 'REALISTIC_CINEMATIC';
-            document.getElementById('updateTranslationModal').style.display = 'flex';
-            document.getElementById('updateTranslationStatus').textContent = '';
-        }
+    <script th:inline="javascript">
+        const wordId = /*[[${word.id}]]*/ 0;
 
-        function closeUpdateTranslationModal() {
-            document.getElementById('updateTranslationModal').style.display = 'none';
-            currentTranslationWordId = null;
-        }
+        function wordDetailApp() {
+            return {
+                variantsLoaded: false,
+                counts: { images: 0, mnemonics: 0, translations: 0, sentences: 0 },
+                imageVariants: [],
+                mnemonicVariants: [],
+                translationVariants: [],
+                sentenceVariants: [],
 
-        async function updateTranslation() {
-            if (!currentTranslationWordId) return;
+                translationModal: {
+                    show: false,
+                    wordId: null,
+                    sourceWord: '',
+                    newTranslation: '',
+                    imageStyle: 'REALISTIC_CINEMATIC',
+                    status: '',
+                    statusClass: '',
+                    loading: false
+                },
 
-            const newTranslation = document.getElementById('newTranslationInput').value.trim();
-            const imageStyle = document.getElementById('translationImageStyleSelect').value;
-            const statusEl = document.getElementById('updateTranslationStatus');
-            const btnEl = document.getElementById('updateTranslationBtn');
+                regenerateModal: {
+                    show: false,
+                    wordId: null,
+                    sourceWord: '',
+                    model: 'gpt-image-1-mini',
+                    imageStyle: 'REALISTIC_CINEMATIC',
+                    useSamePrompt: false,
+                    customPrompt: '',
+                    status: '',
+                    statusClass: '',
+                    loading: false
+                },
 
-            if (!newTranslation) {
-                statusEl.textContent = 'Please enter a translation';
-                statusEl.style.color = '#dc3545';
-                return;
-            }
+                mnemonicKeywordModal: {
+                    show: false,
+                    wordId: null,
+                    sourceWord: '',
+                    newKeyword: '',
+                    imageStyle: 'REALISTIC_CINEMATIC',
+                    status: '',
+                    statusClass: '',
+                    loading: false
+                },
 
-            statusEl.textContent = 'Updating translation and regenerating mnemonic...';
-            statusEl.style.color = '#007bff';
-            btnEl.disabled = true;
+                showUpdateTranslationModal(wordId, sourceWord, currentTranslation) {
+                    this.translationModal.wordId = wordId;
+                    this.translationModal.sourceWord = sourceWord;
+                    this.translationModal.newTranslation = currentTranslation || '';
+                    this.translationModal.imageStyle = 'REALISTIC_CINEMATIC';
+                    this.translationModal.status = '';
+                    this.translationModal.show = true;
+                },
 
-            try {
-                const response = await fetch(`/api/words/${currentTranslationWordId}/update-translation`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        translation: newTranslation,
-                        imageStyle: imageStyle
-                    })
-                });
+                showRegenerateModal(wordId, sourceWord) {
+                    this.regenerateModal.wordId = wordId;
+                    this.regenerateModal.sourceWord = sourceWord;
+                    this.regenerateModal.model = 'gpt-image-1-mini';
+                    this.regenerateModal.imageStyle = 'REALISTIC_CINEMATIC';
+                    this.regenerateModal.useSamePrompt = false;
+                    this.regenerateModal.customPrompt = '';
+                    this.regenerateModal.status = '';
+                    this.regenerateModal.show = true;
+                },
 
-                const result = await response.json();
+                showUpdateMnemonicKeywordModal(wordId, sourceWord, currentKeyword) {
+                    this.mnemonicKeywordModal.wordId = wordId;
+                    this.mnemonicKeywordModal.sourceWord = sourceWord;
+                    this.mnemonicKeywordModal.newKeyword = currentKeyword || '';
+                    this.mnemonicKeywordModal.imageStyle = 'REALISTIC_CINEMATIC';
+                    this.mnemonicKeywordModal.status = '';
+                    this.mnemonicKeywordModal.show = true;
+                },
 
-                if (result.success) {
-                    statusEl.textContent = 'Translation updated! Reloading page...';
-                    statusEl.style.color = '#28a745';
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
-                    statusEl.style.color = '#dc3545';
-                    btnEl.disabled = false;
+                async updateTranslation() {
+                    if (!this.translationModal.newTranslation.trim()) {
+                        this.translationModal.status = 'Please enter a translation';
+                        this.translationModal.statusClass = 'has-text-danger';
+                        return;
+                    }
+
+                    this.translationModal.loading = true;
+                    this.translationModal.status = 'Updating translation and regenerating mnemonic...';
+                    this.translationModal.statusClass = 'has-text-info';
+
+                    try {
+                        const response = await fetch(`/api/words/${this.translationModal.wordId}/update-translation`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                translation: this.translationModal.newTranslation,
+                                imageStyle: this.translationModal.imageStyle
+                            })
+                        });
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.translationModal.status = 'Translation updated! Reloading page...';
+                            this.translationModal.statusClass = 'has-text-success';
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            this.translationModal.status = 'Error: ' + (result.error || 'Unknown error');
+                            this.translationModal.statusClass = 'has-text-danger';
+                        }
+                    } catch (error) {
+                        this.translationModal.status = 'Error: ' + error.message;
+                        this.translationModal.statusClass = 'has-text-danger';
+                    }
+                    this.translationModal.loading = false;
+                },
+
+                async regenerateWordImage() {
+                    this.regenerateModal.loading = true;
+                    this.regenerateModal.status = 'Regenerating image...';
+                    this.regenerateModal.statusClass = 'has-text-info';
+
+                    try {
+                        const requestBody = {
+                            model: this.regenerateModal.model,
+                            imageStyle: this.regenerateModal.imageStyle
+                        };
+                        if (this.regenerateModal.customPrompt.trim()) {
+                            requestBody.imagePrompt = this.regenerateModal.customPrompt;
+                        }
+                        if (this.regenerateModal.useSamePrompt) {
+                            requestBody.useSamePrompt = true;
+                        }
+
+                        const response = await fetch(`/api/words/${this.regenerateModal.wordId}/regenerate-image`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody)
+                        });
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.regenerateModal.status = 'Image regenerated! Reloading page...';
+                            this.regenerateModal.statusClass = 'has-text-success';
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            this.regenerateModal.status = 'Error: ' + (result.error || 'Unknown error');
+                            this.regenerateModal.statusClass = 'has-text-danger';
+                        }
+                    } catch (error) {
+                        this.regenerateModal.status = 'Error: ' + error.message;
+                        this.regenerateModal.statusClass = 'has-text-danger';
+                    }
+                    this.regenerateModal.loading = false;
+                },
+
+                async updateMnemonicKeyword() {
+                    if (!this.mnemonicKeywordModal.newKeyword.trim()) {
+                        this.mnemonicKeywordModal.status = 'Please enter a mnemonic keyword';
+                        this.mnemonicKeywordModal.statusClass = 'has-text-danger';
+                        return;
+                    }
+
+                    this.mnemonicKeywordModal.loading = true;
+                    this.mnemonicKeywordModal.status = 'Updating mnemonic keyword and regenerating image prompt...';
+                    this.mnemonicKeywordModal.statusClass = 'has-text-info';
+
+                    try {
+                        const response = await fetch(`/api/words/${this.mnemonicKeywordModal.wordId}/update-mnemonic-keyword`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                mnemonicKeyword: this.mnemonicKeywordModal.newKeyword,
+                                imageStyle: this.mnemonicKeywordModal.imageStyle
+                            })
+                        });
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.mnemonicKeywordModal.status = 'Mnemonic keyword updated! Reloading page...';
+                            this.mnemonicKeywordModal.statusClass = 'has-text-success';
+                            setTimeout(() => window.location.reload(), 1500);
+                        } else {
+                            this.mnemonicKeywordModal.status = 'Error: ' + (result.error || 'Unknown error');
+                            this.mnemonicKeywordModal.statusClass = 'has-text-danger';
+                        }
+                    } catch (error) {
+                        this.mnemonicKeywordModal.status = 'Error: ' + error.message;
+                        this.mnemonicKeywordModal.statusClass = 'has-text-danger';
+                    }
+                    this.mnemonicKeywordModal.loading = false;
+                },
+
+                async loadAllVariants() {
+                    try {
+                        const countsResponse = await fetch(`/api/words/${wordId}/variants/counts`);
+                        this.counts = await countsResponse.json();
+                        this.variantsLoaded = true;
+
+                        if (this.counts.images > 0) await this.loadImageVariants();
+                        if (this.counts.mnemonics > 0) await this.loadMnemonicVariants();
+                        if (this.counts.translations > 0) await this.loadTranslationVariants();
+                        if (this.counts.sentences > 0) await this.loadSentenceVariants();
+                    } catch (error) {
+                        console.error('Error loading variants:', error);
+                        alert('Failed to load variant history');
+                    }
+                },
+
+                async loadImageVariants() {
+                    const response = await fetch(`/api/words/${wordId}/variants/images`);
+                    this.imageVariants = await response.json();
+                },
+
+                async loadMnemonicVariants() {
+                    const response = await fetch(`/api/words/${wordId}/variants/mnemonics`);
+                    this.mnemonicVariants = await response.json();
+                },
+
+                async loadTranslationVariants() {
+                    const response = await fetch(`/api/words/${wordId}/variants/translations`);
+                    this.translationVariants = await response.json();
+                },
+
+                async loadSentenceVariants() {
+                    const response = await fetch(`/api/words/${wordId}/variants/sentences`);
+                    this.sentenceVariants = await response.json();
+                },
+
+                async setCurrentImage(imageId) {
+                    try {
+                        const response = await fetch(`/api/words/${wordId}/variants/images/${imageId}/set-current`, { method: 'POST' });
+                        const result = await response.json();
+                        if (result.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + result.error);
+                        }
+                    } catch (error) {
+                        alert('Failed to set image: ' + error.message);
+                    }
+                },
+
+                async setCurrentMnemonic(mnemonicId) {
+                    try {
+                        const response = await fetch(`/api/words/${wordId}/variants/mnemonics/${mnemonicId}/set-current`, { method: 'POST' });
+                        const result = await response.json();
+                        if (result.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + result.error);
+                        }
+                    } catch (error) {
+                        alert('Failed to set mnemonic: ' + error.message);
+                    }
+                },
+
+                async setCurrentTranslation(translationId) {
+                    try {
+                        const response = await fetch(`/api/words/${wordId}/variants/translations/${translationId}/set-current`, { method: 'POST' });
+                        const result = await response.json();
+                        if (result.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + result.error);
+                        }
+                    } catch (error) {
+                        alert('Failed to set translation: ' + error.message);
+                    }
+                },
+
+                async setCurrentSentence(sentenceId) {
+                    try {
+                        const response = await fetch(`/api/words/${wordId}/variants/sentences/${sentenceId}/set-current`, { method: 'POST' });
+                        const result = await response.json();
+                        if (result.success) {
+                            window.location.reload();
+                        } else {
+                            alert('Error: ' + result.error);
+                        }
+                    } catch (error) {
+                        alert('Failed to set sentence: ' + error.message);
+                    }
                 }
-            } catch (error) {
-                statusEl.textContent = 'Error: ' + error.message;
-                statusEl.style.color = '#dc3545';
-                btnEl.disabled = false;
-            }
+            };
         }
-
-        function showUpdateMnemonicKeywordModal(wordId, sourceWord, currentKeyword) {
-            currentMnemonicKeywordWordId = wordId;
-            document.getElementById('mnemonicKeywordModalWordTitle').textContent = sourceWord;
-            document.getElementById('newMnemonicKeywordInput').value = currentKeyword || '';
-            document.getElementById('mnemonicKeywordImageStyleSelect').value = 'REALISTIC_CINEMATIC';
-            document.getElementById('updateMnemonicKeywordModal').style.display = 'flex';
-            document.getElementById('updateMnemonicKeywordStatus').textContent = '';
-        }
-
-        function closeUpdateMnemonicKeywordModal() {
-            document.getElementById('updateMnemonicKeywordModal').style.display = 'none';
-            currentMnemonicKeywordWordId = null;
-        }
-
-        async function updateMnemonicKeyword() {
-            if (!currentMnemonicKeywordWordId) return;
-
-            const newMnemonicKeyword = document.getElementById('newMnemonicKeywordInput').value.trim();
-            const imageStyle = document.getElementById('mnemonicKeywordImageStyleSelect').value;
-            const statusEl = document.getElementById('updateMnemonicKeywordStatus');
-            const btnEl = document.getElementById('updateMnemonicKeywordBtn');
-
-            if (!newMnemonicKeyword) {
-                statusEl.textContent = 'Please enter a mnemonic keyword';
-                statusEl.style.color = '#dc3545';
-                return;
-            }
-
-            statusEl.textContent = 'Updating mnemonic keyword and regenerating image prompt...';
-            statusEl.style.color = '#007bff';
-            btnEl.disabled = true;
-
-            try {
-                const response = await fetch(`/api/words/${currentMnemonicKeywordWordId}/update-mnemonic-keyword`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        mnemonicKeyword: newMnemonicKeyword,
-                        imageStyle: imageStyle
-                    })
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    statusEl.textContent = 'Mnemonic keyword updated! Reloading page...';
-                    statusEl.style.color = '#28a745';
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
-                    statusEl.style.color = '#dc3545';
-                    btnEl.disabled = false;
-                }
-            } catch (error) {
-                statusEl.textContent = 'Error: ' + error.message;
-                statusEl.style.color = '#dc3545';
-                btnEl.disabled = false;
-            }
-        }
-
-        function showRegenerateModal(wordId, sourceWord) {
-            currentWordId = wordId;
-            document.getElementById('modalWordTitle').textContent = sourceWord;
-            document.getElementById('regeneratePromptTextarea').value = '';
-            document.getElementById('useSamePromptCheckbox').checked = false;
-            document.querySelector('input[name="imageModel"][value="gpt-image-1-mini"]').checked = true;
-            document.getElementById('imageStyleSelect').value = 'REALISTIC_CINEMATIC';
-            document.getElementById('regenerateModal').style.display = 'flex';
-            document.getElementById('regenerateStatus').textContent = '';
-        }
-
-        function closeRegenerateModal() {
-            document.getElementById('regenerateModal').style.display = 'none';
-            currentWordId = null;
-        }
-
-        async function regenerateWordImage() {
-            if (!currentWordId) return;
-
-            const customPrompt = document.getElementById('regeneratePromptTextarea').value.trim();
-            const useSamePrompt = document.getElementById('useSamePromptCheckbox').checked;
-            const model = document.querySelector('input[name="imageModel"]:checked').value;
-            const imageStyle = document.getElementById('imageStyleSelect').value;
-            const statusEl = document.getElementById('regenerateStatus');
-            const btnEl = document.getElementById('regenerateBtn');
-
-            statusEl.textContent = 'Regenerating image...';
-            statusEl.style.color = '#007bff';
-            btnEl.disabled = true;
-
-            try {
-                const requestBody = {};
-
-                // Add custom prompt if provided
-                if (customPrompt) {
-                    requestBody.imagePrompt = customPrompt;
-                }
-
-                // Add useSamePrompt flag
-                if (useSamePrompt) {
-                    requestBody.useSamePrompt = true;
-                }
-
-                // Add model selection
-                requestBody.model = model;
-
-                // Add image style selection
-                requestBody.imageStyle = imageStyle;
-
-                const response = await fetch(`/api/words/${currentWordId}/regenerate-image`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(requestBody)
-                });
-
-                const result = await response.json();
-
-                if (result.success) {
-                    statusEl.textContent = 'Image regenerated! Reloading page...';
-                    statusEl.style.color = '#28a745';
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1500);
-                } else {
-                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
-                    statusEl.style.color = '#dc3545';
-                    btnEl.disabled = false;
-                }
-            } catch (error) {
-                statusEl.textContent = 'Error: ' + error.message;
-                statusEl.style.color = '#dc3545';
-                btnEl.disabled = false;
-            }
-        }
-
-        // Close modals on background click
-        document.getElementById('regenerateModal')?.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeRegenerateModal();
-            }
-        });
-
-        document.getElementById('updateTranslationModal')?.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeUpdateTranslationModal();
-            }
-        });
-
-        document.getElementById('updateMnemonicKeywordModal')?.addEventListener('click', function(e) {
-            if (e.target === this) {
-                closeUpdateMnemonicKeywordModal();
-            }
-        });
     </script>
 </body>
 </html>
