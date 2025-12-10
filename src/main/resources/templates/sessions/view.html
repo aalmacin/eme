@@ -407,55 +407,8 @@
             </div>
         </div>
         <div class="info-row">
-            <div class="info-label">Status:</div>
-            <div class="info-value">
-                <span th:class="'status-badge status-' + ${#strings.toLowerCase(translationSession.status)}"
-                      th:text="${translationSession.status}"></span>
-            </div>
-        </div>
-        <div class="info-row">
-            <div class="info-label">Image Generation:</div>
-            <div class="info-value" th:text="${translationSession.imageGenerationEnabled ? 'Enabled' : 'Disabled'}"></div>
-        </div>
-        <div class="info-row" th:if="${translationSession.imageGenerationEnabled && sessionData.containsKey('original_request') && sessionData.get('original_request').containsKey('image_style')}">
-            <div class="info-label">Image Style:</div>
-            <div class="info-value">
-                <span th:switch="${sessionData.get('original_request').get('image_style')}">
-                    <span th:case="'REALISTIC_CINEMATIC'">Realistic Cinematic</span>
-                    <span th:case="'ANIMATED_2D_CINEMATIC'">2D Animated Cinematic</span>
-                    <span th:case="'ANIMATED_3D_CINEMATIC'">3D Animated Cinematic</span>
-                    <span th:case="*" th:text="${sessionData.get('original_request').get('image_style')}">Unknown Style</span>
-                </span>
-            </div>
-        </div>
-        <div class="info-row">
-            <div class="info-label">Audio Generation:</div>
-            <div class="info-value" th:text="${translationSession.audioGenerationEnabled ? 'Enabled' : 'Disabled'}"></div>
-        </div>
-        <div class="info-row">
             <div class="info-label">Created:</div>
             <div class="info-value" th:text="${#temporals.format(translationSession.createdAt, 'yyyy-MM-dd HH:mm:ss')}"></div>
-        </div>
-        <div class="info-row" th:if="${translationSession.completedAt != null}">
-            <div class="info-label">Completed:</div>
-            <div class="info-value" th:text="${#temporals.format(translationSession.completedAt, 'yyyy-MM-dd HH:mm:ss')}"></div>
-        </div>
-
-        <!-- Action Buttons -->
-        <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #dee2e6;">
-            <form th:if="${translationSession.status.name() == 'PENDING' || translationSession.status.name() == 'IN_PROGRESS'}"
-                  th:action="@{/sessions/{id}/cancel(id=${translationSession.id})}"
-                  method="post"
-                  style="display: inline;"
-                  onsubmit="return confirm('Are you sure you want to cancel this session?');">
-                <button type="submit" class="btn btn-danger">❌ Cancel Session</button>
-            </form>
-            <form th:if="${(translationSession.status.name() == 'FAILED' || translationSession.status.name() == 'CANCELLED') && sessionData.containsKey('original_request')}"
-                  th:action="@{/sessions/{id}/retry(id=${translationSession.id})}"
-                  method="post"
-                  style="display: inline;">
-                <button type="submit" class="btn btn-warning">🔄 Retry Entire Session</button>
-            </form>
         </div>
     </div>
 
@@ -835,11 +788,11 @@
     </div>
 
     <!-- Progress Information for In-Progress Sessions -->
-    <div class="info-card" th:if="${translationSession.status.name() == 'IN_PROGRESS'}">
-        <h2>⏳ Processing In Progress</h2>
+    <!-- Processing Progress (if data available) -->
+    <div class="info-card" th:if="${sessionData.containsKey('processed_words') && sessionData.containsKey('total_words')}">
+        <h2>⏳ Processing Progress</h2>
 
-        <!-- Show progress bar if we have processed_words info -->
-        <div th:if="${sessionData.containsKey('processed_words') && sessionData.containsKey('total_words')}" style="margin-bottom: 20px;">
+        <div style="margin-bottom: 20px;">
             <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
                 <span style="font-weight: bold;">Progress:</span>
                 <span th:text="${sessionData.get('processed_words')} + ' / ' + ${sessionData.get('total_words')} + ' words processed'"></span>
@@ -852,8 +805,7 @@
             </div>
         </div>
 
-        <!-- Show current word progress if available -->
-        <div th:if="${sessionData.containsKey('words') && !sessionData.get('words').isEmpty()}" style="margin-bottom: 20px;">
+        <div style="margin-bottom: 20px;">
             <h3 style="font-size: 18px; margin-bottom: 15px;">Current Progress by Word:</h3>
             <div th:each="wordData, iterStat : ${sessionData.get('words')}" class="word-detail" style="opacity: 0.95;">
                 <div class="word-detail-header">
@@ -1044,32 +996,7 @@
             </div>
         </div>
 
-        <!-- Show planned steps if no progress data yet -->
-        <div th:if="${!sessionData.containsKey('words') || sessionData.get('words').isEmpty()}">
-            <p>This session is starting. The following steps will be completed:</p>
-            <ul style="list-style: none; padding-left: 0;">
-                <li style="padding: 8px 0;">📝 Translation of words</li>
-                <li th:if="${translationSession.audioGenerationEnabled}" style="padding: 8px 0;">🔊 Audio generation</li>
-                <li th:if="${translationSession.imageGenerationEnabled}" style="padding: 8px 0;">🖼️ Image generation with mnemonics</li>
-                <li th:if="${translationSession.sentenceGenerationEnabled}" style="padding: 8px 0;">📄 Sentence generation</li>
-                <li style="padding: 8px 0;">📦 ZIP file creation</li>
-            </ul>
-        </div>
-
-        <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: var(--radius-lg); margin-top: 20px;">
-            <strong>⚠️ Note:</strong> This session is actively being processed. Refresh the page to see the latest progress.
-        </div>
         <button onclick="window.location.reload()" class="btn" style="margin-top: 15px;">🔄 Refresh to Check Progress</button>
-
-        <!-- Auto-refresh script -->
-        <script>
-            // Auto-refresh every 5 seconds while processing
-            setTimeout(function() {
-                if (window.location.href.indexOf('sessions/') > -1) {
-                    window.location.reload();
-                }
-            }, 5000);
-        </script>
     </div>
 
     <!-- Process Status Section -->
@@ -1095,7 +1022,6 @@
         <div th:with="audioErrors=${sessionData.get('process_summary').get('audio_errors')},
                       audioSuccess=${sessionData.get('process_summary').get('audio_success_count')},
                       audioFailure=${sessionData.get('process_summary').get('audio_failure_count')}"
-             th:if="${translationSession.audioGenerationEnabled}"
              th:classappend="${audioErrors.isEmpty() ? 'success' : (audioSuccess > 0 ? 'partial' : 'failure')}"
              class="process-status-card">
             <div class="process-header">
@@ -1111,7 +1037,6 @@
 
         <!-- Image Status -->
         <div th:with="imageErrors=${sessionData.get('process_summary').get('image_errors')}"
-             th:if="${translationSession.imageGenerationEnabled}"
              th:classappend="${imageErrors.isEmpty() ? 'success' : 'failure'}"
              class="process-status-card">
             <div class="process-header">
@@ -1126,7 +1051,6 @@
 
         <!-- Sentence Status -->
         <div th:with="sentenceErrors=${sessionData.get('process_summary').get('sentence_errors')}"
-             th:if="${translationSession.sentenceGenerationEnabled}"
              th:classappend="${sentenceErrors.isEmpty() ? 'success' : 'failure'}"
              class="process-status-card">
             <div class="process-header">
@@ -1137,13 +1061,6 @@
             <ul th:if="${!sentenceErrors.isEmpty()}" class="error-list">
                 <li th:each="error : ${sentenceErrors}" th:text="${error}"></li>
             </ul>
-        </div>
-
-        <!-- Retry Buttons -->
-        <div th:if="${sessionData.get('process_summary').get('has_errors')}" style="margin-top: 20px;">
-            <form th:action="@{/sessions/{id}/retry(id=${translationSession.id})}" method="post" style="display: inline;">
-                <button type="submit" class="btn btn-warning">Retry Failed Processes</button>
-            </form>
         </div>
     </div>
 
@@ -1239,34 +1156,14 @@
         </div>
     </div>
 
-    <div class="info-card" th:if="${translationSession.status.name() == 'FAILED'}">
+    <!-- Error Information -->
+    <div class="info-card" th:if="${sessionData.containsKey('error')}">
         <h2>Error Information</h2>
-        <div class="error-message" th:if="${sessionData.containsKey('error')}">
+        <div class="error-message">
             <strong>Error:</strong>
             <p th:text="${sessionData.get('error')}"></p>
             <small th:if="${sessionData.containsKey('errorTime')}" th:text="'Error occurred at: ' + ${sessionData.get('errorTime')}"></small>
         </div>
-    </div>
-
-    <!-- Session Data Debug Info (for empty sessions) -->
-    <div class="info-card" th:if="${!sessionData.containsKey('words') && translationSession.status.name() == 'COMPLETED'}">
-        <h2>Session Completed (Legacy Format)</h2>
-        <p style="color: #856404; background: #fff3cd; padding: 10px; border-radius: var(--radius-sm); border: 1px solid #ffeaa7;">
-            This session was completed using an older format. Detailed word-by-word information is not available.
-        </p>
-        <div th:if="${!sessionData.isEmpty()}">
-            <h3>Available Data:</h3>
-            <div class="data-section">
-                <pre th:text="${sessionData}"></pre>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pending Status -->
-    <div class="info-card" th:if="${translationSession.status.name() == 'PENDING'}">
-        <h2>⏸️ Session Pending</h2>
-        <p>This session is pending and will start processing soon.</p>
-        <button onclick="window.location.reload()" class="btn">Refresh Page</button>
     </div>
 
     <!-- Regenerate Image Modal -->

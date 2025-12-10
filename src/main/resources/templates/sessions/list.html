@@ -78,28 +78,6 @@
                 <span th:text="${error}"></span>
             </div>
 
-            <!-- Filter Bar -->
-            <div class="box mb-5">
-                <div class="columns is-vcentered">
-                    <div class="column is-narrow">
-                        <form method="get" action="/sessions" class="field has-addons">
-                            <div class="control">
-                                <label class="label is-small">Filter by Status</label>
-                                <div class="select">
-                                    <select name="status" id="status" onchange="this.form.submit()">
-                                        <option value="">All Statuses</option>
-                                        <option value="pending" th:selected="${selectedStatus == 'pending'}">Pending</option>
-                                        <option value="in_progress" th:selected="${selectedStatus == 'in_progress'}">In Progress</option>
-                                        <option value="completed" th:selected="${selectedStatus == 'completed'}">Completed</option>
-                                        <option value="failed" th:selected="${selectedStatus == 'failed'}">Failed</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </form>
-                    </div>
-                </div>
-            </div>
-
             <!-- Empty State -->
             <div th:if="${#lists.isEmpty(sessions)}" class="box has-text-centered py-6">
                 <span class="icon is-large text-muted">
@@ -122,11 +100,8 @@
                                 <th style="width: 60px;">ID</th>
                                 <th>Session Name</th>
                                 <th>Languages</th>
-                                <th>Status</th>
-                                <th class="has-text-centered">Image Gen</th>
-                                <th class="has-text-centered">Audio Gen</th>
                                 <th>Created</th>
-                                <th style="width: 200px;">Actions</th>
+                                <th style="width: 120px;">Actions</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -143,47 +118,12 @@
                                     <span class="icon text-muted is-small"><i class="fas fa-arrow-right"></i></span>
                                     <span class="tag is-success is-light" th:text="${translationSession.targetLanguage}"></span>
                                 </td>
-                                <td>
-                                    <span class="tag status-tag"
-                                          th:classappend="'is-' + ${#strings.toLowerCase(translationSession.status)}"
-                                          th:text="${translationSession.status}"></span>
-                                </td>
-                                <td class="has-text-centered">
-                                    <span th:if="${translationSession.imageGenerationEnabled}" class="icon has-text-success">
-                                        <i class="fas fa-check-circle"></i>
-                                    </span>
-                                    <span th:unless="${translationSession.imageGenerationEnabled}" class="icon text-muted">
-                                        <i class="fas fa-times-circle"></i>
-                                    </span>
-                                </td>
-                                <td class="has-text-centered">
-                                    <span th:if="${translationSession.audioGenerationEnabled}" class="icon has-text-success">
-                                        <i class="fas fa-check-circle"></i>
-                                    </span>
-                                    <span th:unless="${translationSession.audioGenerationEnabled}" class="icon text-muted">
-                                        <i class="fas fa-times-circle"></i>
-                                    </span>
-                                </td>
                                 <td class="is-size-7 text-secondary" th:text="${#temporals.format(translationSession.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
                                 <td>
                                     <div class="buttons are-small">
                                         <a th:href="@{/sessions/{id}(id=${translationSession.id})}" class="button is-info is-outlined" title="View">
                                             <span class="icon"><i class="fas fa-eye"></i></span>
                                         </a>
-                                        <a th:if="${translationSession.status.name() == 'COMPLETED'}"
-                                           th:href="@{/sessions/{id}/download(id=${translationSession.id})}"
-                                           class="button is-success is-outlined" title="Download">
-                                            <span class="icon"><i class="fas fa-download"></i></span>
-                                        </a>
-                                        <form th:if="${translationSession.status.name() == 'PENDING' || translationSession.status.name() == 'IN_PROGRESS'}"
-                                              th:action="@{/sessions/{id}/cancel(id=${translationSession.id})}"
-                                              method="post"
-                                              style="display: inline;"
-                                              onsubmit="return confirm('Are you sure you want to cancel this session?');">
-                                            <button type="submit" class="button is-danger is-outlined" title="Cancel">
-                                                <span class="icon"><i class="fas fa-ban"></i></span>
-                                            </button>
-                                        </form>
                                     </div>
                                 </td>
                             </tr>
