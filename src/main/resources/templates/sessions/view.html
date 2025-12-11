@@ -526,14 +526,6 @@
                            style="margin-left: 10px;">
                             📖 View
                         </a>
-                        <button type="button"
-                                th:data-word-id="${wordData.get('word_id')}"
-                                th:data-source-word="${wordData.get('source_word')}"
-                                onclick="showRegenerateModal(this.dataset.wordId, this.dataset.sourceWord)"
-                                class="btn btn-sm btn-outline-warning"
-                                style="margin-left: 5px;">
-                            🔄 Regen
-                        </button>
                     </span>
                 </div>
 
@@ -818,6 +810,16 @@
                                             class="btn btn-sm btn-outline-danger"
                                             style="padding: 3px 8px; font-size: 11px;">
                                         ✗ Reject
+                                    </button>
+
+                                    <!-- Generate Image Button -->
+                                    <button type="button"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            th:data-image-style="${wordData.get('image_style') != null ? wordData.get('image_style') : 'REALISTIC_CINEMATIC'}"
+                                            onclick="generateImageFromPrompt(this.dataset.wordId, this.dataset.imageStyle)"
+                                            class="btn btn-sm btn-warning"
+                                            style="padding: 3px 8px; font-size: 11px;">
+                                        🖼️ Generate Image
                                     </button>
                                 </div>
                             </div>
@@ -3995,6 +3997,37 @@
 
                 if (result.success) {
                     alert('Image prompt rejected.');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function generateImageFromPrompt(wordId, imageStyle) {
+            if (!confirm('Generate image using the current prompt?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/words/${wordId}/regenerate-image`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        useSamePrompt: true,
+                        imageStyle: imageStyle,
+                        model: 'gpt-image-1-mini'
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Image generated successfully!');
                     window.location.reload();
                 } else {
                     alert('Error: ' + (result.error || 'Unknown error'));
