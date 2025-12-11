@@ -2631,7 +2631,9 @@
 
                 // Load available formats
                 const formatsResponse = await fetch('/anki-formats/all');
-                availableFormats = await formatsResponse.json();
+                const formatsData = await formatsResponse.json();
+                // Ensure availableFormats is always an array
+                availableFormats = Array.isArray(formatsData) ? formatsData : [];
 
                 const response = await fetch(`/sessions/${currentSessionId}/anki-cards-preview`);
                 const data = await response.json();
