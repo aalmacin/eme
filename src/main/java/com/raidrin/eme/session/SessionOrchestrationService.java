@@ -1171,6 +1171,247 @@ public class SessionOrchestrationService {
     }
 
     /**
+     * Selectively generate image prompts ONLY for words in a session (without generating images).
+     * This allows users to review and edit prompts before image generation.
+     * Sets imagePromptStatus to GENERATED so users can review before approving.
+     *
+     * @param sessionId The session ID
+     * @param imageStyle The image style to use
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateImagePromptsSelectively(
+            Long sessionId, ImageStyle imageStyle) {
+        System.out.println("[SESSION " + sessionId + "] Starting selective image PROMPT generation (no images)");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("image_prompts");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                // Find the word entity
+                Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+                );
+
+                if (wordEntityOpt.isEmpty()) {
+                    result.addSkipped(sourceWord, "Word entity not found");
+                    continue;
+                }
+
+                WordEntity wordEntity = wordEntityOpt.get();
+
+                // Check prerequisites - need translation and mnemonic keyword
+                if (!wordService.hasTranslation(wordEntity)) {
+                    result.addSkipped(sourceWord, "Missing translation (prerequisite)");
+                    continue;
+                }
+
+                if (!wordService.hasMnemonicKeyword(wordEntity)) {
+                    result.addSkipped(sourceWord, "Missing mnemonic keyword (prerequisite)");
+                    continue;
+                }
+
+                // Skip if already has an APPROVED prompt (don't regenerate approved prompts)
+                String currentStatus = wordEntity.getImagePromptStatus();
+                if ("APPROVED".equals(currentStatus) && wordEntity.getImagePrompt() != null) {
+                    result.addSkipped(sourceWord, "Prompt already approved");
+                    continue;
+                }
+
+                // Generate mnemonic sentence and image prompt
+                try {
+                    Set<String> translations = wordService.deserializeTranslations(wordEntity.getTranslation());
+                    String primaryTranslation = translations.iterator().next();
+
+                    MnemonicData mnemonicData = mnemonicGenerationService.generateMnemonicFromKeyword(
+                        wordEntity.getMnemonicKeyword(),
+                        sourceWord,
+                        primaryTranslation,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        wordEntity.getSourceTransliteration(),
+                        imageStyle != null ? imageStyle : ImageStyle.REALISTIC_CINEMATIC
+                    );
+
+                    // Update mnemonic sentence and image prompt, set status to GENERATED
+                    wordService.updateMnemonic(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        null, // Keep existing keyword
+                        mnemonicData.getMnemonicSentence(),
+                        mnemonicData.getImagePrompt()
+                    );
+
+                    // Set prompt status to GENERATED (ready for review)
+                    wordService.updateImagePromptStatus(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        "GENERATED"
+                    );
+
+                    result.incrementSuccess();
+                    System.out.println("[WORD] Generated image prompt for: " + sourceWord);
+                } catch (Exception e) {
+                    result.incrementFailed();
+                    result.addError(sourceWord, e.getMessage());
+                    System.err.println("[WORD] Image prompt generation failed for '" + sourceWord + "': " + e.getMessage());
+                }
+            }
+
+            result.setMessage("Image prompt generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Image prompt generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Image prompt generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
+     * Generate images ONLY for words that have APPROVED image prompts.
+     * This is the second step after reviewing/editing prompts.
+     *
+     * @param sessionId The session ID
+     * @return Result containing success/failure counts and skipped words
+     */
+    @Async("taskExecutor")
+    public CompletableFuture<SelectiveGenerationResult> generateImagesFromApprovedPrompts(Long sessionId) {
+        System.out.println("[SESSION " + sessionId + "] Starting image generation from APPROVED prompts only");
+        SelectiveGenerationResult result = new SelectiveGenerationResult("images_from_prompts");
+
+        try {
+            TranslationSessionEntity session = sessionService.findById(sessionId)
+                .orElseThrow(() -> new IllegalArgumentException("Session not found: " + sessionId));
+
+            Map<String, Object> sessionData = sessionService.getSessionData(sessionId);
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> words = (List<Map<String, Object>>) sessionData.get("words");
+
+            if (words == null || words.isEmpty()) {
+                result.setMessage("No words found in session");
+                return CompletableFuture.completedFuture(result);
+            }
+
+            for (Map<String, Object> wordData : words) {
+                String sourceWord = (String) wordData.get("source_word");
+                result.incrementTotal();
+
+                // Find the word entity
+                Optional<WordEntity> wordEntityOpt = wordService.findWord(
+                    sourceWord,
+                    session.getSourceLanguage(),
+                    session.getTargetLanguage()
+                );
+
+                if (wordEntityOpt.isEmpty()) {
+                    result.addSkipped(sourceWord, "Word entity not found");
+                    continue;
+                }
+
+                WordEntity wordEntity = wordEntityOpt.get();
+
+                // Only process words with APPROVED prompts
+                String promptStatus = wordEntity.getImagePromptStatus();
+                if (!"APPROVED".equals(promptStatus)) {
+                    result.addSkipped(sourceWord, "Prompt not approved (status: " + promptStatus + ")");
+                    continue;
+                }
+
+                // Check we have a prompt
+                if (wordEntity.getImagePrompt() == null || wordEntity.getImagePrompt().trim().isEmpty()) {
+                    result.addSkipped(sourceWord, "No image prompt available");
+                    continue;
+                }
+
+                // Skip if already has an image
+                if (wordEntity.getImageFile() != null && !wordEntity.getImageFile().trim().isEmpty()) {
+                    result.addSkipped(sourceWord, "Image already exists");
+                    continue;
+                }
+
+                // Generate image from approved prompt
+                try {
+                    String sanitizedPrompt = mnemonicGenerationService.sanitizeImagePrompt(wordEntity.getImagePrompt());
+                    String imageFileName = FileNameSanitizer.fromMnemonicSentence(
+                        wordEntity.getMnemonicSentence() != null ? wordEntity.getMnemonicSentence() : sourceWord,
+                        "jpg"
+                    );
+
+                    OpenAiImageService.GeneratedImage openAiImage = openAiImageService.generateImage(
+                        sanitizedPrompt, "1536x1024", "medium", null);
+
+                    // Download image to local file
+                    downloadImageToLocal(openAiImage.getImageUrl(), imageFileName);
+
+                    // Upload to GCP
+                    gcpStorageService.downloadAndUpload(openAiImage.getImageUrl(), imageFileName);
+
+                    // Update word with image file
+                    wordService.updateImage(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        imageFileName,
+                        wordEntity.getImagePrompt()
+                    );
+
+                    // Update image status to COMPLETED
+                    wordService.updateImageStatus(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        "COMPLETED"
+                    );
+
+                    result.incrementSuccess();
+                    System.out.println("[WORD] Generated image for: " + sourceWord);
+                } catch (Exception e) {
+                    result.incrementFailed();
+                    result.addError(sourceWord, e.getMessage());
+                    System.err.println("[WORD] Image generation failed for '" + sourceWord + "': " + e.getMessage());
+
+                    // Update image status to FAILED
+                    wordService.updateImageStatus(
+                        sourceWord,
+                        session.getSourceLanguage(),
+                        session.getTargetLanguage(),
+                        "FAILED"
+                    );
+                }
+            }
+
+            result.setMessage("Image generation completed: " + result.getSuccessCount() + " success, " +
+                            result.getFailedCount() + " failed, " + result.getSkippedCount() + " skipped");
+
+        } catch (Exception e) {
+            result.setMessage("Image generation failed: " + e.getMessage());
+            System.err.println("[SESSION " + sessionId + "] Image generation error: " + e.getMessage());
+        }
+
+        return CompletableFuture.completedFuture(result);
+    }
+
+    /**
      * Selectively generate images for words in a session
      * Validates prerequisites (translation, mnemonic keyword, mnemonic sentence)
      *

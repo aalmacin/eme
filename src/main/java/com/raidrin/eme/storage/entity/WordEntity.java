@@ -63,6 +63,9 @@ public class WordEntity {
     @Column(name = "image_status", length = 20)
     private String imageStatus; // PENDING, GENERATING, COMPLETED, FAILED
 
+    @Column(name = "image_prompt_status", length = 20)
+    private String imagePromptStatus; // NONE, GENERATED, APPROVED, REJECTED
+
     @Column(name = "audio_status", length = 20)
     private String audioStatus; // PENDING, GENERATING, COMPLETED, FAILED
 

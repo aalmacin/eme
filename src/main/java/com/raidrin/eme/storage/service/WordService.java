@@ -251,6 +251,44 @@ public class WordService {
         return wordRepository.save(entity);
     }
 
+    @Transactional
+    public WordEntity updateImagePromptStatus(String word, String sourceLanguage, String targetLanguage,
+                                               String imagePromptStatus) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setImagePromptStatus(imagePromptStatus);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity updateImagePromptStatusById(Long wordId, String imagePromptStatus) {
+        WordEntity entity = wordRepository.findById(wordId)
+            .orElseThrow(() -> new IllegalArgumentException("Word not found with ID: " + wordId));
+        entity.setImagePromptStatus(imagePromptStatus);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity updateImagePromptWithStatus(String word, String sourceLanguage, String targetLanguage,
+                                                   String imagePrompt, String imagePromptStatus) {
+        validateParameters(word, sourceLanguage, targetLanguage);
+
+        WordEntity entity = saveOrUpdateWord(word, sourceLanguage, targetLanguage);
+        entity.setImagePrompt(imagePrompt);
+        entity.setImagePromptStatus(imagePromptStatus);
+        return wordRepository.save(entity);
+    }
+
+    @Transactional
+    public WordEntity updateImagePromptWithStatusById(Long wordId, String imagePrompt, String imagePromptStatus) {
+        WordEntity entity = wordRepository.findById(wordId)
+            .orElseThrow(() -> new IllegalArgumentException("Word not found with ID: " + wordId));
+        entity.setImagePrompt(imagePrompt);
+        entity.setImagePromptStatus(imagePromptStatus);
+        return wordRepository.save(entity);
+    }
+
     public boolean hasWord(String word, String sourceLanguage, String targetLanguage) {
         validateParameters(word, sourceLanguage, targetLanguage);
         return wordRepository.existsByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);

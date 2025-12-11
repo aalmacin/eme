@@ -747,6 +747,63 @@
 
                     <!-- Right Column: Media Content -->
                     <div>
+                        <!-- Image Prompt Section (for two-step workflow) -->
+                        <div class="word-content-section" th:if="${wordData.containsKey('image_prompt') and wordData.get('image_prompt') != null}">
+                            <div class="section-title">
+                                Image Prompt
+                                <span th:if="${wordData.get('image_prompt_status') == 'GENERATED'}"
+                                      style="background: #fff3cd; color: #856404; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 6px;">
+                                    📝 Pending Review
+                                </span>
+                                <span th:if="${wordData.get('image_prompt_status') == 'APPROVED'}"
+                                      style="background: #d4edda; color: #155724; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 6px;">
+                                    ✓ Approved
+                                </span>
+                                <span th:if="${wordData.get('image_prompt_status') == 'REJECTED'}"
+                                      style="background: #f8d7da; color: #721c24; padding: 2px 6px; border-radius: 3px; font-size: 10px; margin-left: 6px;">
+                                    ✗ Rejected
+                                </span>
+                            </div>
+                            <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--eme-border);">
+                                <pre th:text="${wordData.get('image_prompt')}"
+                                     th:id="'prompt-display-' + ${wordData.get('word_id')}"
+                                     style="font-size: 11px; background: var(--eme-hover-bg); padding: 8px; border-radius: 3px; white-space: pre-wrap; margin-bottom: 10px; max-height: 150px; overflow-y: auto;"></pre>
+
+                                <!-- Prompt Actions -->
+                                <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                                    <!-- Edit Button -->
+                                    <button type="button"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            th:data-current-prompt="${wordData.get('image_prompt')}"
+                                            onclick="showEditImagePromptModal(this.dataset.wordId, this.dataset.currentPrompt)"
+                                            class="btn btn-sm btn-outline-primary"
+                                            style="padding: 3px 8px; font-size: 11px;">
+                                        ✏️ Edit
+                                    </button>
+
+                                    <!-- Approve Button (only if not already approved) -->
+                                    <button type="button"
+                                            th:if="${wordData.get('image_prompt_status') != 'APPROVED'}"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            onclick="approveImagePrompt(this.dataset.wordId)"
+                                            class="btn btn-sm btn-success"
+                                            style="padding: 3px 8px; font-size: 11px;">
+                                        ✓ Approve
+                                    </button>
+
+                                    <!-- Reject Button (only if not rejected) -->
+                                    <button type="button"
+                                            th:if="${wordData.get('image_prompt_status') != 'REJECTED'}"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            onclick="rejectImagePrompt(this.dataset.wordId)"
+                                            class="btn btn-sm btn-outline-danger"
+                                            style="padding: 3px 8px; font-size: 11px;">
+                                        ✗ Reject
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Image Section -->
                         <div class="word-content-section" th:if="${wordData.get('image_status') == 'success' and wordData.containsKey('image_file')}">
                             <div class="section-title">Image</div>
@@ -755,7 +812,7 @@
                                      alt="Word image"
                                      style="width: 100%; border-radius: var(--radius-md); margin-bottom: 8px;"/>
                                 <details th:if="${wordData.containsKey('image_prompt')}">
-                                    <summary style="cursor: pointer; font-size: 11px; color: var(--eme-text-secondary);">Prompt</summary>
+                                    <summary style="cursor: pointer; font-size: 11px; color: var(--eme-text-secondary);">View Prompt</summary>
                                     <pre th:text="${wordData.get('image_prompt')}"
                                          style="font-size: 10px; background: var(--eme-hover-bg); padding: 6px; border-radius: 3px; margin-top: 4px; white-space: pre-wrap;"></pre>
                                 </details>
@@ -1130,9 +1187,24 @@
                 💭 Generate Mnemonic Sentences
             </button>
 
-            <!-- Generate Images -->
-            <button class="btn btn-primary" onclick="runSelectiveGeneration('images')" style="width: 100%;">
-                🖼️ Generate Images
+            <!-- Generate Image Prompts (Step 1) -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('image-prompts')" style="width: 100%; background: #6f42c1;">
+                📝 Generate Image Prompts (Step 1)
+            </button>
+
+            <!-- Approve All Image Prompts -->
+            <button class="btn btn-success" onclick="approveAllImagePrompts()" style="width: 100%;">
+                ✓ Approve All Image Prompts
+            </button>
+
+            <!-- Generate Images from Approved Prompts (Step 2) -->
+            <button class="btn btn-success" onclick="runSelectiveGeneration('images-from-prompts')" style="width: 100%;">
+                🖼️ Generate Images (Step 2 - Approved Only)
+            </button>
+
+            <!-- Generate Images (Legacy - all at once) -->
+            <button class="btn btn-primary" onclick="runSelectiveGeneration('images')" style="width: 100%; opacity: 0.7;">
+                🖼️ Generate Images (All at Once)
             </button>
 
             <!-- Generate Audio -->
@@ -1278,6 +1350,32 @@
                 <div>
                     <button onclick="closeUpdateMnemonicKeywordModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="updateMnemonicKeyword()" class="btn btn-primary" id="updateMnemonicKeywordBtn">✏️ Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Image Prompt Modal -->
+    <div id="editImagePromptModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 700px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Edit Image Prompt</h3>
+
+            <div style="margin-bottom: 20px;">
+                <label style="font-weight: bold; margin-bottom: 8px; display: block;">Image Prompt:</label>
+                <textarea id="editImagePromptInput"
+                       placeholder="Enter the image prompt..."
+                       rows="8"
+                       style="width: 100%; padding: 10px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); font-size: 13px; font-family: monospace; resize: vertical;"></textarea>
+                <p style="color: var(--eme-text-secondary); font-size: 12px; margin-top: 5px;">
+                    Edit the prompt that will be used to generate the image. After editing, you'll need to approve it again.
+                </p>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="editImagePromptStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeEditImagePromptModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="saveImagePrompt()" class="btn btn-primary" id="saveImagePromptBtn">💾 Save</button>
                 </div>
             </div>
         </div>
@@ -3463,7 +3561,7 @@
         /**
          * Run selective generation for a specific operation type
          * @param {string} operationType - One of: translations, transliterations, mnemonic-keywords,
-         *                                  mnemonic-sentences, images, audio, example-sentences
+         *                                  mnemonic-sentences, image-prompts, images-from-prompts, images, audio, example-sentences
          */
         async function runSelectiveGeneration(operationType) {
             const sessionId = [[${translationSession.id}]];
@@ -3472,6 +3570,8 @@
                 'transliterations': 'Transliterations',
                 'mnemonic-keywords': 'Mnemonic Keywords',
                 'mnemonic-sentences': 'Mnemonic Sentences',
+                'image-prompts': 'Image Prompts',
+                'images-from-prompts': 'Images (from approved prompts)',
                 'images': 'Images',
                 'audio': 'Audio',
                 'example-sentences': 'Example Sentences'
@@ -3674,6 +3774,163 @@
                 toggleSessionNameEdit();
             }
         });
+
+        // ==================== Image Prompt Management ====================
+
+        let currentImagePromptWordId = null;
+
+        function showEditImagePromptModal(wordId, currentPrompt) {
+            currentImagePromptWordId = wordId;
+            document.getElementById('editImagePromptInput').value = currentPrompt || '';
+            document.getElementById('editImagePromptModal').style.display = 'flex';
+            document.getElementById('editImagePromptStatus').textContent = '';
+        }
+
+        function closeEditImagePromptModal() {
+            document.getElementById('editImagePromptModal').style.display = 'none';
+            currentImagePromptWordId = null;
+        }
+
+        async function saveImagePrompt() {
+            if (!currentImagePromptWordId) return;
+
+            const newPrompt = document.getElementById('editImagePromptInput').value.trim();
+            const statusEl = document.getElementById('editImagePromptStatus');
+            const btnEl = document.getElementById('saveImagePromptBtn');
+
+            if (!newPrompt) {
+                statusEl.textContent = 'Please enter an image prompt';
+                statusEl.style.color = '#dc3545';
+                return;
+            }
+
+            statusEl.textContent = 'Saving image prompt...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const response = await fetch(`/api/words/${currentImagePromptWordId}/update-image-prompt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        imagePrompt: newPrompt
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    statusEl.textContent = 'Image prompt saved! Reloading page...';
+                    statusEl.style.color = '#28a745';
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
+        async function approveImagePrompt(wordId) {
+            if (!confirm('Approve this image prompt? It will be ready for image generation.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/words/${wordId}/approve-image-prompt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Image prompt approved!');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function rejectImagePrompt(wordId) {
+            if (!confirm('Reject this image prompt? You will need to regenerate it.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/api/words/${wordId}/reject-image-prompt`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('Image prompt rejected.');
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+
+        async function approveAllImagePrompts() {
+            // Collect all word IDs that have prompts pending review
+            const wordIds = [];
+            document.querySelectorAll('[data-word-id]').forEach(btn => {
+                const wordId = btn.dataset.wordId;
+                if (wordId && !wordIds.includes(parseInt(wordId))) {
+                    wordIds.push(parseInt(wordId));
+                }
+            });
+
+            if (wordIds.length === 0) {
+                alert('No words found to approve.');
+                return;
+            }
+
+            if (!confirm(`Approve all ${wordIds.length} image prompts? They will be ready for image generation.`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/words/batch/approve-image-prompts', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ wordIds: wordIds })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert(`Approved ${result.approvedCount} prompts (${result.skippedCount} skipped).`);
+                    window.location.reload();
+                } else {
+                    alert('Error: ' + (result.error || 'Unknown error'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
     </script>
 </body>
 </html>

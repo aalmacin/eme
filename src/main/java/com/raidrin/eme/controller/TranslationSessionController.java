@@ -1149,6 +1149,14 @@ public class TranslationSessionController {
             mergedData.put("image_status", "success");
         }
 
+        // Add image prompt status for the new two-step workflow
+        if (wordEntity.getImagePromptStatus() != null) {
+            mergedData.put("image_prompt_status", wordEntity.getImagePromptStatus());
+        } else {
+            // Default to NONE if no status set
+            mergedData.put("image_prompt_status", "NONE");
+        }
+
         // Update with latest sentence data from SentenceEntity
         Optional<SentenceData> sentenceDataOpt = sentenceStorageService.findSentence(
                 sourceWord, sourceLanguage, targetLanguage);
@@ -1727,6 +1735,74 @@ public class TranslationSessionController {
         try {
             SessionOrchestrationService.SelectiveGenerationResult result =
                 sessionOrchestrationService.generateExampleSentencesSelectively(id).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    /**
+     * Generate image prompts ONLY (no images) for all words in session.
+     * This is the first step - prompts can be reviewed/edited before image generation.
+     */
+    @PostMapping("/{id}/generate-image-prompts")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateImagePrompts(
+            @PathVariable Long id,
+            @RequestParam(required = false) String imageStyle) {
+        try {
+            com.raidrin.eme.image.ImageStyle style = imageStyle != null
+                ? com.raidrin.eme.image.ImageStyle.fromString(imageStyle)
+                : com.raidrin.eme.image.ImageStyle.REALISTIC_CINEMATIC;
+
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateImagePromptsSelectively(id, style).get();
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("operation", result.getOperationType());
+            response.put("total", result.getTotalCount());
+            response.put("success_count", result.getSuccessCount());
+            response.put("failed_count", result.getFailedCount());
+            response.put("skipped_count", result.getSkippedCount());
+            response.put("message", result.getMessage());
+            response.put("skipped_words", result.getSkippedWords());
+            response.put("failed_words", result.getFailedWords());
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
+    /**
+     * Generate images ONLY for words with APPROVED prompts.
+     * This is the second step after reviewing/editing/approving prompts.
+     */
+    @PostMapping("/{id}/generate-images-from-prompts")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> generateImagesFromApprovedPrompts(@PathVariable Long id) {
+        try {
+            SessionOrchestrationService.SelectiveGenerationResult result =
+                sessionOrchestrationService.generateImagesFromApprovedPrompts(id).get();
 
             Map<String, Object> response = new HashMap<>();
             response.put("success", true);

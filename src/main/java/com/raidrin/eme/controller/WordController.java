@@ -775,6 +775,229 @@ public class WordController {
         }
     }
 
+    // ==================== Image Prompt Management Endpoints ====================
+
+    /**
+     * Update image prompt for a word (for editing prompts before image generation)
+     */
+    @PostMapping("/{wordId}/update-image-prompt")
+    public ResponseEntity<Map<String, Object>> updateImagePrompt(
+            @PathVariable Long wordId,
+            @RequestBody Map<String, Object> request) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+
+            // Get new image prompt
+            String newImagePrompt = (String) request.get("imagePrompt");
+            if (newImagePrompt == null || newImagePrompt.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Image prompt is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            System.out.println("Updating image prompt for word: " + word.getWord());
+
+            // Update image prompt and set status to GENERATED (edited prompts need re-approval)
+            wordService.updateImagePromptWithStatus(
+                word.getWord(),
+                word.getSourceLanguage(),
+                word.getTargetLanguage(),
+                newImagePrompt,
+                "GENERATED"
+            );
+
+            response.put("success", true);
+            response.put("message", "Image prompt updated successfully");
+            response.put("imagePrompt", newImagePrompt);
+            response.put("imagePromptStatus", "GENERATED");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Approve image prompt for a word (makes it ready for image generation)
+     */
+    @PostMapping("/{wordId}/approve-image-prompt")
+    public ResponseEntity<Map<String, Object>> approveImagePrompt(@PathVariable Long wordId) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+
+            // Check if word has an image prompt
+            if (word.getImagePrompt() == null || word.getImagePrompt().trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "No image prompt to approve");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            System.out.println("Approving image prompt for word: " + word.getWord());
+
+            // Set status to APPROVED
+            wordService.updateImagePromptStatus(
+                word.getWord(),
+                word.getSourceLanguage(),
+                word.getTargetLanguage(),
+                "APPROVED"
+            );
+
+            response.put("success", true);
+            response.put("message", "Image prompt approved");
+            response.put("imagePromptStatus", "APPROVED");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Reject image prompt for a word (requires regeneration)
+     */
+    @PostMapping("/{wordId}/reject-image-prompt")
+    public ResponseEntity<Map<String, Object>> rejectImagePrompt(@PathVariable Long wordId) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            WordEntity word = wordOpt.get();
+
+            System.out.println("Rejecting image prompt for word: " + word.getWord());
+
+            // Set status to REJECTED
+            wordService.updateImagePromptStatus(
+                word.getWord(),
+                word.getSourceLanguage(),
+                word.getTargetLanguage(),
+                "REJECTED"
+            );
+
+            response.put("success", true);
+            response.put("message", "Image prompt rejected");
+            response.put("imagePromptStatus", "REJECTED");
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Approve all image prompts in a batch (by word IDs)
+     */
+    @PostMapping("/batch/approve-image-prompts")
+    public ResponseEntity<Map<String, Object>> batchApproveImagePrompts(
+            @RequestBody Map<String, Object> request) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            @SuppressWarnings("unchecked")
+            List<Number> wordIds = (List<Number>) request.get("wordIds");
+
+            if (wordIds == null || wordIds.isEmpty()) {
+                response.put("success", false);
+                response.put("error", "No word IDs provided");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            int approvedCount = 0;
+            int skippedCount = 0;
+            List<String> errors = new ArrayList<>();
+
+            for (Number wordIdNum : wordIds) {
+                Long wordId = wordIdNum.longValue();
+                try {
+                    Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                            .filter(w -> w.getId().equals(wordId))
+                            .findFirst();
+
+                    if (wordOpt.isEmpty()) {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    WordEntity word = wordOpt.get();
+                    if (word.getImagePrompt() == null || word.getImagePrompt().trim().isEmpty()) {
+                        skippedCount++;
+                        continue;
+                    }
+
+                    wordService.updateImagePromptStatus(
+                        word.getWord(),
+                        word.getSourceLanguage(),
+                        word.getTargetLanguage(),
+                        "APPROVED"
+                    );
+                    approvedCount++;
+
+                } catch (Exception e) {
+                    errors.add("Word " + wordId + ": " + e.getMessage());
+                }
+            }
+
+            response.put("success", true);
+            response.put("approvedCount", approvedCount);
+            response.put("skippedCount", skippedCount);
+            if (!errors.isEmpty()) {
+                response.put("errors", errors);
+            }
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
     // ==================== Variant Management Endpoints ====================
 
     /**
