@@ -170,6 +170,45 @@
                     <h3 class="subtitle is-6">Image Prompt</h3>
                     <div class="prompt-box" th:text="${word.imagePrompt}"></div>
                 </div>
+
+                <div class="mb-4 mt-4">
+                    <h3 class="subtitle is-6">Image Style</h3>
+                    <div x-show="!editingImageStyle">
+                        <p>
+                            <span x-text="imageStyle === 'REALISTIC_CINEMATIC' ? 'Realistic Cinematic' : (imageStyle === 'ANIMATED_2D_CINEMATIC' ? '2D Animated Cinematic' : '3D Animated Cinematic')"></span>
+                        </p>
+                        <button type="button" class="button is-small is-outlined is-primary mt-2"
+                                @click="editingImageStyle = true">
+                            <span class="icon"><i class="fas fa-edit"></i></span>
+                            <span>Edit Style</span>
+                        </button>
+                    </div>
+                    <div x-show="editingImageStyle">
+                        <div class="field has-addons">
+                            <div class="control">
+                                <div class="select">
+                                    <select x-model="imageStyle">
+                                        <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                                        <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                                        <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                                    </select>
+                                </div>
+                            </div>
+                            <div class="control">
+                                <button type="button" class="button is-primary" @click="saveImageStyle()" :disabled="imageStyleLoading">
+                                    <span class="icon" x-show="imageStyleLoading"><i class="fas fa-spinner fa-spin"></i></span>
+                                    <span>Save</span>
+                                </button>
+                            </div>
+                            <div class="control">
+                                <button type="button" class="button" @click="cancelEditImageStyle()">
+                                    Cancel
+                                </button>
+                            </div>
+                        </div>
+                        <p class="help" :class="imageStyleStatusClass" x-text="imageStyleStatus"></p>
+                    </div>
+                </div>
             </div>
 
             <!-- No Image -->
@@ -348,18 +387,6 @@
                         </div>
                         <p class="help">This will regenerate the mnemonic sentence and image prompt.</p>
                     </div>
-                    <div class="field">
-                        <label class="label">Image Style</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select x-model="translationModal.imageStyle">
-                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
                     <p x-show="translationModal.status" class="mt-3" :class="translationModal.statusClass" x-text="translationModal.status"></p>
                 </section>
                 <footer class="modal-card-foot">
@@ -392,18 +419,6 @@
                                 <input type="radio" value="gpt-image-1" x-model="regenerateModal.model">
                                 GPT Image 1
                             </label>
-                        </div>
-                    </div>
-                    <div class="field">
-                        <label class="label">Image Style</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select x-model="regenerateModal.imageStyle">
-                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                                </select>
-                            </div>
                         </div>
                     </div>
                     <div class="field">
@@ -448,18 +463,6 @@
                         </div>
                         <p class="help">This will regenerate the image prompt with the new keyword.</p>
                     </div>
-                    <div class="field">
-                        <label class="label">Image Style</label>
-                        <div class="control">
-                            <div class="select is-fullwidth">
-                                <select x-model="mnemonicKeywordModal.imageStyle">
-                                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
                     <p x-show="mnemonicKeywordModal.status" class="mt-3" :class="mnemonicKeywordModal.statusClass" x-text="mnemonicKeywordModal.status"></p>
                 </section>
                 <footer class="modal-card-foot">
@@ -485,12 +488,19 @@
                 translationVariants: [],
                 sentenceVariants: [],
 
+                // Word-level image style (loaded from server)
+                imageStyle: /*[[${word.imageStyle}]]*/ 'REALISTIC_CINEMATIC',
+                originalImageStyle: /*[[${word.imageStyle}]]*/ 'REALISTIC_CINEMATIC',
+                editingImageStyle: false,
+                imageStyleLoading: false,
+                imageStyleStatus: '',
+                imageStyleStatusClass: '',
+
                 translationModal: {
                     show: false,
                     wordId: null,
                     sourceWord: '',
                     newTranslation: '',
-                    imageStyle: 'REALISTIC_CINEMATIC',
                     status: '',
                     statusClass: '',
                     loading: false
@@ -501,7 +511,6 @@
                     wordId: null,
                     sourceWord: '',
                     model: 'gpt-image-1-mini',
-                    imageStyle: 'REALISTIC_CINEMATIC',
                     useSamePrompt: false,
                     customPrompt: '',
                     status: '',
@@ -514,7 +523,6 @@
                     wordId: null,
                     sourceWord: '',
                     newKeyword: '',
-                    imageStyle: 'REALISTIC_CINEMATIC',
                     status: '',
                     statusClass: '',
                     loading: false
@@ -524,7 +532,6 @@
                     this.translationModal.wordId = wordId;
                     this.translationModal.sourceWord = sourceWord;
                     this.translationModal.newTranslation = currentTranslation || '';
-                    this.translationModal.imageStyle = 'REALISTIC_CINEMATIC';
                     this.translationModal.status = '';
                     this.translationModal.show = true;
                 },
@@ -533,7 +540,6 @@
                     this.regenerateModal.wordId = wordId;
                     this.regenerateModal.sourceWord = sourceWord;
                     this.regenerateModal.model = 'gpt-image-1-mini';
-                    this.regenerateModal.imageStyle = 'REALISTIC_CINEMATIC';
                     this.regenerateModal.useSamePrompt = false;
                     this.regenerateModal.customPrompt = '';
                     this.regenerateModal.status = '';
@@ -544,9 +550,44 @@
                     this.mnemonicKeywordModal.wordId = wordId;
                     this.mnemonicKeywordModal.sourceWord = sourceWord;
                     this.mnemonicKeywordModal.newKeyword = currentKeyword || '';
-                    this.mnemonicKeywordModal.imageStyle = 'REALISTIC_CINEMATIC';
                     this.mnemonicKeywordModal.status = '';
                     this.mnemonicKeywordModal.show = true;
+                },
+
+                async saveImageStyle() {
+                    this.imageStyleLoading = true;
+                    this.imageStyleStatus = 'Saving...';
+                    this.imageStyleStatusClass = 'has-text-info';
+
+                    try {
+                        const response = await fetch(`/api/words/${wordId}/update-image-style`, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ imageStyle: this.imageStyle })
+                        });
+                        const result = await response.json();
+
+                        if (result.success) {
+                            this.imageStyleStatus = 'Saved!';
+                            this.imageStyleStatusClass = 'has-text-success';
+                            this.originalImageStyle = this.imageStyle;
+                            this.editingImageStyle = false;
+                            setTimeout(() => { this.imageStyleStatus = ''; }, 2000);
+                        } else {
+                            this.imageStyleStatus = 'Error: ' + (result.error || 'Unknown error');
+                            this.imageStyleStatusClass = 'has-text-danger';
+                        }
+                    } catch (error) {
+                        this.imageStyleStatus = 'Error: ' + error.message;
+                        this.imageStyleStatusClass = 'has-text-danger';
+                    }
+                    this.imageStyleLoading = false;
+                },
+
+                cancelEditImageStyle() {
+                    this.imageStyle = this.originalImageStyle;
+                    this.editingImageStyle = false;
+                    this.imageStyleStatus = '';
                 },
 
                 async updateTranslation() {
@@ -565,8 +606,7 @@
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                translation: this.translationModal.newTranslation,
-                                imageStyle: this.translationModal.imageStyle
+                                translation: this.translationModal.newTranslation
                             })
                         });
                         const result = await response.json();
@@ -593,8 +633,7 @@
 
                     try {
                         const requestBody = {
-                            model: this.regenerateModal.model,
-                            imageStyle: this.regenerateModal.imageStyle
+                            model: this.regenerateModal.model
                         };
                         if (this.regenerateModal.customPrompt.trim()) {
                             requestBody.imagePrompt = this.regenerateModal.customPrompt;
@@ -641,8 +680,7 @@
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             body: JSON.stringify({
-                                mnemonicKeyword: this.mnemonicKeywordModal.newKeyword,
-                                imageStyle: this.mnemonicKeywordModal.imageStyle
+                                mnemonicKeyword: this.mnemonicKeywordModal.newKeyword
                             })
                         });
                         const result = await response.json();

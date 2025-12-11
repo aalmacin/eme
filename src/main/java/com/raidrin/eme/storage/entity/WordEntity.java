@@ -78,6 +78,9 @@ public class WordEntity {
     @Column(name = "transliteration_override_at")
     private LocalDateTime transliterationOverrideAt; // Set when user manually overrides transliteration
 
+    @Column(name = "image_style", length = 50)
+    private String imageStyle; // REALISTIC_CINEMATIC, ANIMATED_2D_CINEMATIC, ANIMATED_3D_CINEMATIC
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 

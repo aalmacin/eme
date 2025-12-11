@@ -289,6 +289,14 @@ public class WordService {
         return wordRepository.save(entity);
     }
 
+    @Transactional
+    public WordEntity updateImageStyle(Long wordId, String imageStyle) {
+        WordEntity entity = wordRepository.findById(wordId)
+            .orElseThrow(() -> new IllegalArgumentException("Word not found with ID: " + wordId));
+        entity.setImageStyle(imageStyle);
+        return wordRepository.save(entity);
+    }
+
     public boolean hasWord(String word, String sourceLanguage, String targetLanguage) {
         validateParameters(word, sourceLanguage, targetLanguage);
         return wordRepository.existsByWordAndSourceLanguageAndTargetLanguage(word, sourceLanguage, targetLanguage);

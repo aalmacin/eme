@@ -743,6 +743,25 @@
                                 </div>
                             </div>
                         </div>
+
+                        <!-- Image Style Section -->
+                        <div class="word-content-section" th:if="${wordData.containsKey('word_id')}">
+                            <div class="section-title">Image Style</div>
+                            <div style="background: var(--eme-card-bg); padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--eme-border);">
+                                <div th:id="'image-style-display-' + ${wordData.get('word_id')}">
+                                    <span th:text="${wordData.get('image_style') == 'ANIMATED_2D_CINEMATIC' ? '2D Animated Cinematic' : (wordData.get('image_style') == 'ANIMATED_3D_CINEMATIC' ? '3D Animated Cinematic' : 'Realistic Cinematic')}"
+                                          style="font-size: 13px; color: var(--eme-text-primary);"></span>
+                                    <button type="button"
+                                            th:data-word-id="${wordData.get('word_id')}"
+                                            th:data-current-style="${wordData.get('image_style') != null ? wordData.get('image_style') : 'REALISTIC_CINEMATIC'}"
+                                            onclick="showEditImageStyleModal(this.dataset.wordId, this.dataset.currentStyle)"
+                                            class="btn btn-sm btn-outline-primary"
+                                            style="margin-left: 8px; padding: 2px 6px; font-size: 11px;">
+                                        ✏️ Edit
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Right Column: Media Content -->
@@ -1302,16 +1321,6 @@
                 <p style="color: var(--eme-text-secondary); font-size: 12px; margin-top: 5px;">This will regenerate the mnemonic sentence and image prompt.</p>
             </div>
 
-            <!-- Image Style Selection -->
-            <div style="margin-bottom: 20px;">
-                <label for="translationImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
-                <select id="translationImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm);">
-                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                </select>
-            </div>
-
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
                 <div id="updateTranslationStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
                 <div>
@@ -1333,16 +1342,6 @@
                        placeholder="Enter new mnemonic keyword..."
                        style="width: 100%; padding: 10px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); font-size: 14px;">
                 <p style="color: var(--eme-text-secondary); font-size: 12px; margin-top: 5px;">This will regenerate the image prompt with the new keyword.</p>
-            </div>
-
-            <!-- Image Style Selection -->
-            <div style="margin-bottom: 20px;">
-                <label for="mnemonicKeywordImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
-                <select id="mnemonicKeywordImageStyleSelect" style="width: 100%; padding: 8px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm);">
-                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
-                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
-                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
-                </select>
             </div>
 
             <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
@@ -1399,6 +1398,31 @@
                 <div>
                     <button onclick="closeUpdateTransliterationModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
                     <button onclick="updateTransliteration()" class="btn btn-info" id="updateTransliterationBtn">✏️ Update</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Image Style Modal -->
+    <div id="editImageStyleModal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; justify-content: center; align-items: center;">
+        <div style="background: var(--eme-card-bg); padding: 30px; border-radius: var(--radius-lg); max-width: 500px; width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.3);">
+            <h3 style="margin-top: 0;">Edit Image Style</h3>
+
+            <div style="margin-bottom: 20px;">
+                <label for="editImageStyleSelect" style="font-weight: bold; margin-bottom: 8px; display: block;">Image Style:</label>
+                <select id="editImageStyleSelect" style="width: 100%; padding: 10px; border: 1px solid var(--eme-border); border-radius: var(--radius-sm); font-size: 14px;">
+                    <option value="REALISTIC_CINEMATIC">Realistic Cinematic</option>
+                    <option value="ANIMATED_2D_CINEMATIC">2D Animated Cinematic</option>
+                    <option value="ANIMATED_3D_CINEMATIC">3D Animated Cinematic</option>
+                </select>
+                <p style="color: var(--eme-text-secondary); font-size: 12px; margin-top: 5px;">This style will be used when regenerating images for this word.</p>
+            </div>
+
+            <div style="margin-top: 20px; display: flex; justify-content: space-between; align-items: center;">
+                <div id="editImageStyleStatus" style="color: var(--eme-text-secondary); font-size: 14px;"></div>
+                <div>
+                    <button onclick="closeEditImageStyleModal()" class="btn btn-secondary" style="margin-right: 10px;">Cancel</button>
+                    <button onclick="saveImageStyle()" class="btn btn-primary" id="saveImageStyleBtn">💾 Save</button>
                 </div>
             </div>
         </div>
@@ -2177,7 +2201,6 @@
             currentTranslationWordId = wordId;
             document.getElementById('translationModalWordTitle').textContent = sourceWord;
             document.getElementById('newTranslationInput').value = currentTranslation || '';
-            document.getElementById('translationImageStyleSelect').value = 'REALISTIC_CINEMATIC';
             document.getElementById('updateTranslationModal').style.display = 'flex';
             document.getElementById('updateTranslationStatus').textContent = '';
         }
@@ -2191,7 +2214,6 @@
             if (!currentTranslationWordId) return;
 
             const newTranslation = document.getElementById('newTranslationInput').value.trim();
-            const imageStyle = document.getElementById('translationImageStyleSelect').value;
             const statusEl = document.getElementById('updateTranslationStatus');
             const btnEl = document.getElementById('updateTranslationBtn');
 
@@ -2212,8 +2234,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        translation: newTranslation,
-                        imageStyle: imageStyle
+                        translation: newTranslation
                     })
                 });
 
@@ -2244,7 +2265,6 @@
             currentMnemonicKeywordWordId = wordId;
             document.getElementById('mnemonicKeywordModalWordTitle').textContent = sourceWord;
             document.getElementById('newMnemonicKeywordInput').value = currentKeyword || '';
-            document.getElementById('mnemonicKeywordImageStyleSelect').value = 'REALISTIC_CINEMATIC';
             document.getElementById('updateMnemonicKeywordModal').style.display = 'flex';
             document.getElementById('updateMnemonicKeywordStatus').textContent = '';
         }
@@ -2258,7 +2278,6 @@
             if (!currentMnemonicKeywordWordId) return;
 
             const newMnemonicKeyword = document.getElementById('newMnemonicKeywordInput').value.trim();
-            const imageStyle = document.getElementById('mnemonicKeywordImageStyleSelect').value;
             const statusEl = document.getElementById('updateMnemonicKeywordStatus');
             const btnEl = document.getElementById('updateMnemonicKeywordBtn');
 
@@ -2279,8 +2298,7 @@
                         'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({
-                        mnemonicKeyword: newMnemonicKeyword,
-                        imageStyle: imageStyle
+                        mnemonicKeyword: newMnemonicKeyword
                     })
                 });
 
@@ -2373,6 +2391,94 @@
             }
         }
 
+        // Image style update functions
+        let currentImageStyleWordId = null;
+
+        function showEditImageStyleModal(wordId, currentStyle) {
+            console.log('showEditImageStyleModal called with wordId:', wordId, 'currentStyle:', currentStyle);
+            currentImageStyleWordId = wordId;
+            document.getElementById('editImageStyleSelect').value = currentStyle || 'REALISTIC_CINEMATIC';
+            document.getElementById('editImageStyleModal').style.display = 'flex';
+            document.getElementById('editImageStyleStatus').textContent = '';
+        }
+
+        function closeEditImageStyleModal() {
+            document.getElementById('editImageStyleModal').style.display = 'none';
+            currentImageStyleWordId = null;
+        }
+
+        async function saveImageStyle() {
+            console.log('saveImageStyle called with currentImageStyleWordId:', currentImageStyleWordId);
+            if (!currentImageStyleWordId) {
+                console.error('currentImageStyleWordId is null or undefined');
+                return;
+            }
+
+            const imageStyle = document.getElementById('editImageStyleSelect').value;
+            const statusEl = document.getElementById('editImageStyleStatus');
+            const btnEl = document.getElementById('saveImageStyleBtn');
+
+            console.log('Saving image style:', imageStyle, 'for word:', currentImageStyleWordId);
+            statusEl.textContent = 'Saving...';
+            statusEl.style.color = '#007bff';
+            btnEl.disabled = true;
+
+            try {
+                const url = `/api/words/${currentImageStyleWordId}/update-image-style`;
+                console.log('Fetching URL:', url);
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        imageStyle: imageStyle
+                    })
+                });
+
+                console.log('Response status:', response.status, 'ok:', response.ok);
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('Error response:', errorText);
+                    statusEl.textContent = 'Error: ' + response.status + ' - ' + errorText;
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                    return;
+                }
+
+                const result = await response.json();
+                console.log('Result:', result);
+
+                if (result.success) {
+                    statusEl.textContent = 'Image style updated!';
+                    statusEl.style.color = '#28a745';
+                    closeEditImageStyleModal();
+                    // Update the display text without reloading
+                    const styleDisplayMap = {
+                        'REALISTIC_CINEMATIC': 'Realistic Cinematic',
+                        'ANIMATED_2D_CINEMATIC': '2D Animated Cinematic',
+                        'ANIMATED_3D_CINEMATIC': '3D Animated Cinematic'
+                    };
+                    const displayEl = document.getElementById('image-style-display-' + currentImageStyleWordId);
+                    if (displayEl) {
+                        const spanEl = displayEl.querySelector('span');
+                        if (spanEl) {
+                            spanEl.textContent = styleDisplayMap[imageStyle] || imageStyle;
+                        }
+                    }
+                } else {
+                    statusEl.textContent = 'Error: ' + (result.error || 'Unknown error');
+                    statusEl.style.color = '#dc3545';
+                    btnEl.disabled = false;
+                }
+            } catch (error) {
+                statusEl.textContent = 'Error: ' + error.message;
+                statusEl.style.color = '#dc3545';
+                btnEl.disabled = false;
+            }
+        }
+
         // Clear override for a word field
         async function clearOverride(wordId, overrideType) {
             if (!confirm(`Are you sure you want to clear the ${overrideType} override? This will allow the field to be regenerated.`)) {
@@ -2418,6 +2524,13 @@
         document.getElementById('updateTransliterationModal')?.addEventListener('click', function(e) {
             if (e.target === this) {
                 closeUpdateTransliterationModal();
+            }
+        });
+
+        // Close image style modal on background click
+        document.getElementById('editImageStyleModal')?.addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeEditImageStyleModal();
             }
         });
 

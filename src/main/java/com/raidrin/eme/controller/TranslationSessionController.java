@@ -1157,6 +1157,13 @@ public class TranslationSessionController {
             mergedData.put("image_prompt_status", "NONE");
         }
 
+        // Add image style for regeneration
+        if (wordEntity.getImageStyle() != null) {
+            mergedData.put("image_style", wordEntity.getImageStyle());
+        } else {
+            mergedData.put("image_style", "REALISTIC_CINEMATIC");
+        }
+
         // Update with latest sentence data from SentenceEntity
         Optional<SentenceData> sentenceDataOpt = sentenceStorageService.findSentence(
                 sourceWord, sourceLanguage, targetLanguage);

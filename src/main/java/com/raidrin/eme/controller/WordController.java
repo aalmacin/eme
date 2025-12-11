@@ -78,7 +78,11 @@ public class WordController {
             String customPrompt = null;
             Boolean useSamePrompt = false;
             String model = "gpt-image-1-mini"; // Default model
-            ImageStyle imageStyle = ImageStyle.REALISTIC_CINEMATIC; // Default style
+
+            // Get image style from the word entity, falling back to default if not set
+            ImageStyle imageStyle = word.getImageStyle() != null
+                    ? ImageStyle.fromString(word.getImageStyle())
+                    : ImageStyle.REALISTIC_CINEMATIC;
 
             if (request != null) {
                 if (request.containsKey("imagePrompt")) {
@@ -95,10 +99,6 @@ public class WordController {
                         response.put("error", "Invalid model. Must be gpt-image-1-mini or gpt-image-1");
                         return ResponseEntity.badRequest().body(response);
                     }
-                }
-                if (request.containsKey("imageStyle")) {
-                    String styleValue = request.get("imageStyle").toString();
-                    imageStyle = ImageStyle.fromString(styleValue);
                 }
             }
 
@@ -502,12 +502,10 @@ public class WordController {
             // Get the first translation for mnemonic generation
             String translation = translations.iterator().next();
 
-            // Get image style if provided
-            ImageStyle imageStyle = ImageStyle.REALISTIC_CINEMATIC; // Default style
-            if (request.containsKey("imageStyle")) {
-                String styleValue = request.get("imageStyle").toString();
-                imageStyle = ImageStyle.fromString(styleValue);
-            }
+            // Get image style from the word entity, falling back to default if not set
+            ImageStyle imageStyle = word.getImageStyle() != null
+                    ? ImageStyle.fromString(word.getImageStyle())
+                    : ImageStyle.REALISTIC_CINEMATIC;
 
             // Generate new mnemonic based on whether keyword was manually set
             String transliteration = word.getSourceTransliteration();
@@ -684,12 +682,10 @@ public class WordController {
                 return ResponseEntity.badRequest().body(response);
             }
 
-            // Get image style if provided
-            ImageStyle imageStyle = ImageStyle.REALISTIC_CINEMATIC; // Default style
-            if (request.containsKey("imageStyle")) {
-                String styleValue = request.get("imageStyle").toString();
-                imageStyle = ImageStyle.fromString(styleValue);
-            }
+            // Get image style from the word entity, falling back to default if not set
+            ImageStyle imageStyle = word.getImageStyle() != null
+                    ? ImageStyle.fromString(word.getImageStyle())
+                    : ImageStyle.REALISTIC_CINEMATIC;
 
             // Generate new mnemonic sentence and image prompt FROM the user's keyword
             // This ensures the sentence and prompt are derived from the keyword and character guide
@@ -1285,6 +1281,52 @@ public class WordController {
         } catch (Exception e) {
             response.put("success", false);
             response.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(response);
+        }
+    }
+
+    /**
+     * Update image style for a word
+     */
+    @PostMapping("/{wordId}/update-image-style")
+    public ResponseEntity<Map<String, Object>> updateImageStyle(
+            @PathVariable Long wordId,
+            @RequestBody Map<String, Object> request) {
+
+        Map<String, Object> response = new HashMap<>();
+
+        try {
+            Optional<WordEntity> wordOpt = wordService.getAllWords().stream()
+                    .filter(w -> w.getId().equals(wordId))
+                    .findFirst();
+
+            if (!wordOpt.isPresent()) {
+                response.put("success", false);
+                response.put("error", "Word not found");
+                return ResponseEntity.notFound().build();
+            }
+
+            String imageStyleStr = (String) request.get("imageStyle");
+            if (imageStyleStr == null || imageStyleStr.trim().isEmpty()) {
+                response.put("success", false);
+                response.put("error", "Image style is required");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            // Validate the image style
+            ImageStyle imageStyle = ImageStyle.fromString(imageStyleStr);
+
+            wordService.updateImageStyle(wordId, imageStyle.name());
+
+            response.put("success", true);
+            response.put("message", "Image style updated successfully");
+            response.put("imageStyle", imageStyle.name());
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("error", e.getMessage());
+            e.printStackTrace();
             return ResponseEntity.internalServerError().body(response);
         }
     }
