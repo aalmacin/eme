@@ -1005,7 +1005,6 @@
 
         <!-- Translation Status -->
         <div th:with="translationErrors=${sessionData.get('process_summary').get('translation_errors')}"
-             th:if="${translationSession.imageGenerationEnabled || translationSession.audioGenerationEnabled}"
              th:classappend="${translationErrors.isEmpty() ? 'success' : 'failure'}"
              class="process-status-card">
             <div class="process-header">
@@ -1614,7 +1613,7 @@
         }
     </style>
 
-    <script>
+    <script th:inline="javascript">
         // Collapsible toggle function (replaces Bootstrap collapse)
         function toggleCollapse(contentId, headerEl) {
             const content = document.getElementById(contentId);
@@ -3421,6 +3420,46 @@
         // SELECTIVE REGENERATION (Phase 2.3)
         // ========================================================================
 
+        // Auto-reload countdown management
+        let autoReloadTimerId = null;
+        let autoReloadIntervalId = null;
+
+        function startAutoReloadCountdown(seconds) {
+            // Clear any existing countdown
+            cancelAutoReload();
+
+            let remaining = seconds;
+            const countdownEl = document.getElementById('countdown-seconds');
+
+            // Update countdown every second
+            autoReloadIntervalId = setInterval(() => {
+                remaining--;
+                if (countdownEl) {
+                    countdownEl.textContent = remaining;
+                }
+            }, 1000);
+
+            // Reload after countdown
+            autoReloadTimerId = setTimeout(() => {
+                window.location.reload();
+            }, seconds * 1000);
+        }
+
+        function cancelAutoReload() {
+            if (autoReloadTimerId) {
+                clearTimeout(autoReloadTimerId);
+                autoReloadTimerId = null;
+            }
+            if (autoReloadIntervalId) {
+                clearInterval(autoReloadIntervalId);
+                autoReloadIntervalId = null;
+            }
+            const countdownEl = document.getElementById('reload-countdown');
+            if (countdownEl) {
+                countdownEl.innerHTML = '<button onclick="window.location.reload()" class="btn btn-sm" style="padding: 4px 12px; font-size: 12px;">Reload Page</button>';
+            }
+        }
+
         /**
          * Run selective generation for a specific operation type
          * @param {string} operationType - One of: translations, transliterations, mnemonic-keywords,
@@ -3549,19 +3588,25 @@
                 `;
             }
 
-            // Reload suggestion
+            // Auto-reload after success
             if (result.success_count > 0) {
                 html += `
                     <div style="margin-top: 15px; padding: 10px; background: #d4edda; border-radius: var(--radius-sm); border: 1px solid #c3e6cb;">
                         <strong>✅ Success!</strong> Generated content for ${result.success_count} word(s).
-                        <button onclick="window.location.reload()" class="btn btn-sm" style="margin-left: 10px; padding: 4px 12px; font-size: 12px;">
-                            🔄 Reload Page
+                        <span id="reload-countdown" style="margin-left: 10px;">Page will reload in <span id="countdown-seconds">3</span> seconds...</span>
+                        <button onclick="cancelAutoReload()" class="btn btn-sm" style="margin-left: 10px; padding: 4px 12px; font-size: 12px;">
+                            Cancel
                         </button>
                     </div>
                 `;
             }
 
             resultContent.innerHTML = html;
+
+            // Start auto-reload countdown if there were successful generations
+            if (result.success_count > 0) {
+                startAutoReloadCountdown(3);
+            }
         }
 
         // Session Name Editing Functions
